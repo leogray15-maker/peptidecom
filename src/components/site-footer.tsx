@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Grey Lab";
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Arcane Lab";
 
 export function SiteFooter() {
   return (

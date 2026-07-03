@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { DisclaimerBar } from "@/components/disclaimer-bar";
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Grey Lab";
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Arcane Lab";
 
 export const metadata: Metadata = {
   title: {

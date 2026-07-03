@@ -173,18 +173,18 @@ export function ProgressClient({ initialLogs }: { initialLogs: Log[] }) {
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#20202b" />
+                <XAxis dataKey="date" stroke="#6b6b7b" fontSize={12} />
+                <YAxis stroke="#6b6b7b" fontSize={12} />
                 <Tooltip
                   contentStyle={{
-                    background: "#111a2e",
-                    border: "1px solid #1e293b",
+                    background: "#0f0f15",
+                    border: "1px solid #20202b",
                     borderRadius: 12,
                     color: "#e2e8f0",
                   }}
                 />
-                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#598bff" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#7c5cff" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="waist" name="Waist (cm)" stroke="#34d399" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>

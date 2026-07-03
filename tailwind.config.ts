@@ -9,23 +9,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Arcane Peptides palette: vivid violet accent on near-black.
         brand: {
-          50: "#eef4ff",
-          100: "#d9e6ff",
-          200: "#bcd2ff",
-          300: "#8eb4ff",
-          400: "#598bff",
-          500: "#3563ff",
-          600: "#1f42f5",
-          700: "#1731e1",
-          800: "#1a2bb6",
-          900: "#1c2b8f",
-          950: "#151a57",
+          50: "#f4f2ff",
+          100: "#eae6ff",
+          200: "#d7ccff",
+          300: "#b9a7ff",
+          400: "#9a7bff",
+          500: "#7c5cff",
+          600: "#6a44f5",
+          700: "#5a33da",
+          800: "#4a2bae",
+          900: "#3d2889",
+          950: "#241858",
         },
         lab: {
-          bg: "#0b1120",
-          card: "#111a2e",
-          border: "#1e293b",
+          bg: "#07070a",
+          card: "#0f0f15",
+          border: "#20202b",
         },
       },
       fontFamily: {

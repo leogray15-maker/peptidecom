@@ -1,4 +1,4 @@
-// Prisma schema for The Grey Lab — peptide community platform
+// Prisma schema for The Arcane Lab — peptide community platform
 generator client {
   provider = "prisma-client-js"
 }

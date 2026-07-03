@@ -1,4 +1,4 @@
-# The Grey Lab — peptide research community
+# The Arcane Lab — peptide research community
 
 A private, members-only community platform for peptide research, built as a
 custom alternative to Skool. Subscription paywall via Stripe, plus the tools a

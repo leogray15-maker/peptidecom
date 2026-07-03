@@ -64,7 +64,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(53,99,255,0.18),transparent)]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(124,92,255,0.20),transparent)]" />
         <div className="container-lab py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <span className="badge border border-brand-700 bg-brand-950/60 text-brand-200">

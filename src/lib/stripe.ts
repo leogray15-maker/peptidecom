@@ -9,7 +9,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "sk_test_place
   apiVersion: "2025-02-24.acacia",
   typescript: true,
   appInfo: {
-    name: "The Grey Lab",
+    name: "The Arcane Lab",
   },
 });
 

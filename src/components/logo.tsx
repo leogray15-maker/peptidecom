@@ -2,7 +2,7 @@ import { FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Grey Lab";
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Arcane Lab";
 
 export function Logo({ className, href = "/" }: { className?: string; href?: string }) {
   return (
