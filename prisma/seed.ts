@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -19,8 +18,9 @@ async function main() {
     await prisma.category.upsert({ where: { slug: c.slug }, update: c, create: c });
   }
 
-  // Demo admin (active membership so you can log straight in)
-  const passwordHash = await bcrypt.hash("changeme123", 12);
+  // Demo admin with an active membership. Sign up in the app with this email via
+  // Firebase and the account links automatically (matched by email), giving you
+  // instant admin + member access to explore the gated area.
   const admin = await prisma.user.upsert({
     where: { email: "admin@example.com" },
     update: {},
@@ -28,7 +28,6 @@ async function main() {
       email: "admin@example.com",
       name: "Lab Admin",
       username: "admin",
-      passwordHash,
       role: "ADMIN",
       verified: true,
       reputation: 500,
@@ -101,7 +100,7 @@ async function main() {
     },
   });
 
-  console.log("Seed complete. Demo login: admin@example.com / changeme123");
+  console.log("Seed complete. Sign up in-app with admin@example.com (Firebase) to claim admin + membership.");
 }
 
 main()

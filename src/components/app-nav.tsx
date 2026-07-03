@@ -7,6 +7,7 @@ import {
   Calculator,
   LineChart,
   MessageSquare,
+  MessagesSquare,
   Store,
   FlaskConical,
   PackageCheck,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/community", label: "Community", icon: MessageSquare },
+  { href: "/chat", label: "Live chat", icon: MessagesSquare },
   { href: "/calculator", label: "Calculator", icon: Calculator },
   { href: "/progress", label: "Progress", icon: LineChart },
   { href: "/vendors", label: "Vendors", icon: Store },

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { syncMembershipClaim } from "@/lib/auth";
 import type { SubscriptionStatus } from "@prisma/client";
 
 // Stripe requires the raw body for signature verification.
@@ -40,15 +41,22 @@ async function syncSubscription(subscription: Stripe.Subscription) {
   if (!user) return;
 
   const item = subscription.items.data[0];
+  const status = mapStatus(subscription.status);
   await prisma.user.update({
     where: { id: user.id },
     data: {
       stripeSubscriptionId: subscription.id,
       stripePriceId: item?.price.id ?? null,
       stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      subscriptionStatus: mapStatus(subscription.status),
+      subscriptionStatus: status,
     },
   });
+
+  // Update the Firebase custom claim so real-time features unlock/lock in step
+  // with membership (the client token picks it up on next refresh).
+  if (user.firebaseUid) {
+    await syncMembershipClaim(user.firebaseUid, status, user.role);
+  }
 }
 
 export async function POST(req: Request) {

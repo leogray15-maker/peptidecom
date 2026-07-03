@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Firestore security rules for The Arcane Lab live chat.
+// Access is gated on the `member` custom claim, which the server sets from the
+// user's Stripe subscription status (see src/lib/auth.ts -> syncMembershipClaim).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isMember() {
+      return request.auth != null && request.auth.token.member == true;
+    }
+
+    match /channels/{channelId}/messages/{messageId} {
+      // Any paid-up member can read the chat.
+      allow read: if isMember();
+
+      // Members can post messages as themselves; basic shape/length validation.
+      allow create: if isMember()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000;
+
+      // Messages are immutable from the client (moderation happens server-side/admin).
+      allow update, delete: if false;
+    }
+  }
+}
