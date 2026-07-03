@@ -1,12 +1,16 @@
 import "server-only";
-import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
-import { getAuth, type Auth } from "firebase-admin/auth";
+import type { App } from "firebase-admin/app";
+import type { Auth } from "firebase-admin/auth";
 
 let cached: App | null = null;
 
-/** Lazily initialise the Firebase Admin app. Throws only when actually called
- * without credentials, so importing this module never breaks the build. */
-function getAdminApp(): App {
+/** Lazily initialise the Firebase Admin app. The firebase-admin packages are
+ * imported dynamically (only when actually used) so merely importing this module
+ * never executes firebase-admin's dynamic requires — which can crash at module
+ * load in a bundled serverless environment. */
+async function getAdminApp(): Promise<App> {
+  const { cert, getApps, initializeApp } = await import("firebase-admin/app");
+
   if (cached) return cached;
   if (getApps().length) {
     cached = getApps()[0];
@@ -30,8 +34,9 @@ function getAdminApp(): App {
   return cached;
 }
 
-export function adminAuth(): Auth {
-  return getAuth(getAdminApp());
+export async function adminAuth(): Promise<Auth> {
+  const { getAuth } = await import("firebase-admin/auth");
+  return getAuth(await getAdminApp());
 }
 
 /** Session cookie lifetime: 14 days (Firebase max is 14 days). */

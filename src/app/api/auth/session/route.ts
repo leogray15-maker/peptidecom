@@ -27,9 +27,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing idToken." }, { status: 400 });
   }
 
+  const admin = await adminAuth();
   let decoded;
   try {
-    decoded = await adminAuth().verifyIdToken(parsed.data.idToken);
+    decoded = await admin.verifyIdToken(parsed.data.idToken);
   } catch {
     return NextResponse.json({ error: "Invalid token." }, { status: 401 });
   }
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
 
   // Create the session cookie from the ID token.
   const expiresIn = SESSION_COOKIE_MAX_AGE * 1000;
-  const sessionCookie = await adminAuth().createSessionCookie(parsed.data.idToken, {
+  const sessionCookie = await admin.createSessionCookie(parsed.data.idToken, {
     expiresIn,
   });
 

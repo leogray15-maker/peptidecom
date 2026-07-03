@@ -33,7 +33,7 @@ export async function GET() {
   let firebaseAdmin = { ok: false, error: "" as string };
   try {
     const { adminAuth } = await import("@/lib/firebase-admin");
-    await adminAuth().createCustomToken("health-check");
+    await (await adminAuth()).createCustomToken("health-check");
     firebaseAdmin = { ok: true, error: "" };
   } catch (e) {
     firebaseAdmin = { ok: false, error: (e as Error).message?.split("\n")[0] ?? "failed" };

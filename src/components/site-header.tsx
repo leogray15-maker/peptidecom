@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { safeAuth } from "@/lib/auth";
+import { HeaderAuthButtons } from "@/components/header-auth-buttons";
 
-export async function SiteHeader() {
-  const session = await safeAuth();
+export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-lab-border bg-lab-bg/80 backdrop-blur">
       <div className="container-lab flex h-16 items-center justify-between">
@@ -15,14 +14,7 @@ export async function SiteHeader() {
           <Link href="/pricing" className="hover:text-white">Pricing</Link>
         </nav>
         <div className="flex items-center gap-2">
-          {session?.user ? (
-            <Link href="/dashboard" className="btn-primary">Dashboard</Link>
-          ) : (
-            <>
-              <Link href="/login" className="btn-ghost">Log in</Link>
-              <Link href="/pricing" className="btn-primary">Join</Link>
-            </>
-          )}
+          <HeaderAuthButtons />
         </div>
       </div>
     </header>

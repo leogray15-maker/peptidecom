@@ -32,7 +32,7 @@ export async function getSessionClaims() {
   const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!session) return null;
   // verifySessionCookie(session, true) also checks for revocation.
-  return adminAuth().verifySessionCookie(session, true);
+  return (await adminAuth()).verifySessionCookie(session, true);
 }
 
 /** Server-side helper: returns the current Postgres user (with fresh subscription
@@ -67,7 +67,7 @@ export async function safeAuth() {
  */
 export async function syncMembershipClaim(firebaseUid: string, status: SubscriptionStatus, role: string) {
   try {
-    await adminAuth().setCustomUserClaims(firebaseUid, {
+    await (await adminAuth()).setCustomUserClaims(firebaseUid, {
       member: isMember(status),
       role,
     });

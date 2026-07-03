@@ -34,7 +34,7 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
 
   try {
     const { adminAuth } = await import("@/lib/firebase-admin");
-    await adminAuth().createCustomToken("setup-check");
+    await (await adminAuth()).createCustomToken("setup-check");
     services.push({ label: "Firebase Admin (server)", ok: true });
   } catch (e) {
     services.push({ label: "Firebase Admin (server)", ok: false, detail: (e as Error).message?.split("\n")[0] });
