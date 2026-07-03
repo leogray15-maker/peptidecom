@@ -6,6 +6,9 @@ import { AppNav } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
 import { SignOutButton } from "@/components/sign-out-button";
 
+// Member pages are per-request (auth + DB) and must never be prerendered at build.
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {

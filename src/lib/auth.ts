@@ -82,11 +82,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 /** Statuses that grant access to gated content. */
 const ACTIVE: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
 
-/** Server-side helper: returns the current user with fresh subscription state, or null. */
+/** Next.js uses thrown errors for control flow (redirect, notFound, dynamic
+ * rendering). These must never be swallowed by a catch block or the build breaks. */
+function isNextControlFlowError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null || !("digest" in err)) return false;
+  const digest = (err as { digest?: unknown }).digest;
+  return (
+    typeof digest === "string" &&
+    (digest === "DYNAMIC_SERVER_USAGE" ||
+      digest.startsWith("NEXT_REDIRECT") ||
+      digest.startsWith("NEXT_NOT_FOUND") ||
+      digest.startsWith("NEXT_HTTP_ERROR_FALLBACK"))
+  );
+}
+
+/** Server-side helper: returns the current user with fresh subscription state, or null.
+ * Never throws on config/DB errors — if auth or the database is misconfigured
+ * (e.g. missing AUTH_SECRET or DATABASE_URL on a fresh deploy) it returns null so
+ * public pages still render and gated pages redirect to login rather than 500. */
 export async function getCurrentUser() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return prisma.user.findUnique({ where: { id: session.user.id } });
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return null;
+    return await prisma.user.findUnique({ where: { id: session.user.id } });
+  } catch (err) {
+    if (isNextControlFlowError(err)) throw err;
+    console.error("getCurrentUser failed:", err);
+    return null;
+  }
+}
+
+/** Session lookup that never throws on config errors. Safe to call from public pages. */
+export async function safeAuth() {
+  try {
+    return await auth();
+  } catch (err) {
+    if (isNextControlFlowError(err)) throw err;
+    console.error("auth() failed:", err);
+    return null;
+  }
 }
 
 /** True when the given subscription status currently grants access. */

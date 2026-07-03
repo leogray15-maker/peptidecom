@@ -14,6 +14,9 @@ import {
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
+// Header reflects auth state, so render per-request.
+export const dynamic = "force-dynamic";
+
 const features = [
   {
     icon: ShieldCheck,

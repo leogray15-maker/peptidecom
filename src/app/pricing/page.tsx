@@ -6,6 +6,7 @@ import { getCurrentUser, isMember } from "@/lib/auth";
 import { PricingPlans } from "@/components/pricing-plans";
 
 export const metadata = { title: "Pricing" };
+export const dynamic = "force-dynamic";
 
 const perks = [
   "Full access to the members-only community",

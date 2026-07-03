@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { auth } from "@/lib/auth";
+import { safeAuth } from "@/lib/auth";
 
 export async function SiteHeader() {
-  const session = await auth();
+  const session = await safeAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-lab-border bg-lab-bg/80 backdrop-blur">
       <div className="container-lab flex h-16 items-center justify-between">
