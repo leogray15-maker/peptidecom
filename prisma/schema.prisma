@@ -1,0 +1,288 @@
+// Prisma schema for The Grey Lab — peptide community platform
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth / Users ────────────────────────────────────────────────────────────
+
+enum Role {
+  MEMBER
+  MODERATOR
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  NONE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String?   @unique
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  bio           String?
+  role          Role      @default(MEMBER)
+
+  // Trust / reputation
+  reputation    Int      @default(0)
+  verified      Boolean  @default(false) // vouched / verified member badge
+
+  // Stripe subscription
+  stripeCustomerId       String?             @unique
+  stripeSubscriptionId   String?             @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  subscriptionStatus     SubscriptionStatus  @default(NONE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  posts          Post[]
+  comments       Comment[]
+  votes          Vote[]
+  progressLogs   ProgressLog[]
+  protocols      Protocol[]
+  labResults     LabResult[]
+  vendorReviews  VendorReview[]
+  groupBuysOwned GroupBuy[]     @relation("GroupBuyOwner")
+  groupBuyJoins  GroupBuyMember[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Community forum ─────────────────────────────────────────────────────────
+
+model Category {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  icon        String?
+  order       Int     @default(0)
+  posts       Post[]
+}
+
+model Post {
+  id         String    @id @default(cuid())
+  title      String
+  content    String    @db.Text
+  authorId   String
+  categoryId String?
+  pinned     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
+  comments Comment[]
+  votes    Vote[]
+
+  @@index([categoryId])
+  @@index([authorId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String
+  postId    String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Vote {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+  value  Int    // +1 or -1
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+// ─── Progress tracking ───────────────────────────────────────────────────────
+
+model ProgressLog {
+  id           String   @id @default(cuid())
+  userId       String
+  date         DateTime @default(now())
+  weightKg     Float?
+  waistCm      Float?
+  bodyFatPct   Float?
+  mood         Int?     // 1-5
+  sideEffects  String?  @db.Text
+  notes        String?  @db.Text
+  photoUrl     String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+// ─── Dosing protocols ────────────────────────────────────────────────────────
+
+model Protocol {
+  id           String   @id @default(cuid())
+  userId       String
+  peptide      String
+  vialMg       Float
+  bacWaterMl   Float
+  doseMcg      Float
+  frequency    String   // e.g. "daily", "2x/week"
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+  active       Boolean  @default(true)
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Vendors & trust ─────────────────────────────────────────────────────────
+
+model Vendor {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  website     String?
+  description String?  @db.Text
+  country     String?
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  reviews    VendorReview[]
+  labResults LabResult[]
+}
+
+model VendorReview {
+  id        String   @id @default(cuid())
+  vendorId  String
+  userId    String
+  rating    Int      // 1-5
+  title     String?
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, userId])
+  @@index([vendorId])
+}
+
+model LabResult {
+  id           String   @id @default(cuid())
+  vendorId     String?
+  submittedById String
+  peptide      String
+  batch        String?
+  purityPct    Float?
+  labName      String?
+  fileUrl      String?  // link to COA / mass-spec PDF
+  summary      String?  @db.Text
+  testedAt     DateTime?
+  createdAt    DateTime @default(now())
+
+  vendor      Vendor? @relation(fields: [vendorId], references: [id])
+  submittedBy User    @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+}
+
+// ─── Group buys ──────────────────────────────────────────────────────────────
+
+enum GroupBuyStatus {
+  OPEN
+  LOCKED
+  ORDERED
+  SHIPPED
+  COMPLETE
+  CANCELED
+}
+
+model GroupBuy {
+  id          String         @id @default(cuid())
+  title       String
+  peptide     String
+  vendorName  String?
+  pricePerUnit Float?
+  targetUnits Int?
+  deadline    DateTime?
+  status      GroupBuyStatus @default(OPEN)
+  ownerId     String
+  details     String?        @db.Text
+  createdAt   DateTime       @default(now())
+
+  owner   User             @relation("GroupBuyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members GroupBuyMember[]
+}
+
+model GroupBuyMember {
+  id         String   @id @default(cuid())
+  groupBuyId String
+  userId     String
+  units      Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  groupBuy GroupBuy @relation(fields: [groupBuyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupBuyId, userId])
+}
