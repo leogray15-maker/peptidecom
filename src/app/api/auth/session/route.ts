@@ -6,7 +6,7 @@ import {
   SESSION_COOKIE_MAX_AGE,
   SESSION_COOKIE_NAME,
 } from "@/lib/firebase-admin";
-import { syncMembershipClaim } from "@/lib/auth";
+import { isAdminEmail, syncMembershipClaim } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -69,9 +69,18 @@ export async function POST(req: Request) {
           name: name ?? null,
           image: picture ?? null,
           username,
+          role: isAdminEmail(normalizedEmail) ? "ADMIN" : "MEMBER",
         },
       });
     }
+  }
+
+  // Ensure allow-listed emails always have the ADMIN role (bypasses the paywall).
+  if (isAdminEmail(normalizedEmail) && user.role !== "ADMIN") {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { role: "ADMIN" },
+    });
   }
 
   // Keep the Firebase custom claim in sync with membership for Firestore rules.

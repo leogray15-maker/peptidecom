@@ -21,12 +21,13 @@ async function main() {
   // Demo admin with an active membership. Sign up in the app with this email via
   // Firebase and the account links automatically (matched by email), giving you
   // instant admin + member access to explore the gated area.
+  const ADMIN_EMAIL = "leogray15@gmail.com";
   const admin = await prisma.user.upsert({
-    where: { email: "admin@example.com" },
-    update: {},
+    where: { email: ADMIN_EMAIL },
+    update: { role: "ADMIN", subscriptionStatus: "ACTIVE" },
     create: {
-      email: "admin@example.com",
-      name: "Lab Admin",
+      email: ADMIN_EMAIL,
+      name: "Arcane Admin",
       username: "admin",
       role: "ADMIN",
       verified: true,
@@ -100,7 +101,7 @@ async function main() {
     },
   });
 
-  console.log("Seed complete. Sign up in-app with admin@example.com (Firebase) to claim admin + membership.");
+  console.log(`Seed complete. Sign up in-app with ${ADMIN_EMAIL} (Firebase) to claim admin + full access.`);
 }
 
 main()

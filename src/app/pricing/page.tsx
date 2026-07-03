@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { getCurrentUser, isMember } from "@/lib/auth";
+import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { PricingPlans } from "@/components/pricing-plans";
 
 export const metadata = { title: "Pricing" };
@@ -21,7 +21,7 @@ const perks = [
 export default async function PricingPage() {
   const user = await getCurrentUser();
   const authed = !!user;
-  const member = isMember(user?.subscriptionStatus);
+  const member = hasAccess(user);
 
   return (
     <>

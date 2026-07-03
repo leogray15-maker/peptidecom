@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser, isMember } from "@/lib/auth";
+import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { AppNav } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
@@ -19,7 +19,7 @@ export default async function AppLayout({
   if (!user) {
     redirect("/login?callbackUrl=/dashboard");
   }
-  if (!isMember(user.subscriptionStatus)) {
+  if (!hasAccess(user)) {
     redirect("/pricing");
   }
 

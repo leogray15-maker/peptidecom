@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { adminAuth, SESSION_COOKIE_NAME } from "@/lib/firebase-admin";
-import type { SubscriptionStatus } from "@prisma/client";
+import type { Role, SubscriptionStatus } from "@prisma/client";
 
 /** Statuses that grant access to gated content. */
 const ACTIVE: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
@@ -10,6 +10,32 @@ const ACTIVE: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
 /** True when the given subscription status currently grants access. */
 export function isMember(status?: SubscriptionStatus | null) {
   return !!status && ACTIVE.includes(status);
+}
+
+/** Emails that are always granted ADMIN + full access, regardless of billing.
+ * Configurable via ADMIN_EMAILS (comma-separated); defaults to the owner. */
+export function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "leogray15@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAdminEmail(email?: string | null) {
+  return !!email && adminEmails().includes(email.toLowerCase());
+}
+
+/** Whether a role is elevated (staff), which bypasses the paywall. */
+export function isStaff(role?: Role | null) {
+  return role === "ADMIN" || role === "MODERATOR";
+}
+
+/** Full access = an active subscription OR staff (admin/moderator). */
+export function hasAccess(
+  user?: { subscriptionStatus: SubscriptionStatus; role: Role } | null
+) {
+  if (!user) return false;
+  return isStaff(user.role) || isMember(user.subscriptionStatus);
 }
 
 /** Next.js uses thrown errors for control flow (redirect, notFound, dynamic
@@ -65,10 +91,10 @@ export async function safeAuth() {
  * Set the `member` and `role` custom claims on a Firebase user so Firestore
  * security rules can gate real-time features by membership. Best-effort.
  */
-export async function syncMembershipClaim(firebaseUid: string, status: SubscriptionStatus, role: string) {
+export async function syncMembershipClaim(firebaseUid: string, status: SubscriptionStatus, role: Role) {
   try {
     await (await adminAuth()).setCustomUserClaims(firebaseUid, {
-      member: isMember(status),
+      member: isMember(status) || isStaff(role),
       role,
     });
   } catch (err) {
