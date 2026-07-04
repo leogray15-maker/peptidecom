@@ -4,6 +4,23 @@ import type { Auth } from "firebase-admin/auth";
 
 let cached: App | null = null;
 
+/** Robustly normalise a private key pasted into an env var:
+ * - trims whitespace
+ * - strips surrounding single/double quotes (a common Vercel paste mistake)
+ * - converts literal \n escape sequences to real newlines */
+function normalizePrivateKey(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  let key = raw.trim();
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+  key = key.replace(/\\n/g, "\n");
+  return key;
+}
+
 /** Lazily initialise the Firebase Admin app. The firebase-admin packages are
  * imported dynamically (only when actually used) so merely importing this module
  * never executes firebase-admin's dynamic requires — which can crash at module
@@ -19,13 +36,17 @@ async function getAdminApp(): Promise<App> {
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  // Private keys are stored with literal \n in env vars; convert to real newlines.
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKey = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
   if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "Firebase Admin is not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY."
-    );
+    const missing = [
+      !projectId && "FIREBASE_PROJECT_ID",
+      !clientEmail && "FIREBASE_CLIENT_EMAIL",
+      !privateKey && "FIREBASE_PRIVATE_KEY",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(`Firebase Admin is not configured. Missing: ${missing}.`);
   }
 
   cached = initializeApp({
