@@ -11,6 +11,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
@@ -27,15 +28,15 @@ const quickLinks = [
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
-  const [recentPosts, memberCount, testCount] = await Promise.all([
+  const getRecentPosts = () =>
     prisma.post.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
       include: { author: true, category: true, _count: { select: { comments: true } } },
-    }),
-    prisma.user.count(),
-    prisma.labResult.count(),
-  ]);
+    });
+  const recentPosts = await safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>);
+  const memberCount = await safe(() => prisma.user.count(), 0);
+  const testCount = await safe(() => prisma.labResult.count(), 0);
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 

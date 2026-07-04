@@ -2,7 +2,39 @@ import "server-only";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { adminAuth, SESSION_COOKIE_NAME } from "@/lib/firebase-admin";
-import type { Role, SubscriptionStatus } from "@prisma/client";
+import type { Role, SubscriptionStatus, User } from "@prisma/client";
+
+/** Preview mode: lets an admin into the member area with no login/DB, so the
+ * UI can be reviewed before auth is fully wired. Toggle with PREVIEW_MODE=true
+ * (or NEXT_PUBLIC_PREVIEW_MODE=true). MUST be off in real production. */
+export function isPreviewMode() {
+  return (
+    process.env.PREVIEW_MODE === "true" ||
+    process.env.NEXT_PUBLIC_PREVIEW_MODE === "true"
+  );
+}
+
+/** A synthetic admin used only in preview mode (never persisted). */
+const PREVIEW_USER: User = {
+  id: "preview-admin",
+  firebaseUid: "preview-admin",
+  name: "Preview Admin",
+  username: "preview",
+  email: "preview@thearcanelab.local",
+  emailVerified: null,
+  image: null,
+  bio: null,
+  role: "ADMIN",
+  reputation: 0,
+  verified: true,
+  stripeCustomerId: null,
+  stripeSubscriptionId: null,
+  stripePriceId: null,
+  stripeCurrentPeriodEnd: null,
+  subscriptionStatus: "ACTIVE",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 /** Statuses that grant access to gated content. */
 const ACTIVE: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
@@ -67,13 +99,17 @@ export async function getSessionClaims() {
 export async function getCurrentUser() {
   try {
     const claims = await getSessionClaims();
-    if (!claims?.uid) return null;
-    return await prisma.user.findUnique({ where: { firebaseUid: claims.uid } });
+    if (claims?.uid) {
+      const user = await prisma.user.findUnique({ where: { firebaseUid: claims.uid } });
+      if (user) return user;
+    }
   } catch (err) {
     if (isNextControlFlowError(err)) throw err;
-    // Expired/invalid cookie or unconfigured Firebase → treat as logged out.
-    return null;
+    // Expired/invalid cookie or unconfigured Firebase → fall through.
   }
+  // Preview mode: grant a synthetic admin so the member area is browsable.
+  if (isPreviewMode()) return PREVIEW_USER;
+  return null;
 }
 
 /** Lightweight signed-in check that never throws. Safe for public pages. */

@@ -1,16 +1,19 @@
 import { PageHeader } from "@/components/page-header";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { formatDate } from "@/lib/utils";
 import { FlaskConical, FileText } from "lucide-react";
 
 export const metadata = { title: "Lab tests" };
 
 export default async function LabTestsPage() {
-  const results = await prisma.labResult.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { vendor: true, submittedBy: { select: { name: true } } },
-    take: 100,
-  });
+  const getResults = () =>
+    prisma.labResult.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { vendor: true, submittedBy: { select: { name: true } } },
+      take: 100,
+    });
+  const results = await safe(getResults, [] as Awaited<ReturnType<typeof getResults>>);
 
   return (
     <div>

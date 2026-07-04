@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { Avatar } from "@/components/avatar";
 import { timeAgo } from "@/lib/utils";
 import { NewPostForm } from "@/components/new-post-form";
@@ -9,7 +10,7 @@ import { Pin, MessageSquare, ArrowBigUp } from "lucide-react";
 export const metadata = { title: "Community" };
 
 export default async function CommunityPage() {
-  const [posts, categories] = await Promise.all([
+  const getPosts = () =>
     prisma.post.findMany({
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 50,
@@ -19,9 +20,10 @@ export default async function CommunityPage() {
         _count: { select: { comments: true, votes: true } },
         votes: { select: { value: true } },
       },
-    }),
-    prisma.category.findMany({ orderBy: { order: "asc" } }),
-  ]);
+    });
+  const getCategories = () => prisma.category.findMany({ orderBy: { order: "asc" } });
+  const posts = await safe(getPosts, [] as Awaited<ReturnType<typeof getPosts>>);
+  const categories = await safe(getCategories, [] as Awaited<ReturnType<typeof getCategories>>);
 
   return (
     <div>

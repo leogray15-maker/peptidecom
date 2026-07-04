@@ -1,17 +1,22 @@
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { ProgressClient } from "@/components/progress-client";
 
 export const metadata = { title: "Progress" };
 
 export default async function ProgressPage() {
   const user = await getCurrentUser();
-  const logs = await prisma.progressLog.findMany({
-    where: { userId: user!.id },
-    orderBy: { date: "asc" },
-    take: 365,
-  });
+  const logs = await safe(
+    () =>
+      prisma.progressLog.findMany({
+        where: { userId: user?.id ?? "" },
+        orderBy: { date: "asc" },
+        take: 365,
+      }),
+    [] as Awaited<ReturnType<typeof prisma.progressLog.findMany>>
+  );
 
   // Serialize dates for the client component.
   const serialized = logs.map((l) => ({

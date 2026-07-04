@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import { JoinButton } from "@/components/join-button";
@@ -18,13 +19,15 @@ const statusColors: Record<string, string> = {
 
 export default async function GroupBuysPage() {
   const user = await getCurrentUser();
-  const buys = await prisma.groupBuy.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      owner: { select: { name: true } },
-      members: { select: { userId: true, units: true } },
-    },
-  });
+  const getBuys = () =>
+    prisma.groupBuy.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        owner: { select: { name: true } },
+        members: { select: { userId: true, units: true } },
+      },
+    });
+  const buys = await safe(getBuys, [] as Awaited<ReturnType<typeof getBuys>>);
 
   return (
     <div>

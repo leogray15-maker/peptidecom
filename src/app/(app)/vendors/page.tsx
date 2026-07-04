@@ -1,17 +1,20 @@
 import { PageHeader } from "@/components/page-header";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { ShieldCheck, Star, ExternalLink } from "lucide-react";
 
 export const metadata = { title: "Vendors" };
 
 export default async function VendorsPage() {
-  const vendors = await prisma.vendor.findMany({
-    orderBy: [{ verified: "desc" }, { name: "asc" }],
-    include: {
-      reviews: { select: { rating: true } },
-      _count: { select: { labResults: true, reviews: true } },
-    },
-  });
+  const getVendors = () =>
+    prisma.vendor.findMany({
+      orderBy: [{ verified: "desc" }, { name: "asc" }],
+      include: {
+        reviews: { select: { rating: true } },
+        _count: { select: { labResults: true, reviews: true } },
+      },
+    });
+  const vendors = await safe(getVendors, [] as Awaited<ReturnType<typeof getVendors>>);
 
   return (
     <div>

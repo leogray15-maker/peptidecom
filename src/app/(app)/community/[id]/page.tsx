@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { safe } from "@/lib/safe-db";
 import { getCurrentUser } from "@/lib/auth";
 import { Avatar } from "@/components/avatar";
 import { timeAgo } from "@/lib/utils";
@@ -12,18 +13,22 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const user = await getCurrentUser();
 
-  const post = await prisma.post.findUnique({
-    where: { id },
-    include: {
-      author: true,
-      category: true,
-      votes: true,
-      comments: {
-        orderBy: { createdAt: "asc" },
-        include: { author: true },
-      },
-    },
-  });
+  const post = await safe(
+    () =>
+      prisma.post.findUnique({
+        where: { id },
+        include: {
+          author: true,
+          category: true,
+          votes: true,
+          comments: {
+            orderBy: { createdAt: "asc" },
+            include: { author: true },
+          },
+        },
+      }),
+    null
+  );
 
   if (!post) notFound();
 
