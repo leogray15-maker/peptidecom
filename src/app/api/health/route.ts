@@ -8,7 +8,11 @@ export const dynamic = "force-dynamic";
  * and error messages, never secret values. */
 export async function GET() {
   const env = {
-    DATABASE_URL: !!process.env.DATABASE_URL,
+    DATABASE_URL:
+      !!process.env.DATABASE_URL ||
+      !!process.env.POSTGRES_URL_NON_POOLING ||
+      !!process.env.POSTGRES_PRISMA_URL ||
+      !!process.env.POSTGRES_URL,
     NEXT_PUBLIC_FIREBASE_API_KEY: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID,

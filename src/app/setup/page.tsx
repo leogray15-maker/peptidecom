@@ -9,7 +9,13 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
   const envVar = (label: string, present: boolean): Check => ({ label, ok: present });
 
   const env: Check[] = [
-    envVar("DATABASE_URL", !!process.env.DATABASE_URL),
+    envVar(
+      "DATABASE_URL (or POSTGRES_URL)",
+      !!process.env.DATABASE_URL ||
+        !!process.env.POSTGRES_URL_NON_POOLING ||
+        !!process.env.POSTGRES_PRISMA_URL ||
+        !!process.env.POSTGRES_URL
+    ),
     envVar("NEXT_PUBLIC_FIREBASE_API_KEY", !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
     envVar("NEXT_PUBLIC_FIREBASE_PROJECT_ID", !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID),
     envVar("NEXT_PUBLIC_FIREBASE_APP_ID", !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
