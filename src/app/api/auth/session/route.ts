@@ -27,12 +27,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing idToken." }, { status: 400 });
   }
 
-  const admin = await adminAuth();
+  // 1. Firebase Admin — verify the ID token.
+  let admin;
+  try {
+    admin = await adminAuth();
+  } catch (e) {
+    console.error("Firebase Admin not configured:", e);
+    return NextResponse.json(
+      { error: "Server auth is not configured (FIREBASE_* env vars). See /setup." },
+      { status: 503 }
+    );
+  }
+
   let decoded;
   try {
     decoded = await admin.verifyIdToken(parsed.data.idToken);
-  } catch {
-    return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+  } catch (e) {
+    console.error("verifyIdToken failed:", e);
+    return NextResponse.json({ error: "Invalid or expired token." }, { status: 401 });
   }
 
   const { uid, email, name, picture } = decoded;
@@ -41,46 +53,55 @@ export async function POST(req: Request) {
   }
   const normalizedEmail = email.toLowerCase();
 
-  // Find by Firebase UID, else link an existing seeded/email account, else create.
-  let user = await prisma.user.findUnique({ where: { firebaseUid: uid } });
-  if (!user) {
-    const byEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (byEmail) {
-      user = await prisma.user.update({
-        where: { id: byEmail.id },
-        data: {
-          firebaseUid: uid,
-          name: byEmail.name ?? name ?? null,
-          image: byEmail.image ?? picture ?? null,
-        },
-      });
-    } else {
-      // Ensure a unique username.
-      let username = makeUsername(normalizedEmail);
-      for (let i = 0; i < 5; i++) {
-        const taken = await prisma.user.findUnique({ where: { username } });
-        if (!taken) break;
-        username = `${makeUsername(normalizedEmail)}${Math.floor(Math.random() * 10000)}`;
+  // 2. Postgres — find/link/create the user row.
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { firebaseUid: uid } });
+    if (!user) {
+      const byEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (byEmail) {
+        user = await prisma.user.update({
+          where: { id: byEmail.id },
+          data: {
+            firebaseUid: uid,
+            name: byEmail.name ?? name ?? null,
+            image: byEmail.image ?? picture ?? null,
+          },
+        });
+      } else {
+        // Ensure a unique username.
+        let username = makeUsername(normalizedEmail);
+        for (let i = 0; i < 5; i++) {
+          const taken = await prisma.user.findUnique({ where: { username } });
+          if (!taken) break;
+          username = `${makeUsername(normalizedEmail)}${Math.floor(Math.random() * 10000)}`;
+        }
+        user = await prisma.user.create({
+          data: {
+            firebaseUid: uid,
+            email: normalizedEmail,
+            name: name ?? null,
+            image: picture ?? null,
+            username,
+            role: isAdminEmail(normalizedEmail) ? "ADMIN" : "MEMBER",
+          },
+        });
       }
-      user = await prisma.user.create({
-        data: {
-          firebaseUid: uid,
-          email: normalizedEmail,
-          name: name ?? null,
-          image: picture ?? null,
-          username,
-          role: isAdminEmail(normalizedEmail) ? "ADMIN" : "MEMBER",
-        },
+    }
+
+    // Ensure allow-listed emails always have the ADMIN role (bypasses the paywall).
+    if (isAdminEmail(normalizedEmail) && user.role !== "ADMIN") {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: "ADMIN" },
       });
     }
-  }
-
-  // Ensure allow-listed emails always have the ADMIN role (bypasses the paywall).
-  if (isAdminEmail(normalizedEmail) && user.role !== "ADMIN") {
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: { role: "ADMIN" },
-    });
+  } catch (e) {
+    console.error("Database error during sign-in:", e);
+    return NextResponse.json(
+      { error: "Database not reachable or not migrated (DATABASE_URL / prisma db push). See /setup." },
+      { status: 503 }
+    );
   }
 
   // Keep the Firebase custom claim in sync with membership for Firestore rules.
