@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpen,
   Calculator,
   Camera,
   ClipboardList,
-  FlaskConical,
+  GraduationCap,
   HeartHandshake,
   LayoutDashboard,
   LifeBuoy,
@@ -16,10 +15,9 @@ import {
   Map,
   MessageSquare,
   MessagesSquare,
-  PackageCheck,
   Settings,
   Sparkles,
-  Store,
+  Syringe,
   TrendingUp,
   Trophy,
 } from "lucide-react";
@@ -55,17 +53,15 @@ const sections: { title: string | null; items: NavItem[] }[] = [
       { href: "/community", label: "Community", icon: MessageSquare },
       { href: "/chat", label: "Live chat", icon: MessagesSquare },
       { href: "/won", label: "Won — stories", icon: Trophy },
-      { href: "/resources", label: "Resources", icon: BookOpen },
+      { href: "/protocols", label: "Protocols", icon: GraduationCap },
     ],
   },
   {
     title: "The Lab",
     items: [
+      { href: "/peptides", label: "Peptide tracker", icon: Syringe },
       { href: "/calculator", label: "Calculator", icon: Calculator },
       { href: "/progress", label: "Progress", icon: LineChart },
-      { href: "/vendors", label: "Vendors", icon: Store },
-      { href: "/lab-tests", label: "Lab tests", icon: FlaskConical },
-      { href: "/group-buys", label: "Group buys", icon: PackageCheck },
     ],
   },
   {
@@ -148,7 +144,7 @@ export function ArchivesNavLink() {
       href="/archives"
       onClick={trackArchivesClick}
       className={cn(
-        "mb-2 flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition",
+        "mb-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
         active
           ? "bg-gold-500/15 text-gold-200"
           : "text-gold-400/80 hover:bg-gold-500/10 hover:text-gold-200"
@@ -158,8 +154,8 @@ export function ArchivesNavLink() {
         <Sparkles className="h-4.5 w-4.5 shrink-0" />
         The Archives
       </span>
-      <span className="shrink-0 whitespace-nowrap text-[9px] uppercase tracking-wider text-gold-500/70">
-        Next chapter
+      <span className="shrink-0 whitespace-nowrap rounded-full border border-gold-500/30 px-2 py-0.5 text-[9px] uppercase tracking-wider text-gold-500/80">
+        Next
       </span>
     </Link>
   );

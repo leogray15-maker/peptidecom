@@ -2,16 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Moon, Pencil } from "lucide-react";
+import { CheckCircle2, Loader2, Moon, Pencil, Trash2 } from "lucide-react";
 import {
   type DailyLog,
   type MilestoneDef,
   SYMPTOMS,
   dateKey,
+  zoneLabel,
 } from "@/lib/tsw";
 import { BodyMap } from "@/components/body-map";
 import { MilestoneCelebration } from "@/components/milestone-celebration";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
+
+const symptomLabel = (id: string) => SYMPTOMS.find((s) => s.id === id)?.label ?? id;
 
 const MOODS = ["😞", "😕", "😐", "🙂", "😊"];
 
@@ -56,6 +59,12 @@ export function TrackerClient({ recentLogs }: { recentLogs: DailyLog[] }) {
     }
     return days;
   }, [recentLogs]);
+
+  async function removeLog(date: string) {
+    if (!confirm("Delete this day's entry? This can't be undone.")) return;
+    await fetch(`/api/tsw/log?date=${date}`, { method: "DELETE" });
+    router.refresh();
+  }
 
   async function save() {
     setSaving(true);
@@ -254,6 +263,63 @@ export function TrackerClient({ recentLogs }: { recentLogs: DailyLog[] }) {
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {todayLog ? "Update today's log" : "Log today"}
           </button>
+        </div>
+      )}
+
+      {/* Look back — every past entry, so you can see where it was and when */}
+      {recentLogs.length > 0 && (
+        <div className="card">
+          <p className="font-semibold text-white">Look back</p>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Every day you&apos;ve logged — where it was, how rough it felt, and what you noted.
+          </p>
+          <div className="mt-3 divide-y divide-lab-border">
+            {[...recentLogs]
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map((l) => (
+                <div key={l.date} className="flex items-start justify-between gap-3 py-3.5">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-white">{formatDate(l.date)}</p>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[11px] font-bold text-black",
+                          severityColor(l.severity)
+                        )}
+                      >
+                        {l.severity}/10
+                      </span>
+                      {l.sleep != null && (
+                        <span className="text-xs text-slate-500">sleep {l.sleep}/5</span>
+                      )}
+                      {l.mood != null && <span className="text-sm">{MOODS[l.mood - 1]}</span>}
+                    </div>
+                    {(l.areas.length > 0 || l.symptoms.length > 0) && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {l.areas.map((a) => (
+                          <span key={a} className="badge border border-brand-800 bg-brand-950/60 text-brand-200">
+                            {zoneLabel(a)}
+                          </span>
+                        ))}
+                        {l.symptoms.map((s) => (
+                          <span key={s} className="badge border border-lab-border text-slate-400">
+                            {symptomLabel(s)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {l.note && <p className="mt-1.5 text-xs text-slate-500">“{l.note}”</p>}
+                  </div>
+                  <button
+                    onClick={() => removeLog(l.date)}
+                    className="shrink-0 text-slate-600 hover:text-rose-400"
+                    aria-label={`Delete entry for ${l.date}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+          </div>
         </div>
       )}
     </div>

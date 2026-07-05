@@ -99,10 +99,10 @@ export default function SupportPage() {
           <p className="mt-1 text-sm text-slate-400">Proof, in members&apos; own words, that days like today end.</p>
           <ArrowRight className="mt-3 h-4 w-4 text-slate-600 transition group-hover:text-brand-300" />
         </Link>
-        <Link href="/resources" className="card group transition hover:border-brand-600">
+        <Link href="/protocols" className="card group transition hover:border-brand-600">
           <BookOpen className="h-5 w-5 text-brand-300" />
-          <p className="mt-3 font-semibold text-white">Comfort resources</p>
-          <p className="mt-1 text-sm text-slate-400">Vetted guides on itch, sleep and getting through flares.</p>
+          <p className="mt-3 font-semibold text-white">Protocols</p>
+          <p className="mt-1 text-sm text-slate-400">Mini courses and step-by-step guides from the lab.</p>
           <ArrowRight className="mt-3 h-4 w-4 text-slate-600 transition group-hover:text-brand-300" />
         </Link>
       </div>

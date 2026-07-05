@@ -5,7 +5,6 @@ import {
   Users,
   Calculator,
   LineChart,
-  Store,
   MessagesSquare,
   PackageCheck,
   CheckCircle2,
@@ -23,13 +22,13 @@ export const dynamic = "force-dynamic";
 const features = [
   {
     icon: ShieldCheck,
-    title: "Vendor verification",
-    body: "Community-vetted vendors with earned verification badges, honest ratings and price history. Know exactly who you're dealing with before you spend a penny.",
+    title: "Daily skin tracker",
+    body: "A 20-second daily log with a tappable body map — where it is, how rough it feels, sleep and mood. Look back over every day and watch the trend, not the worst moment.",
   },
   {
     icon: FlaskConical,
-    title: "Lab test library",
-    body: "Independent HPLC purity and mass-spec results, tied to real vendors and batches. Trust you can check for yourself — not marketing claims.",
+    title: "Peptide tracker",
+    body: "Every dose on the record: what you took, how many mg, when, and how it's going. Per-peptide totals and history build themselves.",
   },
   {
     icon: Calculator,
@@ -38,43 +37,43 @@ const features = [
   },
   {
     icon: LineChart,
-    title: "Progress tracking",
-    body: "Log weight, measurements, side-effects and photos. Watch your data trend over weeks with clean, private charts only you can see.",
+    title: "Photos, trends & insights",
+    body: "A private photo timeline with then-vs-now compare, plus gentle charts of your severity, sleep and patterns. Your data, reflected back.",
   },
   {
     icon: PackageCheck,
-    title: "Group buys",
-    body: "Pool orders with other members to unlock volume pricing. Coordinate, track and split the best deals — together.",
+    title: "Protocols",
+    body: "Curated mini courses and step-by-step protocols from the lab — practical, structured, and growing.",
   },
   {
     icon: MessagesSquare,
     title: "Live community",
-    body: "Real-time chat and moderated forums. Straight talk from people actually running research — no shills, no noise, no hype.",
+    body: "Real-time chat, moderated forums grouped by recovery stage, and a wall of recovery stories. Straight talk from people who get it.",
   },
 ];
 
 const trust = [
-  "Every vendor is community-reviewed and independently lab-tested",
-  "Purity results are tied to real batches — verifiable, not claimed",
+  "Built around real tracking data, not vibes — trends you can verify yourself",
+  "Recovery stories and progress photos from real members, shared by choice",
   "Moderated around the clock: scams flagged, bad actors removed",
-  "Your progress and personal data stay private to you by default",
+  "Your logs, photos and personal data stay private to you by default",
 ];
 
 const steps = [
   {
     icon: UserPlus,
     title: "Join the lab",
-    body: "Create your account and unlock the full community, tools and test library in seconds.",
+    body: "Create your account and unlock the full community and every tool in seconds.",
   },
   {
     icon: Search,
-    title: "Do your research",
-    body: "Check vendor lab tests, calculate your doses, and ask the community before you commit.",
+    title: "Start tracking",
+    body: "Log your skin, doses and routine in seconds a day — and ask the community anything.",
   },
   {
     icon: TrendingUp,
-    title: "Track what works",
-    body: "Log your protocol and progress, and share results that help the whole community level up.",
+    title: "Watch it turn",
+    body: "Your photos, charts and milestones build the proof that things are moving — day by day.",
   },
 ];
 
@@ -195,9 +194,9 @@ export default function LandingPage() {
               Authenticity isn&apos;t a tagline — it&apos;s the product
             </h2>
             <p className="mt-3 text-slate-400">
-              The grey market runs on trust. So we make trust something you can
-              verify: independent testing, full transparency, and zero tolerance for
-              scams.
+              Recovery runs on trust. So we make trust something you can verify:
+              your own tracked data, real member stories, and zero tolerance for
+              hype or scams.
             </p>
             <ul className="mt-6 space-y-3">
               {trust.map((t) => (
@@ -210,25 +209,26 @@ export default function LandingPage() {
           </div>
           <div className="card">
             <div className="flex items-center gap-3">
-              <Store className="h-5 w-5 text-brand-300" />
-              <span className="font-semibold text-white">Example vendor card</span>
+              <LineChart className="h-5 w-5 text-brand-300" />
+              <span className="font-semibold text-white">Example day log</span>
             </div>
             <div className="mt-4 rounded-xl border border-lab-border bg-lab-bg p-4">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">Aurora Research</span>
+                <span className="font-semibold text-white">Tuesday, day 142</span>
                 <span className="badge bg-emerald-500/15 text-emerald-300">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Verified
+                  <CheckCircle2 className="h-3.5 w-3.5" /> 3/10 · calm day
                 </span>
               </div>
-              <div className="mt-3 flex items-center gap-4 text-sm text-slate-400">
-                <span>★ 4.8 · 63 reviews</span>
-                <span>3 lab tests</span>
-                <span>99.2% purity</span>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className="badge border border-brand-800 bg-brand-950/60 text-brand-200">Elbow creases</span>
+                <span className="badge border border-brand-800 bg-brand-950/60 text-brand-200">Neck</span>
+                <span className="badge border border-lab-border text-slate-400">Flaking</span>
+                <span className="text-slate-500">sleep 4/5 · 🙂</span>
               </div>
               <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-lab-border">
-                <div className="h-full w-[96%] rounded-full bg-gradient-to-r from-brand-400 to-brand-600" />
+                <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-brand-400 to-brand-600" />
               </div>
-              <p className="mt-2 text-xs text-slate-500">Community trust score 96/100</p>
+              <p className="mt-2 text-xs text-slate-500">12-day streak · 9 days since last bad flare</p>
             </div>
           </div>
         </div>

@@ -206,6 +206,47 @@ export async function deleteTrigger(uid: string, id: string): Promise<void> {
   await db.collection("users").doc(uid).collection("triggerLogs").doc(id).delete();
 }
 
+// ─── Peptide log (users/{uid}/peptideLogs/{id}) ──────────────────────────────
+
+export interface PeptideLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  peptide: string;
+  doseMg: number;
+  note: string | null;
+  createdAt: string;
+}
+
+export async function listPeptideLogs(uid: string): Promise<PeptideLog[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("peptideLogs")
+    .orderBy("date", "desc")
+    .limit(500)
+    .get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<PeptideLog, "id">), id: d.id }));
+}
+
+export async function addPeptideLog(
+  uid: string,
+  entry: Omit<PeptideLog, "id" | "createdAt">
+): Promise<string> {
+  const db = await adminDb();
+  const ref = await db
+    .collection("users")
+    .doc(uid)
+    .collection("peptideLogs")
+    .add({ ...entry, createdAt: new Date().toISOString() });
+  return ref.id;
+}
+
+export async function deletePeptideLog(uid: string, id: string): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).collection("peptideLogs").doc(id).delete();
+}
+
 // ─── Milestones (users/{uid}/milestones/{key}) ───────────────────────────────
 
 export interface MilestoneRecord {

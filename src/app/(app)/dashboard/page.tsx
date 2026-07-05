@@ -4,14 +4,12 @@ import {
   Calculator,
   Camera,
   ClipboardList,
-  FlaskConical,
+  GraduationCap,
   HeartHandshake,
   LifeBuoy,
   LineChart,
   Map,
-  MessageSquare,
-  PackageCheck,
-  Store,
+  Syringe,
   TrendingUp,
   Trophy,
 } from "lucide-react";
@@ -35,11 +33,10 @@ const recoveryLinks = [
 ];
 
 const labLinks = [
+  { href: "/peptides", label: "Peptide tracker", icon: Syringe },
   { href: "/calculator", label: "Calculator", icon: Calculator },
   { href: "/progress", label: "Progress", icon: LineChart },
-  { href: "/vendors", label: "Vendors", icon: Store },
-  { href: "/lab-tests", label: "Lab tests", icon: FlaskConical },
-  { href: "/group-buys", label: "Group buys", icon: PackageCheck },
+  { href: "/protocols", label: "Protocols", icon: GraduationCap },
 ];
 
 export default async function DashboardPage() {
@@ -156,7 +153,7 @@ export default async function DashboardPage() {
 
       {/* The lab tools */}
       <h2 className="mt-8 text-lg font-semibold text-white">The lab</h2>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {labLinks.map((l) => (
           <Link
             key={l.href}
