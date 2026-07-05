@@ -124,9 +124,10 @@ export async function POST(req: Request) {
   return res;
 }
 
-/** Sign out: clear the session cookie. */
+/** Sign out: clear both the Firebase session and admin cookies. */
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE_NAME, "", { path: "/", maxAge: 0 });
+  res.cookies.set("arcane_admin", "", { path: "/", maxAge: 0 });
   return res;
 }

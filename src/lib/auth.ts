@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { adminAuth, isAdminConfigured, SESSION_COOKIE_NAME } from "@/lib/firebase-admin";
+import { ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin-session";
 import type { Role, SubscriptionStatus, User } from "@prisma/client";
 
 /** Setup/preview mode: lets an admin into the member area with no login/DB so
@@ -100,6 +101,22 @@ export async function getSessionClaims() {
  * state) for the signed-in Firebase account, or null. Never throws on config/DB
  * errors so public pages render and gated pages redirect rather than 500. */
 export async function getCurrentUser() {
+  // 1. Reliable admin session cookie (Firebase-independent).
+  try {
+    const jar = await cookies();
+    const adminEmail = verifyAdminToken(jar.get(ADMIN_COOKIE)?.value);
+    if (adminEmail) {
+      const dbUser = await prisma.user
+        .findUnique({ where: { email: adminEmail } })
+        .catch(() => null);
+      if (dbUser) return dbUser;
+      return { ...PREVIEW_USER, email: adminEmail, name: "Admin" };
+    }
+  } catch (err) {
+    if (isNextControlFlowError(err)) throw err;
+  }
+
+  // 2. Firebase session cookie.
   try {
     const claims = await getSessionClaims();
     if (claims?.uid) {
@@ -110,7 +127,8 @@ export async function getCurrentUser() {
     if (isNextControlFlowError(err)) throw err;
     // Expired/invalid cookie or unconfigured Firebase → fall through.
   }
-  // Preview mode: grant a synthetic admin so the member area is browsable.
+
+  // 3. Preview mode: grant a synthetic admin so the member area is browsable.
   if (isPreviewMode()) return PREVIEW_USER;
   return null;
 }

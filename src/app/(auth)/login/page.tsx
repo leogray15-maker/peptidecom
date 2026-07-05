@@ -28,18 +28,40 @@ function LoginForm() {
 
   async function withEmail(e: React.FormEvent) {
     e.preventDefault();
-    if (!clientAuth) return setError("Sign-in is not configured yet.");
     setError(null);
     setLoading("email");
-    try {
-      const cred = await signInWithEmailAndPassword(clientAuth, email, password);
-      await establishSession(cred.user);
-      router.push(callbackUrl);
-      router.refresh();
-    } catch (err) {
-      setError(friendlyError(err));
-      setLoading(null);
+
+    // 1. Try Firebase email/password (real member auth) if available.
+    if (clientAuth) {
+      try {
+        const cred = await signInWithEmailAndPassword(clientAuth, email, password);
+        await establishSession(cred.user);
+        router.push(callbackUrl);
+        router.refresh();
+        return;
+      } catch {
+        // fall through to the reliable admin login
+      }
     }
+
+    // 2. Admin login fallback (works without Firebase/Google/DB).
+    try {
+      const res = await fetch("/api/auth/admin-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        router.push(callbackUrl);
+        router.refresh();
+        return;
+      }
+      setError(data.error ?? "Invalid email or password.");
+    } catch {
+      setError("Network error. Please try again.");
+    }
+    setLoading(null);
   }
 
   async function withGoogle() {
