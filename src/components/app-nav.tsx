@@ -51,7 +51,7 @@ const sections: { title: string | null; items: NavItem[] }[] = [
     title: "Community",
     items: [
       { href: "/community", label: "Community", icon: MessageSquare },
-      { href: "/chat", label: "Live chat", icon: MessagesSquare },
+      { href: "/chat", label: "WhatsApp chat", icon: MessagesSquare },
       { href: "/won", label: "Won — stories", icon: Trophy },
       { href: "/protocols", label: "Protocols", icon: GraduationCap },
     ],
@@ -61,7 +61,7 @@ const sections: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/peptides", label: "Peptide tracker", icon: Syringe },
       { href: "/calculator", label: "Calculator", icon: Calculator },
-      { href: "/progress", label: "Progress", icon: LineChart },
+      { href: "/progress", label: "Journal", icon: LineChart },
     ],
   },
   {

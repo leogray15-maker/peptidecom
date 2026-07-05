@@ -310,6 +310,27 @@ export const TRIGGER_EFFECTS = [
   { value: -1, label: "Seemed to flare me" },
 ] as const;
 
+// ─── Research goals (journal + peptide tracker) ──────────────────────────────
+// People run peptides for very different reasons — the journal and tracker are
+// goal-agnostic so weight is just one lens among many.
+
+export const RESEARCH_GOALS = [
+  { id: "weight-loss", label: "Weight loss", emoji: "⚖️" },
+  { id: "muscle", label: "Muscle & strength", emoji: "💪" },
+  { id: "skin", label: "Skin & anti-aging", emoji: "✨" },
+  { id: "cognitive", label: "Cognitive function", emoji: "🧠" },
+  { id: "sleep", label: "Sleep", emoji: "🌙" },
+  { id: "energy", label: "Energy & mood", emoji: "⚡" },
+  { id: "healing", label: "Healing & recovery", emoji: "🩹" },
+  { id: "general", label: "General wellbeing", emoji: "🌿" },
+] as const;
+
+export const goalLabel = (id?: string | null) =>
+  RESEARCH_GOALS.find((g) => g.id === id)?.label ?? null;
+
+export const goalEmoji = (id?: string | null) =>
+  RESEARCH_GOALS.find((g) => g.id === id)?.emoji ?? "";
+
 // ─── Funnel events (Firestore: funnelEvents) ─────────────────────────────────
 
 export const FUNNEL_EVENTS = [

@@ -89,7 +89,7 @@ export default function SupportPage() {
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Link href="/chat" className="card group transition hover:border-brand-600">
           <MessagesSquare className="h-5 w-5 text-brand-300" />
-          <p className="mt-3 font-semibold text-white">Live chat</p>
+          <p className="mt-3 font-semibold text-white">WhatsApp chat</p>
           <p className="mt-1 text-sm text-slate-400">Someone is usually around. Say it&apos;s a bad day — that&apos;s enough.</p>
           <ArrowRight className="mt-3 h-4 w-4 text-slate-600 transition group-hover:text-brand-300" />
         </Link>

@@ -24,6 +24,7 @@ export default async function PeptidesPage() {
           date: e.date,
           peptide: e.peptide,
           doseMg: e.doseMg,
+          purpose: e.purpose ?? null,
           note: e.note,
         }))}
       />

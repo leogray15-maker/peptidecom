@@ -28,6 +28,8 @@ export function TriggersClient({ initialEntries }: { initialEntries: TriggerItem
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [effectFilter, setEffectFilter] = useState<number | "all">("all");
+  const [kindFilter, setKindFilter] = useState<string>("all");
   const [form, setForm] = useState({
     date: dateKey(),
     kind: "product",
@@ -35,6 +37,16 @@ export function TriggersClient({ initialEntries }: { initialEntries: TriggerItem
     effect: 0,
     note: "",
   });
+
+  const visibleEntries = useMemo(
+    () =>
+      initialEntries.filter(
+        (e) =>
+          (effectFilter === "all" || e.effect === effectFilter) &&
+          (kindFilter === "all" || e.kind === kindFilter)
+      ),
+    [initialEntries, effectFilter, kindFilter]
+  );
 
   /** The user's own patterns: anything logged 2+ times, summarised. */
   const patterns = useMemo(() => {
@@ -171,15 +183,71 @@ export function TriggersClient({ initialEntries }: { initialEntries: TriggerItem
 
       {/* History */}
       <div className="card">
-        <p className="mb-4 font-semibold text-white">History</p>
+        <p className="mb-3 font-semibold text-white">History</p>
+
+        {initialEntries.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { value: "all" as const, label: "All" },
+                { value: -1, label: "Flared" },
+                { value: 1, label: "Helped" },
+                { value: 0, label: "No change" },
+              ].map((f) => (
+                <button
+                  key={String(f.value)}
+                  onClick={() => setEffectFilter(f.value)}
+                  className={cn(
+                    "badge border transition",
+                    effectFilter === f.value
+                      ? "border-brand-500 bg-brand-500/20 text-brand-200"
+                      : "border-lab-border text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setKindFilter("all")}
+                className={cn(
+                  "badge border transition",
+                  kindFilter === "all"
+                    ? "border-brand-500 bg-brand-500/20 text-brand-200"
+                    : "border-lab-border text-slate-400 hover:text-slate-200"
+                )}
+              >
+                All types
+              </button>
+              {TRIGGER_KINDS.map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => setKindFilter(k.id)}
+                  className={cn(
+                    "badge border transition",
+                    kindFilter === k.id
+                      ? "border-brand-500 bg-brand-500/20 text-brand-200"
+                      : "border-lab-border text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {initialEntries.length === 0 ? (
           <p className="text-sm text-slate-500">
             Nothing logged yet. Start with whatever touched your skin today — moisturisers,
             water temperature, fabrics, foods, stress. Patterns show up faster than you&apos;d think.
           </p>
+        ) : visibleEntries.length === 0 ? (
+          <p className="text-sm text-slate-500">Nothing matches those filters.</p>
         ) : (
           <div className="divide-y divide-lab-border">
-            {initialEntries.map((e) => {
+            {visibleEntries.map((e) => {
               const badge = effectBadge(e.effect);
               return (
                 <div key={e.id} className="flex items-center justify-between gap-3 py-3 text-sm">

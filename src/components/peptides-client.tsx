@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Syringe, Trash2 } from "lucide-react";
 import { PEPTIDE_PRESETS } from "@/lib/peptides";
-import { dateKey } from "@/lib/tsw";
+import { RESEARCH_GOALS, dateKey, goalEmoji, goalLabel } from "@/lib/tsw";
 import { formatDate } from "@/lib/utils";
 
 export interface PeptideEntry {
@@ -12,6 +12,7 @@ export interface PeptideEntry {
   date: string;
   peptide: string;
   doseMg: number;
+  purpose: string | null;
   note: string | null;
 }
 
@@ -24,14 +25,15 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
     date: dateKey(),
     peptide: "",
     doseMg: "",
+    purpose: "",
     note: "",
   });
 
-  /** Per-peptide summary: doses logged, last dose, typical dose. */
+  /** Per-peptide summary: doses logged, last dose, what it's being run for. */
   const summary = useMemo(() => {
     const byPeptide = new Map<
       string,
-      { name: string; count: number; lastDate: string; lastDose: number; totalMg: number }
+      { name: string; count: number; lastDate: string; lastDose: number; totalMg: number; purpose: string | null }
     >();
     for (const e of initialEntries) {
       const key = e.peptide.trim().toLowerCase();
@@ -43,13 +45,16 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
           lastDate: e.date,
           lastDose: e.doseMg,
           totalMg: e.doseMg,
+          purpose: e.purpose,
         });
       } else {
         cur.count++;
         cur.totalMg += e.doseMg;
+        cur.purpose = cur.purpose ?? e.purpose;
         if (e.date > cur.lastDate) {
           cur.lastDate = e.date;
           cur.lastDose = e.doseMg;
+          if (e.purpose) cur.purpose = e.purpose;
         }
       }
     }
@@ -67,6 +72,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
         date: form.date,
         peptide: form.peptide.trim(),
         doseMg: parseFloat(form.doseMg),
+        purpose: form.purpose || null,
         note: form.note.trim() || null,
       }),
     });
@@ -138,10 +144,25 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
             />
           </div>
           <div>
+            <label className="label">Running it for (optional)</label>
+            <select
+              className="input"
+              value={form.purpose}
+              onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+            >
+              <option value="">—</option>
+              {RESEARCH_GOALS.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.emoji} {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="sm:col-span-2">
             <label className="label">Progress note (optional)</label>
             <input
               className="input"
-              placeholder="e.g. Week 3 — sleep improving"
+              placeholder="e.g. Week 3 — skin texture noticeably smoother"
               value={form.note}
               maxLength={1000}
               onChange={(e) => setForm({ ...form, note: e.target.value })}
@@ -168,6 +189,11 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
                 <Syringe className="h-4 w-4 text-brand-300" />
                 <p className="font-semibold text-white">{s.name}</p>
               </div>
+              {s.purpose && (
+                <span className="badge mt-2 bg-brand-900/60 text-brand-200">
+                  {goalEmoji(s.purpose)} {goalLabel(s.purpose)}
+                </span>
+              )}
               <p className="mt-2 text-sm text-slate-400">
                 Last dose <span className="font-medium text-slate-200">{s.lastDose} mg</span> on{" "}
                 {formatDate(s.lastDate)}
@@ -200,6 +226,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {formatDate(e.date)}
+                    {e.purpose ? ` · ${goalEmoji(e.purpose)} ${goalLabel(e.purpose)}` : ""}
                     {e.note ? ` · ${e.note}` : ""}
                   </p>
                 </div>

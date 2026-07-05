@@ -206,6 +206,50 @@ export async function deleteTrigger(uid: string, id: string): Promise<void> {
   await db.collection("users").doc(uid).collection("triggerLogs").doc(id).delete();
 }
 
+// ─── Journal (users/{uid}/journal/{id}) ──────────────────────────────────────
+// Goal-agnostic progress journal: how it's going toward whatever the member is
+// researching for (skin, muscle, cognition…), with weight as an optional extra.
+
+export interface JournalEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  goal: string; // RESEARCH_GOALS id
+  rating: number; // 1–10 "how is it going toward this goal"
+  weightKg: number | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export async function listJournal(uid: string): Promise<JournalEntry[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("journal")
+    .orderBy("date", "desc")
+    .limit(500)
+    .get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<JournalEntry, "id">), id: d.id }));
+}
+
+export async function addJournalEntry(
+  uid: string,
+  entry: Omit<JournalEntry, "id" | "createdAt">
+): Promise<string> {
+  const db = await adminDb();
+  const ref = await db
+    .collection("users")
+    .doc(uid)
+    .collection("journal")
+    .add({ ...entry, createdAt: new Date().toISOString() });
+  return ref.id;
+}
+
+export async function deleteJournalEntry(uid: string, id: string): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).collection("journal").doc(id).delete();
+}
+
 // ─── Peptide log (users/{uid}/peptideLogs/{id}) ──────────────────────────────
 
 export interface PeptideLog {
@@ -213,6 +257,7 @@ export interface PeptideLog {
   date: string; // YYYY-MM-DD
   peptide: string;
   doseMg: number;
+  purpose: string | null; // RESEARCH_GOALS id
   note: string | null;
   createdAt: string;
 }

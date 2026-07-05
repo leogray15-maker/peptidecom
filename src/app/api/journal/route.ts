@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { RESEARCH_GOALS } from "@/lib/tsw";
-import { addPeptideLog, deletePeptideLog, tswKey } from "@/lib/tsw-db";
+import { addJournalEntry, deleteJournalEntry, tswKey } from "@/lib/tsw-db";
 
 const schema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  peptide: z.string().min(1).max(80),
-  doseMg: z.number().positive().max(1000),
-  purpose: z.enum(RESEARCH_GOALS.map((g) => g.id) as [string, ...string[]]).optional().nullable(),
-  note: z.string().max(1000).optional().nullable(),
+  goal: z.enum(RESEARCH_GOALS.map((g) => g.id) as [string, ...string[]]),
+  rating: z.number().int().min(1).max(10),
+  weightKg: z.number().positive().max(700).optional().nullable(),
+  note: z.string().max(2000).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -22,15 +22,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    const id = await addPeptideLog(tswKey(user), {
+    const id = await addJournalEntry(tswKey(user), {
       ...parsed.data,
-      peptide: parsed.data.peptide.trim(),
-      purpose: parsed.data.purpose ?? null,
+      weightKg: parsed.data.weightKg ?? null,
       note: parsed.data.note ?? null,
     });
     return NextResponse.json({ ok: true, id });
   } catch (err) {
-    console.error("Failed to save peptide log:", err);
+    console.error("Failed to save journal entry:", err);
     return NextResponse.json(
       { error: "Couldn't save — the database isn't reachable yet." },
       { status: 503 }
@@ -46,10 +45,10 @@ export async function DELETE(req: Request) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   try {
-    await deletePeptideLog(tswKey(user), id);
+    await deleteJournalEntry(tswKey(user), id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("Failed to delete peptide log:", err);
+    console.error("Failed to delete journal entry:", err);
     return NextResponse.json({ error: "Couldn't delete the entry." }, { status: 503 });
   }
 }
