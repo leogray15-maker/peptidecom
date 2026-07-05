@@ -1,16 +1,19 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { adminAuth, SESSION_COOKIE_NAME } from "@/lib/firebase-admin";
+import { adminAuth, isAdminConfigured, SESSION_COOKIE_NAME } from "@/lib/firebase-admin";
 import type { Role, SubscriptionStatus, User } from "@prisma/client";
 
-/** Preview mode: lets an admin into the member area with no login/DB, so the
- * UI can be reviewed before auth is fully wired. Toggle with PREVIEW_MODE=true
- * (or NEXT_PUBLIC_PREVIEW_MODE=true). MUST be off in real production. */
+/** Setup/preview mode: lets an admin into the member area with no login/DB so
+ * the UI can be reviewed before auth is wired. Active when PREVIEW_MODE=true
+ * OR while Firebase Admin isn't configured yet (self-heals: the moment real
+ * admin credentials are set, this turns off and real auth is enforced). */
 export function isPreviewMode() {
+  if (process.env.PREVIEW_MODE === "false") return false; // explicit opt-out
   return (
     process.env.PREVIEW_MODE === "true" ||
-    process.env.NEXT_PUBLIC_PREVIEW_MODE === "true"
+    process.env.NEXT_PUBLIC_PREVIEW_MODE === "true" ||
+    !isAdminConfigured()
   );
 }
 

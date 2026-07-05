@@ -85,6 +85,19 @@ async function getAdminApp(): Promise<App> {
   return cached;
 }
 
+/** Cheap check (no network / no init) for whether admin credentials are present.
+ * Used to decide whether real auth is enforced or the site runs in setup mode. */
+export function isAdminConfigured(): boolean {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT && process.env.FIREBASE_SERVICE_ACCOUNT.trim()) {
+    return true;
+  }
+  return Boolean(
+    process.env.FIREBASE_PROJECT_ID &&
+      process.env.FIREBASE_CLIENT_EMAIL &&
+      process.env.FIREBASE_PRIVATE_KEY
+  );
+}
+
 export async function adminAuth(): Promise<Auth> {
   const { getAuth } = await import("firebase-admin/auth");
   return getAuth(await getAdminApp());
