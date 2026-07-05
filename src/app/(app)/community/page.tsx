@@ -9,9 +9,15 @@ import { Pin, MessageSquare, ArrowBigUp } from "lucide-react";
 
 export const metadata = { title: "Community" };
 
-export default async function CommunityPage() {
+export default async function CommunityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cat?: string }>;
+}) {
+  const { cat } = await searchParams;
   const getPosts = () =>
     prisma.post.findMany({
+      where: cat ? { category: { slug: cat } } : undefined,
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 50,
       include: {
@@ -29,10 +35,40 @@ export default async function CommunityPage() {
     <div>
       <PageHeader
         title="Community"
-        subtitle="Honest, moderated discussion. Share what actually works."
+        subtitle="Honest, moderated discussion. Find people in the same phase as you — they get it."
       />
 
       <NewPostForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
+
+      {/* Filter by group — recovery stages first, so members match with their phase */}
+      {categories.length > 0 && (
+        <div className="mt-5 flex flex-wrap gap-1.5">
+          <Link
+            href="/community"
+            className={
+              !cat
+                ? "badge bg-brand-500/20 text-brand-200"
+                : "badge border border-lab-border text-slate-400 hover:text-slate-200"
+            }
+          >
+            All
+          </Link>
+          {categories.map((c) => (
+            <Link
+              key={c.id}
+              href={`/community?cat=${c.slug}`}
+              className={
+                cat === c.slug
+                  ? "badge bg-brand-500/20 text-brand-200"
+                  : "badge border border-lab-border text-slate-400 hover:text-slate-200"
+              }
+            >
+              {c.icon ? `${c.icon} ` : ""}
+              {c.name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="mt-6 space-y-3">
         {posts.length === 0 ? (

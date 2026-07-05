@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { Logo } from "@/components/logo";
-import { AppNav } from "@/components/app-nav";
+import { AppNav, ArchivesNavLink } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
 import { SignOutButton } from "@/components/sign-out-button";
 
@@ -28,13 +28,14 @@ export default async function AppLayout({
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {/* Sidebar */}
         <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-64 shrink-0 flex-col justify-between rounded-2xl border border-lab-border bg-lab-card p-4 lg:flex">
-          <div>
+          <div className="flex min-h-0 flex-1 flex-col">
             <Logo href="/dashboard" />
-            <div className="mt-6">
+            <div className="mt-6 min-h-0 flex-1 overflow-y-auto pb-4 pr-1 [scrollbar-width:thin]">
               <AppNav />
             </div>
           </div>
-          <div className="border-t border-lab-border pt-4">
+          <div className="border-t border-lab-border pt-3">
+            <ArchivesNavLink />
             <Link
               href="/settings"
               className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-white/5"
