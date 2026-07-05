@@ -21,6 +21,36 @@ function normalizePrivateKey(raw?: string): string | undefined {
   return key;
 }
 
+interface AdminCreds {
+  projectId?: string;
+  clientEmail?: string;
+  privateKey?: string;
+}
+
+/** Load admin credentials from either FIREBASE_SERVICE_ACCOUNT (the full
+ * service-account JSON pasted into one var — easiest) or the three separate
+ * FIREBASE_* vars. */
+function loadCredentials(): AdminCreds {
+  const json = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (json && json.trim()) {
+    try {
+      const parsed = JSON.parse(json.trim());
+      return {
+        projectId: parsed.project_id ?? parsed.projectId,
+        clientEmail: parsed.client_email ?? parsed.clientEmail,
+        privateKey: normalizePrivateKey(parsed.private_key ?? parsed.privateKey),
+      };
+    } catch {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is set but is not valid JSON.");
+    }
+  }
+  return {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY),
+  };
+}
+
 /** Lazily initialise the Firebase Admin app. The firebase-admin packages are
  * imported dynamically (only when actually used) so merely importing this module
  * never executes firebase-admin's dynamic requires — which can crash at module
@@ -34,20 +64,20 @@ async function getAdminApp(): Promise<App> {
     return cached;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
-
-  if (!projectId || !clientEmail || !privateKey) {
+  const creds = loadCredentials();
+  if (!creds.projectId || !creds.clientEmail || !creds.privateKey) {
     const missing = [
-      !projectId && "FIREBASE_PROJECT_ID",
-      !clientEmail && "FIREBASE_CLIENT_EMAIL",
-      !privateKey && "FIREBASE_PRIVATE_KEY",
+      !creds.projectId && "project id",
+      !creds.clientEmail && "client email",
+      !creds.privateKey && "private key",
     ]
       .filter(Boolean)
       .join(", ");
-    throw new Error(`Firebase Admin is not configured. Missing: ${missing}.`);
+    throw new Error(
+      `Firebase Admin is not configured (missing: ${missing}). Set FIREBASE_SERVICE_ACCOUNT (full JSON) or FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY.`
+    );
   }
+  const { projectId, clientEmail, privateKey } = creds;
 
   cached = initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
