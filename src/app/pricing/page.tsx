@@ -35,7 +35,7 @@ export default async function PricingPage() {
         <div className="container-lab text-center">
           {founding.open && (
             <span className="badge mb-5 border border-gold-500/40 bg-gold-500/10 text-gold-200">
-              Founding offer · {founding.remaining} of {founding.limit} spots left
+              Founding offer · {founding.taken} of {founding.limit} members in · {founding.remaining} spot{founding.remaining === 1 ? "" : "s"} left
             </span>
           )}
           <h1 className="text-4xl font-extrabold tracking-tight text-white">
