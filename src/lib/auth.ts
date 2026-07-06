@@ -94,13 +94,17 @@ function isNextControlFlowError(err: unknown): boolean {
   );
 }
 
-/** Verify the Firebase session cookie and return its decoded claims, or null. */
+/** Verify the Firebase session cookie and return its decoded claims, or null.
+ * Verification is pure JWT signature checking (offline, deterministic) — we
+ * deliberately do NOT pass checkRevoked=true, which fires a Firebase network
+ * call on every request: it adds latency to every page and a single transient
+ * failure makes a signed-in admin randomly 401 mid-session. Sign-out clears
+ * the cookie itself, and sessions cap at 14 days. */
 export async function getSessionClaims() {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!session) return null;
-  // verifySessionCookie(session, true) also checks for revocation.
-  return (await adminAuth()).verifySessionCookie(session, true);
+  return (await adminAuth()).verifySessionCookie(session);
 }
 
 /** Server-side helper: returns the current Postgres user (with fresh subscription

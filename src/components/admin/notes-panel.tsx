@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Pin, PinOff, Trash2 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
+import { adminFetch } from "@/lib/admin-client";
 
 export interface NoteItem {
   id: string;
@@ -24,11 +25,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
     setBusy(true);
     setError(null);
     try {
-      const res = await fn();
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Something went wrong.");
-      }
+      await fn();
       router.refresh();
       return true;
     } catch (err) {
@@ -48,7 +45,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
           e.preventDefault();
           if (!body.trim()) return;
           const ok = await call(() =>
-            fetch("/api/admin/notes", {
+            adminFetch("/api/admin/notes", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ userId, body: body.trim() }),
@@ -97,7 +94,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
                   disabled={busy}
                   onClick={() =>
                     call(() =>
-                      fetch(`/api/admin/notes/${n.id}`, {
+                      adminFetch(`/api/admin/notes/${n.id}`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ pinned: !n.pinned }),
@@ -114,7 +111,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
                   disabled={busy}
                   onClick={() => {
                     if (!window.confirm("Delete this note?")) return;
-                    call(() => fetch(`/api/admin/notes/${n.id}`, { method: "DELETE" }));
+                    call(() => adminFetch(`/api/admin/notes/${n.id}`, { method: "DELETE" }));
                   }}
                 >
                   <Trash2 className="h-4 w-4" />

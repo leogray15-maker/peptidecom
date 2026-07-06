@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
+import { getAdminUser } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Setup status" };
@@ -153,6 +155,12 @@ function Row({ c }: { c: Check }) {
 }
 
 export default async function SetupPage() {
+  // Admins only — this page leaks configuration status. While nothing is
+  // configured yet, preview mode still grants access so setup isn't a
+  // chicken-and-egg problem; once real auth works, it locks down.
+  const admin = await getAdminUser();
+  if (!admin) notFound();
+
   const { env, services, commit } = await runChecks();
   const allOk = [...env, ...services].every((c) => c.ok);
 

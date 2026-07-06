@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Circle, CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
+import { adminFetch } from "@/lib/admin-client";
 import { PriorityBadge } from "@/components/admin/badges";
 
 export interface TaskItem {
@@ -40,11 +41,7 @@ export function TasksPanel({
     setBusy(true);
     setError(null);
     try {
-      const res = await fn();
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Something went wrong.");
-      }
+      await fn();
       router.refresh();
       return true;
     } catch (err) {
@@ -76,7 +73,7 @@ export function TasksPanel({
         className="mt-0.5 shrink-0 text-slate-500 transition hover:text-brand-300"
         onClick={() =>
           call(() =>
-            fetch(`/api/admin/tasks/${t.id}`, {
+            adminFetch(`/api/admin/tasks/${t.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ status: t.status === "OPEN" ? "DONE" : "OPEN" }),
@@ -117,7 +114,7 @@ export function TasksPanel({
         className="shrink-0 rounded-lg p-1 text-slate-600 transition hover:bg-white/5 hover:text-rose-400"
         onClick={() => {
           if (!window.confirm("Delete this task?")) return;
-          call(() => fetch(`/api/admin/tasks/${t.id}`, { method: "DELETE" }));
+          call(() => adminFetch(`/api/admin/tasks/${t.id}`, { method: "DELETE" }));
         }}
       >
         <Trash2 className="h-4 w-4" />
@@ -141,7 +138,7 @@ export function TasksPanel({
             e.preventDefault();
             if (!form.title.trim()) return;
             const ok = await call(() =>
-              fetch("/api/admin/tasks", {
+              adminFetch("/api/admin/tasks", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

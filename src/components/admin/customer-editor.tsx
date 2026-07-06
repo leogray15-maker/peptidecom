@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, Gift, Loader2, PhoneCall } from "lucide-react";
+import { adminFetch } from "@/lib/admin-client";
 
 interface EditableCustomer {
   id: string;
@@ -36,15 +37,11 @@ export function CustomerEditor({ customer }: { customer: EditableCustomer }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/customers/${customer.id}`, {
+      await adminFetch(`/api/admin/customers/${customer.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Something went wrong.");
-      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
