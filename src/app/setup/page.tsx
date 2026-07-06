@@ -30,12 +30,28 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
 
   const services: Check[] = [];
 
+  // Reach the DB *and* confirm the schema is migrated. A bare `SELECT 1` passes
+  // even when `prisma db push` was never run, so signup then 503s ("not
+  // migrated") while this page looks green. Querying the real User table catches
+  // that: a "does not exist" error means the tables aren't created yet.
   try {
     const { prisma } = await import("@/lib/prisma");
     await prisma.$queryRaw`SELECT 1`;
-    services.push({ label: "Postgres database", ok: true });
+    try {
+      await prisma.user.count();
+      services.push({ label: "Postgres database (schema migrated)", ok: true });
+    } catch (e) {
+      const msg = (e as Error).message?.split("\n")[0] ?? "";
+      services.push({
+        label: "Postgres database (schema migrated)",
+        ok: false,
+        detail: /exist|relation|table/i.test(msg)
+          ? "Connected, but tables are missing. Run `prisma db push` (or `npm run db:push`)."
+          : msg,
+      });
+    }
   } catch (e) {
-    services.push({ label: "Postgres database", ok: false, detail: (e as Error).message?.split("\n")[0] });
+    services.push({ label: "Postgres database (schema migrated)", ok: false, detail: (e as Error).message?.split("\n")[0] });
   }
 
   try {
@@ -44,6 +60,31 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
     services.push({ label: "Firebase Admin (server)", ok: true });
   } catch (e) {
     services.push({ label: "Firebase Admin (server)", ok: false, detail: (e as Error).message?.split("\n")[0] });
+  }
+
+  // Client and server must point at the SAME Firebase project. A mismatch makes
+  // every sign-in fail at token verification with "Invalid or expired token".
+  try {
+    const { adminProjectId } = await import("@/lib/firebase-admin");
+    const clientPid = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const serverPid = adminProjectId();
+    if (!clientPid || !serverPid) {
+      services.push({
+        label: "Firebase project IDs match (client ↔ server)",
+        ok: false,
+        detail: "Can't compare — a Firebase project id is missing above.",
+      });
+    } else if (clientPid === serverPid) {
+      services.push({ label: "Firebase project IDs match (client ↔ server)", ok: true });
+    } else {
+      services.push({
+        label: "Firebase project IDs match (client ↔ server)",
+        ok: false,
+        detail: `Mismatch: client "${clientPid}" vs server "${serverPid}". Sign-in tokens won't verify.`,
+      });
+    }
+  } catch (e) {
+    services.push({ label: "Firebase project IDs match (client ↔ server)", ok: false, detail: (e as Error).message?.split("\n")[0] });
   }
 
   return { env, services, commit: process.env.VERCEL_GIT_COMMIT_SHA ?? "local" };

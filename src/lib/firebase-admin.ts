@@ -85,6 +85,18 @@ async function getAdminApp(): Promise<App> {
   return cached;
 }
 
+/** The project id the server (Admin SDK) will verify tokens against, from either
+ * FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID. Used by /setup to warn when
+ * it doesn't match the client's NEXT_PUBLIC_FIREBASE_PROJECT_ID (a mismatch makes
+ * every token fail verification with "Invalid or expired token"). */
+export function adminProjectId(): string | undefined {
+  try {
+    return loadCredentials().projectId;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Cheap check (no network / no init) for whether admin credentials are present.
  * Used to decide whether real auth is enforced or the site runs in setup mode. */
 export function isAdminConfigured(): boolean {

@@ -35,11 +35,33 @@ function LoginForm() {
     if (clientAuth) {
       try {
         const cred = await signInWithEmailAndPassword(clientAuth, email, password);
-        await establishSession(cred.user);
+        // Firebase accepted the credentials. From here on, any failure is a
+        // server-side session/config problem — surface it instead of masking
+        // it as "invalid password" by falling through to the admin login.
+        try {
+          await establishSession(cred.user);
+        } catch (err) {
+          setError(friendlyError(err));
+          setLoading(null);
+          return;
+        }
         router.push(callbackUrl);
         router.refresh();
         return;
-      } catch {
+      } catch (err) {
+        // Only fall through to the admin login when Firebase actually rejected
+        // the credentials (or has no such user). Anything else is a real error.
+        const code = (err as { code?: string })?.code ?? "";
+        const isCredentialError =
+          code.includes("invalid-credential") ||
+          code.includes("wrong-password") ||
+          code.includes("user-not-found") ||
+          code.includes("invalid-email");
+        if (!isCredentialError) {
+          setError(friendlyError(err));
+          setLoading(null);
+          return;
+        }
         // fall through to the reliable admin login
       }
     }
