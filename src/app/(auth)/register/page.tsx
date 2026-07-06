@@ -12,6 +12,7 @@ import {
 import { clientAuth, firebaseEnabled, googleProvider } from "@/lib/firebase-client";
 import { establishSession } from "@/lib/session-client";
 import { GoogleIcon } from "@/components/google-icon";
+import { InAppBrowserNotice, useInAppBrowser } from "@/components/in-app-browser-guard";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"email" | "google" | null>(null);
+  const inAppBrowser = useInAppBrowser();
 
   async function withEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -66,14 +68,18 @@ export default function RegisterPage() {
         </p>
       )}
 
-      <button
-        onClick={withGoogle}
-        disabled={loading !== null}
-        className="btn-secondary mt-6 w-full"
-      >
-        {loading === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-        Continue with Google
-      </button>
+      {inAppBrowser ? (
+        <InAppBrowserNotice appName={inAppBrowser} />
+      ) : (
+        <button
+          onClick={withGoogle}
+          disabled={loading !== null}
+          className="btn-secondary mt-6 w-full"
+        >
+          {loading === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+          Continue with Google
+        </button>
+      )}
 
       <div className="my-5 flex items-center gap-3 text-xs text-slate-500">
         <div className="h-px flex-1 bg-lab-border" /> or <div className="h-px flex-1 bg-lab-border" />
@@ -119,6 +125,8 @@ function friendlyError(err: unknown): string {
   if (code.includes("weak-password")) return "Password is too weak (min 8 characters).";
   if (code.includes("invalid-email")) return "That email looks invalid.";
   if (code.includes("popup-closed")) return "Sign-up was cancelled.";
+  if (code.includes("disallowed_useragent") || (err as Error)?.message?.includes("disallowed_useragent"))
+    return "Google blocks sign-in inside in-app browsers. Open this page in Safari or Chrome, or use email sign-up below.";
   if (code.includes("unauthorized-domain"))
     return "This domain isn't authorized for Google sign-in yet. Add it in Firebase → Authentication → Settings → Authorized domains. (Email/password sign-up still works.)";
   if (code.includes("operation-not-allowed"))
