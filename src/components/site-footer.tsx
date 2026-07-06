@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "The Arcane Lab";
+const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Arcane Track";
 
 export function SiteFooter() {
   return (
@@ -11,8 +11,8 @@ export function SiteFooter() {
           <div className="max-w-sm">
             <Logo />
             <p className="mt-4 text-sm text-slate-400">
-              A private research community for grey-market peptides &amp; GLP-1s.
-              Real testing. Real results. Real community.
+              Private membership for skin recovery &amp; healing — daily tracking,
+              a photo timeline, protocols and a community that gets it.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3">

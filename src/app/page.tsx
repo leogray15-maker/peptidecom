@@ -79,8 +79,12 @@ const steps = [
 
 const faqs = [
   {
-    q: "What do I get for £25/month?",
-    a: "Everything, immediately: the daily skin tracker, photo timeline, peptide tracker, reconstitution calculator, research journal and insights, curated protocols, the community forums and the WhatsApp chat. One membership — nothing held back.",
+    q: "What does membership include?",
+    a: "Everything, immediately: the daily skin tracker, photo timeline, the “where am I?” stage map, insights, trigger tracking, doctor prep, flare-day support, the healing protocol library, the peptide tracker and calculator, the community forums and the WhatsApp chat. One membership — nothing held back.",
+  },
+  {
+    q: "What's the founding offer?",
+    a: "The first 50 members to join pay just £28 for their first month, then lock in £45/month for as long as they stay — for life. Once the 50 spots (or the 28-day window) are gone, membership is £55/month. Founding members keep their locked-in price.",
   },
   {
     q: "Can I cancel anytime?",
@@ -88,7 +92,7 @@ const faqs = [
   },
   {
     q: "Do you sell peptides?",
-    a: "No. The Arcane Lab is an information, tracking and community platform for research purposes only. We sell nothing but membership — which is exactly why the discussion stays honest.",
+    a: "No. Arcane Track is an information, tracking and community platform for research and educational purposes only. We sell nothing but membership — which is exactly why the discussion stays honest.",
   },
   {
     q: "Is my data private?",
@@ -116,13 +120,13 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-slate-300">
-              The Arcane Lab is a private members&apos; platform for peptide research and skin
-              recovery — precision dosing tools, effortless daily tracking, curated protocols and
-              a moderated community that runs on evidence, not hype.
+              Arcane Track is a private members&apos; platform for skin recovery and healing —
+              effortless daily tracking, a photo timeline, curated protocols, peptide tools and
+              a community that runs on evidence, not hype.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/pricing" className="btn-primary px-6 py-3 text-base">
-                Join The Arcane Lab — £25/mo <ArrowRight className="h-4 w-4" />
+                Join Arcane Track — £28 first month <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href="/login" className="btn-secondary px-6 py-3 text-base">
                 Member login
@@ -270,8 +274,9 @@ export default function LandingPage() {
           <div className="card bg-gradient-to-br from-brand-900/60 to-lab-card py-14 text-center">
             <h2 className="text-3xl font-bold text-white">Start your record today</h2>
             <p className="mx-auto mt-4 max-w-xl leading-relaxed text-slate-300">
-              £25/month, cancel anytime. Every tool and the full community from the moment you
-              join — and a day-one entry you&apos;ll be glad you made in ninety days.
+              Founding offer: £28 your first month, then £45/month locked in for life — cancel
+              anytime. Every tool and the full community from the moment you join, and a day-one
+              entry you&apos;ll be glad you made in ninety days.
             </p>
             <div className="mt-8">
               <Link href="/pricing" className="btn-primary px-6 py-3 text-base">

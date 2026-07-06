@@ -3,37 +3,54 @@ import { CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getCurrentUser, hasAccess } from "@/lib/auth";
+import { getFoundingStatus } from "@/lib/membership";
 import { PricingPlans } from "@/components/pricing-plans";
 
 export const metadata = { title: "Pricing" };
 export const dynamic = "force-dynamic";
 
 const perks = [
-  "Full access to the members-only community",
-  "Vendor directory with verified badges & reviews",
-  "Complete lab test / COA library",
-  "Reconstitution calculator & dosing tools",
-  "Private progress tracking with charts",
-  "Group buy coordination & member pricing",
-  "Scam reports & vendor warnings",
+  "Daily skin & recovery tracker — body map, severity, symptoms, sleep and mood",
+  "Private photo timeline — compare today against 90 days ago, side by side",
+  "“Where am I?” withdrawal stage map to see exactly where you are",
+  "Insights & trends built from your own logged data",
+  "Trigger tracking to catch what flares you up",
+  "Doctor prep — a printable appointment summary in one tap",
+  "Flare-day support tools for the hardest days",
+  "The healing protocol library — gut, skin, sleep, diet & biohacking",
+  "Peptide tracker & reconstitution calculator",
+  "Members-only community, WhatsApp chat & the Won recovery-stories wall",
 ];
 
 export default async function PricingPage() {
   const user = await getCurrentUser();
   const authed = !!user;
   const member = hasAccess(user);
+  const founding = await getFoundingStatus();
 
   return (
     <>
       <SiteHeader />
       <section className="border-b border-lab-border py-16">
         <div className="container-lab text-center">
+          {founding.open && (
+            <span className="badge mb-5 border border-gold-500/40 bg-gold-500/10 text-gold-200">
+              Founding offer · {founding.remaining} of {founding.limit} spots left
+            </span>
+          )}
           <h1 className="text-4xl font-extrabold tracking-tight text-white">
             One membership. Everything included.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            Join the community, get every tool, and see every lab test. Cancel
-            anytime from your account.
+            {founding.open ? (
+              <>
+                Get in as a founding member: <span className="font-semibold text-white">£{founding.intro} your first month</span>,
+                then <span className="font-semibold text-white">£{founding.founding}/month locked in for life</span>.
+                After the offer closes it&apos;s £{founding.standard}/month. Cancel anytime.
+              </>
+            ) : (
+              <>Every tool, the full protocol library and the whole community — one membership, cancel anytime.</>
+            )}
           </p>
         </div>
       </section>
@@ -66,7 +83,7 @@ export default async function PricingPage() {
                 </Link>
               </div>
             ) : authed ? (
-              <PricingPlans />
+              <PricingPlans founding={founding} />
             ) : (
               <div className="card text-center">
                 <p className="text-lg font-semibold text-white">Create an account first</p>

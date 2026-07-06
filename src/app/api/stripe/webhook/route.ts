@@ -42,6 +42,9 @@ async function syncSubscription(subscription: Stripe.Subscription) {
 
   const item = subscription.items.data[0];
   const status = mapStatus(subscription.status);
+  // Founding is a one-way latch: once claimed it stays true so the spot keeps
+  // counting and the locked price is never lost on later subscription updates.
+  const isFounding = subscription.metadata?.founding === "true";
   await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -49,6 +52,7 @@ async function syncSubscription(subscription: Stripe.Subscription) {
       stripePriceId: item?.price.id ?? null,
       stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
       subscriptionStatus: status,
+      ...(isFounding ? { foundingMember: true } : {}),
     },
   });
 
