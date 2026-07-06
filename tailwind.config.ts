@@ -28,6 +28,14 @@ const config: Config = {
           card: "#0f0f15",
           border: "#20202b",
         },
+        // Subtle gold — used sparingly for milestones & The Archives.
+        gold: {
+          200: "#f7e6b5",
+          300: "#f0d68e",
+          400: "#e6bf5f",
+          500: "#d4a437",
+          600: "#b98a24",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
