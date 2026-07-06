@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser, hasAccess } from "@/lib/auth";
+import { ShieldCheck } from "lucide-react";
+import { getCurrentUser, hasAccess, isAdminEmail } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { AppNav, ArchivesNavLink } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
@@ -41,6 +42,15 @@ export default async function AppLayout({
             </div>
           </div>
           <div className="border-t border-lab-border pt-3">
+            {(user.role === "ADMIN" || isAdminEmail(user.email)) && (
+              <Link
+                href="/admin"
+                className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-brand-300/90 transition hover:bg-brand-500/10 hover:text-brand-200"
+              >
+                <ShieldCheck className="h-4.5 w-4.5 shrink-0" />
+                Admin CRM
+              </Link>
+            )}
             <ArchivesNavLink />
             <Link
               href="/settings"
