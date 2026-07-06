@@ -17,6 +17,11 @@ export const FOUNDING_PRICE = 45; // £/month locked in for founding members
 export const STANDARD_PRICE = 55; // £/month for everyone after the offer
 export const FOUNDING_LIMIT = Number(process.env.FOUNDING_LIMIT ?? 50);
 
+/** Members who joined before the live counter existed (WhatsApp-era founders).
+ * The public counter starts here and climbs by one with every new Stripe
+ * subscription, so the pricing page never shows an empty "0 of 50". */
+export const FOUNDING_SEED = Number(process.env.FOUNDING_SEED ?? 27);
+
 const DEFAULT_DEADLINE = "2026-08-03T23:59:59Z"; // 28 days from launch (2026-07-06)
 
 export function foundingDeadline(): Date {
@@ -36,13 +41,15 @@ export interface FoundingStatus {
   standard: number; // £/month (standard)
 }
 
-/** How many founding spots have been claimed. Never throws (unmigrated/offline
- * DB just reports 0 so the page still renders). */
+/** How many founding spots have been claimed: the pre-launch seed plus every
+ * paid founding subscription since. Never throws (unmigrated/offline DB just
+ * reports the seed so the page still renders). */
 export async function foundingTaken(): Promise<number> {
   try {
-    return await prisma.user.count({ where: { foundingMember: true } });
+    const subscribed = await prisma.user.count({ where: { foundingMember: true } });
+    return Math.min(FOUNDING_LIMIT, FOUNDING_SEED + subscribed);
   } catch {
-    return 0;
+    return Math.min(FOUNDING_LIMIT, FOUNDING_SEED);
   }
 }
 

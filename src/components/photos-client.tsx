@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
@@ -64,8 +64,10 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const MAX_COMPARE = 4;
   const [compareMode, setCompareMode] = useState(false);
   const [compare, setCompare] = useState<PhotoItem[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
 
   const photos = initialPhotos; // sorted ascending by takenAt from the server
   const newestFirst = useMemo(() => [...photos].reverse(), [photos]);
@@ -136,7 +138,8 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
     if (!compareMode) return;
     setCompare((cur) => {
       if (cur.some((c) => c.id === p.id)) return cur.filter((c) => c.id !== p.id);
-      return [...cur.slice(-1), p];
+      // Room for up to four; picking a fifth swaps out the oldest pick.
+      return [...cur.slice(-(MAX_COMPARE - 1)), p];
     });
   }
 
@@ -155,39 +158,123 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
       }
     }
     setCompare([best, latest]);
+    setShowCompare(true);
   }
 
-  const [a, b] = compare.length === 2 ? [...compare].sort((x, y) => x.takenAt.localeCompare(y.takenAt)) : [null, null];
+  // Oldest → newest so the overlay always reads left-to-right in time.
+  const selected = useMemo(
+    () => [...compare].sort((x, y) => x.takenAt.localeCompare(y.takenAt)),
+    [compare]
+  );
+  const overlayOpen = showCompare && selected.length >= 2;
+
+  // While the overlay is open: lock the page behind it, close on Escape, and
+  // push a history entry so the phone's back button/gesture closes the overlay
+  // instead of leaving the page.
+  useEffect(() => {
+    if (!overlayOpen) return;
+    document.body.style.overflow = "hidden";
+    window.history.pushState({ compareOverlay: true }, "");
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeCompare();
+    };
+    const onPop = () => setShowCompare(false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayOpen]);
+
+  function closeCompare() {
+    if (window.history.state?.compareOverlay) {
+      window.history.back(); // popstate handler flips showCompare off
+    } else {
+      setShowCompare(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
       {/* Compare overlay */}
-      {a && b && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-4xl rounded-3xl border border-lab-border bg-lab-card p-5">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-white">
-                {daysBetween(a.takenAt, b.takenAt)} days apart
+      {overlayOpen && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm"
+          onClick={closeCompare}
+        >
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="w-full max-w-5xl rounded-3xl border border-lab-border bg-lab-card p-4 sm:p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-white">
+                  {daysBetween(selected[0].takenAt, selected[selected.length - 1].takenAt)} days apart
+                </p>
+                <button
+                  onClick={closeCompare}
+                  className="grid h-9 w-9 place-items-center rounded-xl text-slate-400 hover:bg-white/5 hover:text-white"
+                  aria-label="Close compare"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div
+                className={cn(
+                  "mt-4 grid gap-3 sm:gap-4",
+                  selected.length === 2 && "grid-cols-1 sm:grid-cols-2",
+                  selected.length === 3 && "grid-cols-1 sm:grid-cols-3",
+                  selected.length === 4 && "grid-cols-2 sm:grid-cols-4"
+                )}
+              >
+                {selected.map((p, i) => (
+                  <figure key={p.id}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.imageData} alt={p.caption ?? `Photo from ${p.takenAt}`} className="w-full rounded-2xl object-cover" />
+                    <figcaption className="mt-2 text-center text-xs text-slate-400 sm:text-sm">
+                      <span className="font-medium text-slate-200">
+                        {i === 0 ? "Then" : i === selected.length - 1 ? "Now" : formatDate(p.takenAt)}
+                      </span>
+                      {(i === 0 || i === selected.length - 1) && <> · {formatDate(p.takenAt)}</>}
+                      {p.area && <> · {zoneLabel(p.area)}</>}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-sm text-slate-500">
+                Healing is easier to see across months than across days. Be kind to the person in the earlier photo.
               </p>
-              <button onClick={() => setCompare([])} className="text-slate-400 hover:text-white" aria-label="Close compare">
-                <X className="h-5 w-5" />
-              </button>
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {[a, b].map((p, i) => (
-                <figure key={p.id}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.imageData} alt={p.caption ?? `Photo from ${p.takenAt}`} className="w-full rounded-2xl object-cover" />
-                  <figcaption className="mt-2 text-center text-sm text-slate-400">
-                    <span className="font-medium text-slate-200">{i === 0 ? "Then" : "Now"}</span> · {formatDate(p.takenAt)}
-                    {p.area && <> · {zoneLabel(p.area)}</>}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-            <p className="mt-4 text-center text-sm text-slate-500">
-              Healing is easier to see across months than across days. Be kind to the person in the earlier photo.
-            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Floating compare bar while picking */}
+      {compareMode && !overlayOpen && (
+        <div className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 lg:bottom-6">
+          <div className="flex items-center gap-2 rounded-2xl border border-lab-border bg-lab-card/95 p-2 shadow-xl shadow-black/40 backdrop-blur">
+            <span className="px-2 text-sm font-medium text-slate-300">
+              {compare.length}/{MAX_COMPARE} picked
+            </span>
+            <button
+              onClick={() => setShowCompare(true)}
+              disabled={compare.length < 2}
+              className="btn-primary !py-2"
+            >
+              <GitCompareArrows className="h-4 w-4" /> Compare
+            </button>
+            <button
+              onClick={() => {
+                setCompareMode(false);
+                setCompare([]);
+              }}
+              className="btn-secondary !py-2"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
@@ -214,7 +301,7 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
                   }}
                   className={cn("btn-secondary", compareMode && "border-brand-500 text-brand-200")}
                 >
-                  {compareMode ? "Done picking" : "Pick two to compare"}
+                  {compareMode ? "Done picking" : "Pick photos to compare"}
                 </button>
               </>
             )}
@@ -233,7 +320,7 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
 
         {compareMode && (
           <p className="mt-3 rounded-xl bg-brand-900/40 px-4 py-2 text-sm text-brand-200">
-            Tap any two photos below to see them side by side.
+            Tap 2–4 photos below, then hit Compare to see them side by side.
           </p>
         )}
 
@@ -286,17 +373,23 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-500">{month}</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {items.map((p) => {
-                const picked = compare.some((c) => c.id === p.id);
+                const pickIndex = compareMode ? compare.findIndex((c) => c.id === p.id) : -1;
+                const picked = pickIndex !== -1;
                 return (
                   <div
                     key={p.id}
                     onClick={() => tapPhoto(p)}
                     className={cn(
-                      "card overflow-hidden !p-0 transition",
+                      "card relative overflow-hidden !p-0 transition",
                       compareMode && "cursor-pointer hover:border-brand-500",
                       picked && "border-brand-400 ring-2 ring-brand-500/50"
                     )}
                   >
+                    {picked && (
+                      <span className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full bg-brand-500 text-xs font-bold text-white shadow">
+                        {pickIndex + 1}
+                      </span>
+                    )}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.imageData} alt={p.caption ?? `Photo from ${p.takenAt}`} className="aspect-square w-full object-cover" />
                     <div className="p-3">

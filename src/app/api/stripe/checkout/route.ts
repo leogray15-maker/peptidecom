@@ -3,10 +3,10 @@ import { stripe, STRIPE_PRICES, FOUNDING_FIRST_MONTH_COUPON } from "@/lib/stripe
 import { getCurrentUser } from "@/lib/auth";
 import { getFoundingStatus } from "@/lib/membership";
 import { prisma } from "@/lib/prisma";
+import { requestAppUrl } from "@/lib/app-url";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-export async function POST() {
+export async function POST(req: Request) {
+  const appUrl = requestAppUrl(req);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });

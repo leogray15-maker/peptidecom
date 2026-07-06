@@ -10,6 +10,13 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Never allow the page itself to pan sideways — anything wider than the
+ * viewport gets clipped instead of spawning a horizontal scrollbar on mobile. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   @apply bg-lab-bg text-slate-100 antialiased;
 }
