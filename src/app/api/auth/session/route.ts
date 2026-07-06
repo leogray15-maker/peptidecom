@@ -105,7 +105,7 @@ export async function POST(req: Request) {
   }
 
   // Keep the Firebase custom claim in sync with membership for Firestore rules.
-  await syncMembershipClaim(uid, user.subscriptionStatus, user.role);
+  await syncMembershipClaim(uid, user.subscriptionStatus, user.role, user.comped);
 
   // Create the session cookie from the ID token.
   const expiresIn = SESSION_COOKIE_MAX_AGE * 1000;

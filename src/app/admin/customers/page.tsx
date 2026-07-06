@@ -7,7 +7,7 @@ import { safe } from "@/lib/safe-db";
 import { lifecycleStage } from "@/lib/admin";
 import { customerOrderBy, customerWhere, firstParam } from "@/lib/admin-customers";
 import { CustomersFilters } from "@/components/admin/customers-filters";
-import { RoleBadge, StageBadge, SubscriptionBadge, TagBadge } from "@/components/admin/badges";
+import { CompBadge, RoleBadge, StageBadge, SubscriptionBadge, TagBadge } from "@/components/admin/badges";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Customers" };
@@ -111,7 +111,10 @@ export default async function CustomersPage({
                   <StageBadge stage={lifecycleStage(u)} manual={!!u.crmStage} />
                 </td>
                 <td className="px-4 py-3">
-                  <SubscriptionBadge status={u.subscriptionStatus} />
+                  <span className="flex flex-wrap gap-1">
+                    <SubscriptionBadge status={u.subscriptionStatus} />
+                    {u.comped && <CompBadge />}
+                  </span>
                 </td>
                 <td className="max-w-44 px-4 py-3">
                   <span className="flex flex-wrap gap-1">

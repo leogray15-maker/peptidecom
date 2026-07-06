@@ -65,12 +65,15 @@ export const STAGE_LABEL: Record<LifecycleStage, string> = {
   VIP: "VIP",
 };
 
-/** Derive a stage from billing state; a manual crmStage always wins. */
+/** Derive a stage from billing state; a manual crmStage always wins and a
+ * comped account counts as active. */
 export function lifecycleStage(user: {
   crmStage: LifecycleStage | null;
   subscriptionStatus: SubscriptionStatus;
+  comped?: boolean;
 }): LifecycleStage {
   if (user.crmStage) return user.crmStage;
+  if (user.comped) return "ACTIVE";
   switch (user.subscriptionStatus) {
     case "ACTIVE":
       return "ACTIVE";
@@ -92,6 +95,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "customer.stage_changed": "Changed lifecycle stage",
   "customer.tags_changed": "Updated tags",
   "customer.verified_changed": "Toggled verified badge",
+  "customer.comp_changed": "Changed free access",
   "customer.contacted": "Marked as contacted",
   "note.created": "Added a note",
   "note.pinned": "Pinned a note",

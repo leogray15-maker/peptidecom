@@ -45,6 +45,9 @@ export function customerWhere(p: CustomerQueryParams): Prisma.UserWhereInput {
     case "founding":
       and.push({ foundingMember: true });
       break;
+    case "comped":
+      and.push({ comped: true });
+      break;
   }
 
   if (p.role === "ADMIN" || p.role === "MODERATOR" || p.role === "MEMBER") {

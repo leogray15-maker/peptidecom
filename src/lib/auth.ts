@@ -37,6 +37,7 @@ const PREVIEW_USER: User = {
   stripeCurrentPeriodEnd: null,
   subscriptionStatus: "ACTIVE",
   foundingMember: false,
+  comped: false,
   crmStage: null,
   crmTags: [],
   lastContactedAt: null,
@@ -70,12 +71,13 @@ export function isStaff(role?: Role | null) {
   return role === "ADMIN" || role === "MODERATOR";
 }
 
-/** Full access = an active subscription OR staff (admin/moderator). */
+/** Full access = an active subscription, staff (admin/moderator), or a
+ * comped account (free access granted from the admin CRM). */
 export function hasAccess(
-  user?: { subscriptionStatus: SubscriptionStatus; role: Role } | null
+  user?: { subscriptionStatus: SubscriptionStatus; role: Role; comped?: boolean } | null
 ) {
   if (!user) return false;
-  return isStaff(user.role) || isMember(user.subscriptionStatus);
+  return isStaff(user.role) || isMember(user.subscriptionStatus) || !!user.comped;
 }
 
 /** Next.js uses thrown errors for control flow (redirect, notFound, dynamic
@@ -152,10 +154,15 @@ export async function safeAuth() {
  * Set the `member` and `role` custom claims on a Firebase user so Firestore
  * security rules can gate real-time features by membership. Best-effort.
  */
-export async function syncMembershipClaim(firebaseUid: string, status: SubscriptionStatus, role: Role) {
+export async function syncMembershipClaim(
+  firebaseUid: string,
+  status: SubscriptionStatus,
+  role: Role,
+  comped = false
+) {
   try {
     await (await adminAuth()).setCustomUserClaims(firebaseUid, {
-      member: isMember(status) || isStaff(role),
+      member: isMember(status) || isStaff(role) || comped,
       role,
     });
   } catch (err) {

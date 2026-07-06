@@ -59,7 +59,7 @@ async function syncSubscription(subscription: Stripe.Subscription) {
   // Update the Firebase custom claim so real-time features unlock/lock in step
   // with membership (the client token picks it up on next refresh).
   if (user.firebaseUid) {
-    await syncMembershipClaim(user.firebaseUid, status, user.role);
+    await syncMembershipClaim(user.firebaseUid, status, user.role, user.comped);
   }
 }
 

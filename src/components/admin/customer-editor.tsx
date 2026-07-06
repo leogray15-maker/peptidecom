@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, Loader2, PhoneCall } from "lucide-react";
+import { BadgeCheck, Gift, Loader2, PhoneCall } from "lucide-react";
 
 interface EditableCustomer {
   id: string;
   role: "MEMBER" | "MODERATOR" | "ADMIN";
   verified: boolean;
+  comped: boolean;
   crmStage: string | null;
   crmTags: string[];
   lastContactedAt: string | null;
@@ -121,6 +122,16 @@ export function CustomerEditor({ customer }: { customer: EditableCustomer }) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-lab-border pt-4">
+        <button
+          type="button"
+          className={customer.comped ? "btn-secondary !border-emerald-500/40 !text-emerald-300" : "btn-secondary"}
+          disabled={busy}
+          title="Full membership without a Stripe subscription — for testers, friends and comps."
+          onClick={() => patch({ comped: !customer.comped })}
+        >
+          <Gift className="h-4 w-4" />
+          {customer.comped ? "Revoke free access" : "Grant free access"}
+        </button>
         <button
           type="button"
           className="btn-secondary"

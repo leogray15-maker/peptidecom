@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 const schema = z.object({
   role: z.enum(["MEMBER", "MODERATOR", "ADMIN"]).optional(),
   verified: z.boolean().optional(),
+  comped: z.boolean().optional(), // free access without a Stripe sub
   crmStage: z.enum(["LEAD", "TRIAL", "ACTIVE", "AT_RISK", "CHURNED", "VIP"]).nullable().optional(),
   crmTags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
   contacted: z.literal(true).optional(), // stamps lastContactedAt = now
@@ -38,6 +39,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     data: {
       ...(input.role !== undefined && { role: input.role }),
       ...(input.verified !== undefined && { verified: input.verified }),
+      ...(input.comped !== undefined && { comped: input.comped }),
       ...(input.crmStage !== undefined && { crmStage: input.crmStage }),
       ...(input.crmTags !== undefined && {
         crmTags: [...new Set(input.crmTags.map((t) => t.toLowerCase()))],
@@ -46,9 +48,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     },
   });
 
-  // Keep Firestore security-rule claims in step with role changes.
-  if (input.role !== undefined && user.firebaseUid) {
-    await syncMembershipClaim(user.firebaseUid, user.subscriptionStatus, user.role);
+  // Keep Firestore security-rule claims in step with role/access changes.
+  if ((input.role !== undefined || input.comped !== undefined) && user.firebaseUid) {
+    await syncMembershipClaim(user.firebaseUid, user.subscriptionStatus, user.role, user.comped);
   }
 
   const changes: { action: string; detail: string }[] = [];
@@ -56,6 +58,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     changes.push({ action: "customer.role_changed", detail: `${target.role} → ${input.role}` });
   if (input.verified !== undefined && input.verified !== target.verified)
     changes.push({ action: "customer.verified_changed", detail: input.verified ? "verified" : "unverified" });
+  if (input.comped !== undefined && input.comped !== target.comped)
+    changes.push({ action: "customer.comp_changed", detail: input.comped ? "granted free access" : "revoked free access" });
   if (input.crmStage !== undefined && input.crmStage !== target.crmStage)
     changes.push({
       action: "customer.stage_changed",

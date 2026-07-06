@@ -52,6 +52,11 @@ export function SubscriptionBadge({ status }: { status: SubscriptionStatus }) {
   return <span className={cn("badge", STATUS_STYLE[status])}>{STATUS_TEXT[status]}</span>;
 }
 
+/** Admin-granted free membership (no Stripe sub). */
+export function CompBadge() {
+  return <span className="badge bg-emerald-500/15 text-emerald-300">Free access</span>;
+}
+
 export function RoleBadge({ role }: { role: Role }) {
   if (role === "MEMBER") return null;
   return (

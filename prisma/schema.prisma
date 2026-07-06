@@ -120,6 +120,7 @@ model User {
   foundingMember         Boolean             @default(false) // locked-in founding price
 
   // Admin CRM
+  comped          Boolean         @default(false) // free access granted by an admin — full membership without a Stripe sub
   crmStage        LifecycleStage? // manual override; derived from billing when null
   crmTags         String[]        @default([])
   lastContactedAt DateTime?

@@ -11,6 +11,7 @@ const STATUS_OPTIONS = [
   { value: "canceled", label: "Canceled" },
   { value: "free", label: "Free / lead" },
   { value: "founding", label: "Founding" },
+  { value: "comped", label: "Free access (comped)" },
 ];
 
 const ROLE_OPTIONS = [

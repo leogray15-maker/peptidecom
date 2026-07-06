@@ -5,7 +5,7 @@ import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
 import { ACTION_LABEL, lifecycleStage } from "@/lib/admin";
-import { RoleBadge, StageBadge, SubscriptionBadge, TagBadge } from "@/components/admin/badges";
+import { CompBadge, RoleBadge, StageBadge, SubscriptionBadge, TagBadge } from "@/components/admin/badges";
 import { CustomerEditor } from "@/components/admin/customer-editor";
 import { NotesPanel } from "@/components/admin/notes-panel";
 import { TasksPanel, type TaskItem } from "@/components/admin/tasks-panel";
@@ -95,6 +95,7 @@ export default async function CustomerDetailPage({
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <StageBadge stage={stage} manual={!!user.crmStage} />
                 <SubscriptionBadge status={user.subscriptionStatus} />
+                {user.comped && <CompBadge />}
                 <RoleBadge role={user.role} />
                 {user.crmTags.map((t) => (
                   <Link key={t} href={`/admin/customers?tag=${encodeURIComponent(t)}`}>
@@ -157,6 +158,7 @@ export default async function CustomerDetailPage({
               id: user.id,
               role: user.role,
               verified: user.verified,
+              comped: user.comped,
               crmStage: user.crmStage,
               crmTags: user.crmTags,
               lastContactedAt: user.lastContactedAt?.toISOString() ?? null,
