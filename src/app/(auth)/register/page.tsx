@@ -119,5 +119,9 @@ function friendlyError(err: unknown): string {
   if (code.includes("weak-password")) return "Password is too weak (min 8 characters).";
   if (code.includes("invalid-email")) return "That email looks invalid.";
   if (code.includes("popup-closed")) return "Sign-up was cancelled.";
+  if (code.includes("unauthorized-domain"))
+    return "This domain isn't authorized for Google sign-in yet. Add it in Firebase → Authentication → Settings → Authorized domains. (Email/password sign-up still works.)";
+  if (code.includes("operation-not-allowed"))
+    return "This sign-in method is disabled. Enable it in Firebase → Authentication → Sign-in method.";
   return (err as Error)?.message ?? "Something went wrong.";
 }
