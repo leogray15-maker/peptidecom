@@ -4,6 +4,7 @@ import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { AppNav, ArchivesNavLink } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
+import { MobileNav } from "@/components/mobile-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 
 // Member pages are per-request (auth + DB) and must never be prerendered at build.
@@ -25,7 +26,12 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-[calc(100vh-2rem)]">
-      <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      {/* Mobile top bar + bottom tabs + drawer */}
+      <MobileNav
+        user={{ name: user.name, image: user.image, verified: user.verified }}
+      />
+
+      <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:py-6">
         {/* Sidebar */}
         <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-64 shrink-0 flex-col justify-between rounded-2xl border border-lab-border bg-lab-card p-4 lg:flex">
           <div className="flex min-h-0 flex-1 flex-col">
@@ -54,13 +60,6 @@ export default async function AppLayout({
 
         {/* Main */}
         <main className="min-w-0 flex-1">{children}</main>
-      </div>
-
-      {/* Mobile bottom nav */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-lab-border bg-lab-card/95 backdrop-blur lg:hidden">
-        <div className="px-2 py-2">
-          <AppNav orientation="horizontal" />
-        </div>
       </div>
     </div>
   );

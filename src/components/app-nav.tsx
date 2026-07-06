@@ -23,14 +23,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
   gold?: boolean;
 }
 
-const sections: { title: string | null; items: NavItem[] }[] = [
+export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: null,
     items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
@@ -72,9 +72,9 @@ const sections: { title: string | null; items: NavItem[] }[] = [
 
 // Ambient, low-key "next chapter" door. Pinned outside the scrolling nav in the
 // sidebar footer so it's persistently visible — familiar, never pushy.
-const archivesItem: NavItem = { href: "/archives", label: "The Archives", icon: Sparkles, gold: true };
+export const archivesItem: NavItem = { href: "/archives", label: "The Archives", icon: Sparkles, gold: true };
 
-function trackArchivesClick() {
+export function trackArchivesClick() {
   fetch("/api/funnel", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -82,9 +82,21 @@ function trackArchivesClick() {
   }).catch(() => {});
 }
 
-export function AppNav({ orientation = "vertical" }: { orientation?: "vertical" | "horizontal" }) {
+export function navItemClass(item: NavItem, active: boolean) {
+  return cn(
+    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
+    active
+      ? item.gold
+        ? "bg-gold-500/15 text-gold-200"
+        : "bg-brand-500/15 text-brand-200"
+      : item.gold
+        ? "text-gold-400/80 hover:bg-gold-500/10 hover:text-gold-200"
+        : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+  );
+}
+
+export function AppNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const horizontal = orientation === "horizontal";
 
   const renderItem = (item: NavItem) => {
     const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -92,36 +104,21 @@ export function AppNav({ orientation = "vertical" }: { orientation?: "vertical" 
       <Link
         key={item.href}
         href={item.href}
-        onClick={item.href === "/archives" ? trackArchivesClick : undefined}
-        className={cn(
-          "flex items-center gap-3 rounded-xl text-sm font-medium transition",
-          horizontal ? "shrink-0 flex-col gap-1 px-3 py-1.5 text-[11px]" : "px-3 py-2",
-          active
-            ? item.gold
-              ? "bg-gold-500/15 text-gold-200"
-              : "bg-brand-500/15 text-brand-200"
-            : item.gold
-              ? "text-gold-400/80 hover:bg-gold-500/10 hover:text-gold-200"
-              : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
-        )}
+        onClick={() => {
+          if (item.href === "/archives") trackArchivesClick();
+          onNavigate?.();
+        }}
+        className={navItemClass(item, active)}
       >
-        <item.icon className={cn(horizontal ? "h-5 w-5" : "h-4.5 w-4.5")} />
+        <item.icon className="h-4.5 w-4.5 shrink-0" />
         {item.label}
       </Link>
     );
   };
 
-  if (horizontal) {
-    return (
-      <nav className="flex gap-1 overflow-x-auto">
-        {[...sections.flatMap((s) => s.items), archivesItem].map(renderItem)}
-      </nav>
-    );
-  }
-
   return (
     <nav className="space-y-4">
-      {sections.map((section, i) => (
+      {NAV_SECTIONS.map((section, i) => (
         <div key={section.title ?? i}>
           {section.title && (
             <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
@@ -136,13 +133,16 @@ export function AppNav({ orientation = "vertical" }: { orientation?: "vertical" 
 }
 
 /** Persistent "next chapter" link for the sidebar footer. */
-export function ArchivesNavLink() {
+export function ArchivesNavLink({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const active = pathname === "/archives" || pathname.startsWith("/archives/");
   return (
     <Link
       href="/archives"
-      onClick={trackArchivesClick}
+      onClick={() => {
+        trackArchivesClick();
+        onNavigate?.();
+      }}
       className={cn(
         "mb-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
         active

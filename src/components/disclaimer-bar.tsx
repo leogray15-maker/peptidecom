@@ -2,10 +2,12 @@ import { FlaskConical } from "lucide-react";
 
 export function DisclaimerBar() {
   return (
-    <div className="w-full border-b border-lab-border bg-brand-950/60 py-1.5 text-center text-[11px] font-medium tracking-wide text-brand-100">
+    <div className="w-full border-b border-lab-border bg-brand-950/60 px-3 py-1.5 text-center text-[10px] font-medium tracking-wide text-brand-100 sm:text-[11px]">
       <span className="inline-flex items-center gap-1.5">
-        <FlaskConical className="h-3 w-3" />
-        RESEARCH &amp; PEER SUPPORT ONLY · NOT FOR HUMAN CONSUMPTION · NOT MEDICAL ADVICE
+        <FlaskConical className="h-3 w-3 shrink-0" />
+        <span className="text-balance">
+          RESEARCH &amp; PEER SUPPORT ONLY · NOT FOR HUMAN CONSUMPTION · NOT MEDICAL ADVICE
+        </span>
       </span>
     </div>
   );
