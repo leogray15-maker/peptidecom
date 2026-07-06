@@ -28,6 +28,42 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
     envVar("STRIPE_PRICE_ANNUAL", !!process.env.STRIPE_PRICE_ANNUAL),
   ];
 
+  // Shape checks — a malformed value here doesn't fail "presence" but silently
+  // breaks sign-in (e.g. a bad authDomain sends the Google popup to a garbage
+  // URL like "https//…" → NXDOMAIN). Surface those as their own red rows.
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  if (authDomain) {
+    const looksLikeBareHost =
+      !/[/\\\s]/.test(authDomain) &&
+      !/^https?:/i.test(authDomain) &&
+      authDomain.includes(".");
+    env.push({
+      label: "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN is a bare hostname",
+      ok: looksLikeBareHost,
+      detail: looksLikeBareHost
+        ? undefined
+        : `Should be just a host like "your-project.firebaseapp.com" — no https://, no slashes, no preview URL. Got: "${authDomain}"`,
+    });
+  } else {
+    env.push({
+      label: "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN is a bare hostname",
+      ok: false,
+      detail: "Missing. Google sign-in needs this (e.g. your-project.firebaseapp.com).",
+    });
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl) {
+    const wellFormed = /^https?:\/\/[^/\s]+/i.test(appUrl);
+    env.push({
+      label: "NEXT_PUBLIC_APP_URL is a valid URL",
+      ok: wellFormed,
+      detail: wellFormed
+        ? undefined
+        : `Malformed — must start with https:// (note the colon). Got: "${appUrl}"`,
+    });
+  }
+
   const services: Check[] = [];
 
   // Reach the DB *and* confirm the schema is migrated. A bare `SELECT 1` passes
