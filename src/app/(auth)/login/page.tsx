@@ -159,5 +159,9 @@ function friendlyError(err: unknown): string {
     return "Invalid email or password.";
   if (code.includes("popup-closed")) return "Sign-in was cancelled.";
   if (code.includes("too-many-requests")) return "Too many attempts. Try again later.";
+  if (code.includes("unauthorized-domain"))
+    return "This domain isn't authorized for Google sign-in yet. Add it in Firebase → Authentication → Settings → Authorized domains. (Email/password sign-in still works.)";
+  if (code.includes("operation-not-allowed"))
+    return "This sign-in method is disabled. Enable it in Firebase → Authentication → Sign-in method.";
   return (err as Error)?.message ?? "Something went wrong.";
 }
