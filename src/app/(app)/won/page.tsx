@@ -1,0 +1,89 @@
+import { Trophy } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { PeerSupportNote } from "@/components/peer-support-note";
+import { StoryForm } from "@/components/story-form";
+import { safe } from "@/lib/safe-db";
+import { zoneLabel } from "@/lib/tsw";
+import {
+  type RecoveryStory,
+  type SharedPhoto,
+  listSharedPhotos,
+  listStories,
+} from "@/lib/tsw-db";
+import { formatDate, timeAgo } from "@/lib/utils";
+
+export const metadata = { title: "Won — recovery stories" };
+
+export default async function WonPage() {
+  const [stories, sharedPhotos] = await Promise.all([
+    safe(() => listStories(), [] as RecoveryStory[]),
+    safe(() => listSharedPhotos(12), [] as SharedPhoto[]),
+  ]);
+
+  return (
+    <div>
+      <PageHeader
+        title="Won"
+        subtitle="Recovery stories from members further down the road. On your worst day, this page is the proof."
+        action={<StoryForm />}
+      />
+
+      {/* Shared progress photos */}
+      {sharedPhotos.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-500">
+            Progress, shared by members
+          </h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {sharedPhotos.map((p) => (
+              <figure key={p.id} className="card overflow-hidden !p-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.imageData}
+                  alt={p.caption ?? "Member progress photo"}
+                  className="aspect-square w-full object-cover"
+                />
+                <figcaption className="p-2 text-[11px] text-slate-500">
+                  {formatDate(p.takenAt)}
+                  {p.area ? ` · ${zoneLabel(p.area)}` : ""}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stories */}
+      {stories.length === 0 ? (
+        <div className="card flex flex-col items-center py-14 text-center">
+          <Trophy className="h-10 w-10 text-gold-400" />
+          <p className="mt-4 font-semibold text-white">The wall is waiting for its first story.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+            If you&apos;re further along — even just past your first hard stretch — your story is
+            someone else&apos;s lifeline. Share what you wish you&apos;d been able to read.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {stories.map((s) => (
+            <article key={s.id} className="card border-l-4 border-l-gold-500/60">
+              <div className="flex flex-wrap items-center gap-2">
+                <Trophy className="h-4 w-4 text-gold-400" />
+                <h2 className="font-semibold text-white">{s.title}</h2>
+                {s.monthsIn != null && (
+                  <span className="badge bg-gold-500/15 text-gold-300">{s.monthsIn} months in</span>
+                )}
+              </div>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-300">{s.body}</p>
+              <p className="mt-3 text-xs text-slate-500">
+                {s.authorName ?? "A member"} · {timeAgo(s.createdAt)}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <PeerSupportNote />
+    </div>
+  );
+}

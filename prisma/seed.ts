@@ -5,14 +5,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding…");
 
-  // Categories
+  // Categories — recovery-stage groups first so members can match with people
+  // in the same phase, then the general & lab categories.
   const categories = [
-    { slug: "general", name: "General discussion", description: "Anything and everything.", order: 0, icon: "💬" },
-    { slug: "glp1", name: "GLP-1s", description: "Semaglutide, Tirzepatide, Retatrutide.", order: 1, icon: "💉" },
-    { slug: "vendors", name: "Vendor talk", description: "Reviews, warnings and recommendations.", order: 2, icon: "🏪" },
-    { slug: "protocols", name: "Protocols & dosing", description: "How people run their research.", order: 3, icon: "📋" },
-    { slug: "results", name: "Results & progress", description: "Share your data.", order: 4, icon: "📈" },
-    { slug: "testing", name: "Lab testing", description: "COAs, purity and mass-spec.", order: 5, icon: "🧪" },
+    { slug: "early-withdrawal", name: "Early withdrawal (0–6 mo)", description: "The hardest stretch. Vent, ask, be held.", order: 0, icon: "🌑" },
+    { slug: "months-6-12", name: "The middle (6–12 mo)", description: "Two steps forward, one back. Compare notes.", order: 1, icon: "🌗" },
+    { slug: "late-recovery", name: "Late recovery (1 yr+)", description: "Mostly calm skin, occasional waves — and giving back.", order: 2, icon: "🌕" },
+    { slug: "general", name: "General discussion", description: "Anything and everything.", order: 3, icon: "💬" },
+    { slug: "glp1", name: "GLP-1s", description: "Semaglutide, Tirzepatide, Retatrutide.", order: 4, icon: "💉" },
+    { slug: "vendors", name: "Vendor talk", description: "Reviews, warnings and recommendations.", order: 5, icon: "🏪" },
+    { slug: "protocols", name: "Protocols & dosing", description: "How people run their research.", order: 6, icon: "📋" },
+    { slug: "results", name: "Results & progress", description: "Share your data.", order: 7, icon: "📈" },
+    { slug: "testing", name: "Lab testing", description: "COAs, purity and mass-spec.", order: 8, icon: "🧪" },
   ];
   for (const c of categories) {
     await prisma.category.upsert({ where: { slug: c.slug }, update: c, create: c });

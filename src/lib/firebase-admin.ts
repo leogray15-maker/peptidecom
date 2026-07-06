@@ -1,6 +1,7 @@
 import "server-only";
 import type { App } from "firebase-admin/app";
 import type { Auth } from "firebase-admin/auth";
+import type { Firestore } from "firebase-admin/firestore";
 
 let cached: App | null = null;
 
@@ -113,6 +114,14 @@ export function isAdminConfigured(): boolean {
 export async function adminAuth(): Promise<Auth> {
   const { getAuth } = await import("firebase-admin/auth");
   return getAuth(await getAdminApp());
+}
+
+/** Server-side Firestore. All TSW/recovery data (daily logs, photos, milestones,
+ * stories, funnel events) lives in Firestore and is accessed through here. */
+export async function adminDb(): Promise<Firestore> {
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const db = getFirestore(await getAdminApp());
+  return db;
 }
 
 /** Session cookie lifetime: 14 days (Firebase max is 14 days). */

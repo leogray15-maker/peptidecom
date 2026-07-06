@@ -1,8 +1,16 @@
 rules_version = '2';
 
-// Firestore security rules for The Arcane Lab live chat.
-// Access is gated on the `member` custom claim, which the server sets from the
-// user's Stripe subscription status (see src/lib/auth.ts -> syncMembershipClaim).
+// Firestore security rules for The Arcane Lab.
+//
+// Live chat is the only collection clients touch directly. All TSW/recovery
+// data — users/{uid} profiles + dailyLogs/photos/triggerLogs/milestones
+// subcollections, recoveryStories, sharedPhotos, funnelEvents — is read and
+// written exclusively through the server (Admin SDK bypasses these rules),
+// so no client rules are declared for it and it stays deny-by-default.
+//
+// Chat access is gated on the `member` custom claim, which the server sets
+// from the user's Stripe subscription status (see src/lib/auth.ts ->
+// syncMembershipClaim).
 service cloud.firestore {
   match /databases/{database}/documents {
 
