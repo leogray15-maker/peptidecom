@@ -8,6 +8,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Dark on <html> too, so overscroll bounce and the notch/status-bar area
+   * never flash white on mobile. */
+  @apply bg-lab-bg;
 }
 
 /* Never allow the page itself to pan sideways — anything wider than the
