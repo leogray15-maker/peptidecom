@@ -12,7 +12,7 @@ export default function ProtocolsPage() {
     <div>
       <PageHeader
         title="Protocols"
-        subtitle="The Arcane Lab healing library — step-by-step protocols, curated by the lab."
+        subtitle="The Arcane Track healing library — step-by-step protocols, curated by the lab."
       />
 
       <div className="card border-gold-500/25">

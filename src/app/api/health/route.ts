@@ -21,8 +21,11 @@ export async function GET() {
     FIREBASE_PRIVATE_KEY: !!process.env.FIREBASE_PRIVATE_KEY,
     STRIPE_SECRET_KEY: !!process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: !!process.env.STRIPE_WEBHOOK_SECRET,
-    STRIPE_PRICE_MONTHLY: !!process.env.STRIPE_PRICE_MONTHLY,
-    STRIPE_PRICE_ANNUAL: !!process.env.STRIPE_PRICE_ANNUAL,
+    STRIPE_PRICE_FOUNDING:
+      !!process.env.STRIPE_PRICE_FOUNDING || !!process.env.STRIPE_PRICE_MONTHLY,
+    STRIPE_PRICE_STANDARD:
+      !!process.env.STRIPE_PRICE_STANDARD || !!process.env.STRIPE_PRICE_MONTHLY,
+    STRIPE_COUPON_FOUNDING_FIRST_MONTH: !!process.env.STRIPE_COUPON_FOUNDING_FIRST_MONTH,
   };
 
   let database = { ok: false, error: "" as string };

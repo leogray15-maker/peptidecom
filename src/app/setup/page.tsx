@@ -24,8 +24,18 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
     envVar("FIREBASE_PRIVATE_KEY", !!process.env.FIREBASE_PRIVATE_KEY),
     envVar("STRIPE_SECRET_KEY", !!process.env.STRIPE_SECRET_KEY),
     envVar("STRIPE_WEBHOOK_SECRET", !!process.env.STRIPE_WEBHOOK_SECRET),
-    envVar("STRIPE_PRICE_MONTHLY", !!process.env.STRIPE_PRICE_MONTHLY),
-    envVar("STRIPE_PRICE_ANNUAL", !!process.env.STRIPE_PRICE_ANNUAL),
+    envVar(
+      "STRIPE_PRICE_FOUNDING (£45/mo)",
+      !!process.env.STRIPE_PRICE_FOUNDING || !!process.env.STRIPE_PRICE_MONTHLY
+    ),
+    envVar(
+      "STRIPE_PRICE_STANDARD (£55/mo)",
+      !!process.env.STRIPE_PRICE_STANDARD || !!process.env.STRIPE_PRICE_MONTHLY
+    ),
+    envVar(
+      "STRIPE_COUPON_FOUNDING_FIRST_MONTH (£28 intro)",
+      !!process.env.STRIPE_COUPON_FOUNDING_FIRST_MONTH
+    ),
   ];
 
   // Shape checks — a malformed value here doesn't fail "presence" but silently

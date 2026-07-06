@@ -46,6 +46,7 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
   subscriptionStatus     SubscriptionStatus  @default(NONE)
+  foundingMember         Boolean             @default(false) // locked-in founding price
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

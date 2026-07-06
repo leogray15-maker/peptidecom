@@ -24,7 +24,7 @@ const PREVIEW_USER: User = {
   firebaseUid: "preview-admin",
   name: "Preview Admin",
   username: "preview",
-  email: "preview@thearcanelab.local",
+  email: "preview@arcanetrack.local",
   emailVerified: null,
   image: null,
   bio: null,
@@ -36,6 +36,7 @@ const PREVIEW_USER: User = {
   stripePriceId: null,
   stripeCurrentPeriodEnd: null,
   subscriptionStatus: "ACTIVE",
+  foundingMember: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

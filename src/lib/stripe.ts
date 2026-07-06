@@ -9,14 +9,23 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "sk_test_place
   apiVersion: "2025-02-24.acacia",
   typescript: true,
   appInfo: {
-    name: "The Arcane Lab",
+    name: "Arcane Track",
   },
 });
 
 export const STRIPE_PRICES = {
-  monthly: process.env.STRIPE_PRICE_MONTHLY ?? "",
-  annual: process.env.STRIPE_PRICE_ANNUAL ?? "",
+  // Founding recurring price (£45/mo) — first 50 members lock this in for life.
+  founding:
+    process.env.STRIPE_PRICE_FOUNDING ?? process.env.STRIPE_PRICE_MONTHLY ?? "",
+  // Standard recurring price (£55/mo) — everyone after the founding offer closes.
+  standard:
+    process.env.STRIPE_PRICE_STANDARD ?? process.env.STRIPE_PRICE_MONTHLY ?? "",
 };
+
+/** One-time coupon that discounts a founding member's FIRST invoice down to the
+ * £28 intro price (i.e. ~£17 off, duration: once). Applied at checkout. */
+export const FOUNDING_FIRST_MONTH_COUPON =
+  process.env.STRIPE_COUPON_FOUNDING_FIRST_MONTH ?? "";
 
 /** Statuses that grant access to gated content. */
 export const ACTIVE_STATUSES = ["ACTIVE", "TRIALING"] as const;
