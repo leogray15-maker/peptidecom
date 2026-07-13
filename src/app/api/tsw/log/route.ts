@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { BODY_ZONES, SYMPTOMS } from "@/lib/tsw";
+import { BODY_ZONES, SYMPTOMS, dateKey, daysBetween } from "@/lib/tsw";
 import { deleteLog, saveLogAndAward, tswKey } from "@/lib/tsw-db";
 
 const zoneIds = BODY_ZONES.map((z) => z.id);
@@ -24,6 +24,11 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  }
+
+  // No logging the future (one day of slack for timezones ahead of the server).
+  if (daysBetween(dateKey(), parsed.data.date) > 1) {
+    return NextResponse.json({ error: "That date hasn't happened yet." }, { status: 400 });
   }
 
   try {

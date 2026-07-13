@@ -15,7 +15,6 @@ const perks = [
   "“Where am I?” withdrawal stage map to see exactly where you are",
   "Insights & trends built from your own logged data",
   "Trigger tracking to catch what flares you up",
-  "Doctor prep — a printable appointment summary in one tap",
   "Flare-day support tools for the hardest days",
   "The healing protocol library — gut, skin, sleep, diet & biohacking",
   "Peptide tracker & reconstitution calculator",

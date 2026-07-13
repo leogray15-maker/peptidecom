@@ -5,9 +5,9 @@ import {
   Camera,
   ClipboardList,
   GraduationCap,
-  HeartHandshake,
   LifeBuoy,
   LineChart,
+  ListChecks,
   Map,
   Syringe,
   TrendingUp,
@@ -28,7 +28,7 @@ const recoveryLinks = [
   { href: "/photos", label: "Photo timeline", icon: Camera, desc: "Add a photo or compare then vs now." },
   { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "The withdrawal map, stage by stage." },
   { href: "/insights", label: "Your trends", icon: TrendingUp, desc: "Severity, sleep and patterns — your data." },
-  { href: "/doctor", label: "Doctor prep", icon: HeartHandshake, desc: "Build a printable appointment summary." },
+  { href: "/triggers", label: "Triggers", icon: ListChecks, desc: "Catch what helps and what flares you." },
   { href: "/won", label: "The Won wall", icon: Trophy, desc: "Recovery stories. Proof it gets better." },
 ];
 
@@ -48,15 +48,13 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       include: { author: true, category: true, _count: { select: { comments: true } } },
     });
-  const recentPosts = await safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>);
 
   const uid = user ? tswKey(user) : null;
-  const [logs, profile] = uid
-    ? await Promise.all([
-        safe(() => listLogs(uid), [] as DailyLog[]),
-        safe(() => getProfile(uid), {} as TswProfile),
-      ])
-    : [[], {} as TswProfile];
+  const [recentPosts, logs, profile] = await Promise.all([
+    safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
+    uid ? safe(() => listLogs(uid), [] as DailyLog[]) : Promise.resolve([] as DailyLog[]),
+    uid ? safe(() => getProfile(uid), {} as TswProfile) : Promise.resolve({} as TswProfile),
+  ]);
 
   const stats = computeStats(logs);
   const stage = stageName(profile.recoveryStage);

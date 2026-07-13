@@ -1,7 +1,15 @@
+import { Download } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import { ManageBillingButton } from "@/components/manage-billing-button";
+
+const exports = [
+  { data: "logs", label: "Daily skin logs" },
+  { data: "triggers", label: "Triggers" },
+  { data: "journal", label: "Journal" },
+  { data: "peptides", label: "Peptide doses" },
+];
 
 export const metadata = { title: "Settings" };
 
@@ -75,6 +83,21 @@ export default async function SettingsPage() {
           <p className="mt-3 text-xs text-slate-500">
             Update your card, switch plans or cancel through the secure Stripe portal.
           </p>
+        </section>
+
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white">Your data</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Everything you&apos;ve logged is yours. Download it as CSV — open it in any
+            spreadsheet, or bring it to an appointment.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {exports.map((e) => (
+              <a key={e.data} href={`/api/tsw/export?data=${e.data}`} className="btn-secondary" download>
+                <Download className="h-4 w-4" /> {e.label}
+              </a>
+            ))}
+          </div>
         </section>
       </div>
     </div>

@@ -86,6 +86,7 @@ export function TriggersClient({ initialEntries }: { initialEntries: TriggerItem
   }
 
   async function remove(id: string) {
+    if (!confirm("Delete this entry? This can't be undone.")) return;
     await fetch(`/api/tsw/triggers?id=${id}`, { method: "DELETE" });
     router.refresh();
   }
