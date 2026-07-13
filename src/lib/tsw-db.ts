@@ -371,6 +371,16 @@ export async function saveLogAndAward(
 
 // ─── Recovery stories (recoveryStories/{id}) ─────────────────────────────────
 
+/** Admin triage pipeline for the content flywheel. Stories from before this
+ * existed have no status — treat missing as "new". */
+export type StoryStatus = "new" | "approved" | "posted" | "skipped";
+
+export interface StoryPrompts {
+  hardest?: string | null; // "What was the hardest part?"
+  changed?: string | null; // "What changed?"
+  advice?: string | null; // "What would you tell someone at the start?"
+}
+
 export interface RecoveryStory {
   id: string;
   uid: string;
@@ -381,6 +391,19 @@ export interface RecoveryStory {
   createdAt: string;
   /** Condition id; stories from before multi-condition are TSW (missing). */
   condition?: string | null;
+  /** Guided-prompt answers (optional, shown as Q&A on the wall). */
+  prompts?: StoryPrompts | null;
+  /** Explicit, opt-in marketing consent. Missing (pre-flywheel stories) or
+   * false = the story may ONLY appear on the members-only wall. */
+  marketingConsent?: boolean;
+  marketingConsentAt?: string | null;
+  /** Separate opt-in for before/after photos in marketing content. */
+  photoConsent?: boolean;
+  beforePhotoId?: string | null;
+  afterPhotoId?: string | null;
+  status?: StoryStatus;
+  statusUpdatedAt?: string | null;
+  postedAt?: string | null;
 }
 
 export async function listStories(limit = 50): Promise<RecoveryStory[]> {
@@ -402,6 +425,30 @@ export async function addStory(
     .collection("recoveryStories")
     .add({ ...story, uid, createdAt: new Date().toISOString() });
   return ref.id;
+}
+
+export async function setStoryStatus(id: string, status: StoryStatus): Promise<void> {
+  const db = await adminDb();
+  const now = new Date().toISOString();
+  await db
+    .collection("recoveryStories")
+    .doc(id)
+    .set(
+      { status, statusUpdatedAt: now, ...(status === "posted" ? { postedAt: now } : {}) },
+      { merge: true }
+    );
+}
+
+/** Fetch specific photos of a member by id (admin quote-card generation —
+ * only ever called for photos the member explicitly consented to). */
+export async function getPhotosByIds(uid: string, ids: string[]): Promise<TswPhoto[]> {
+  const db = await adminDb();
+  const snaps = await Promise.all(
+    ids.map((id) => db.collection("users").doc(uid).collection("photos").doc(id).get())
+  );
+  return snaps
+    .filter((s) => s.exists)
+    .map((s) => ({ ...(s.data() as Omit<TswPhoto, "id">), id: s.id }));
 }
 
 // ─── Funnel instrumentation (funnelEvents/{id}) ──────────────────────────────

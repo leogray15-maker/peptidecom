@@ -23,9 +23,9 @@ export const metadata = { title: "Won — recovery stories" };
 export default async function WonPage({
   searchParams,
 }: {
-  searchParams: Promise<{ all?: string }>;
+  searchParams: Promise<{ all?: string; share?: string }>;
 }) {
-  const { all } = await searchParams;
+  const { all, share } = await searchParams;
   const user = await getCurrentUser();
   const [allStories, sharedPhotos, profile] = await Promise.all([
     safe(() => listStories(), [] as RecoveryStory[]),
@@ -46,7 +46,7 @@ export default async function WonPage({
       <PageHeader
         title="Won"
         subtitle="Recovery stories from members further down the road. On your worst day, this page is the proof."
-        action={<StoryForm />}
+        action={<StoryForm autoOpen={share === "1"} />}
       />
 
       {/* Condition filter */}
@@ -138,6 +138,24 @@ export default async function WonPage({
                 )}
               </div>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-300">{s.body}</p>
+              {s.prompts && (
+                <dl className="mt-4 space-y-2.5 border-l-2 border-lab-border pl-4">
+                  {(
+                    [
+                      ["What was the hardest part?", s.prompts.hardest],
+                      ["What changed?", s.prompts.changed],
+                      ["What would you tell someone at the start?", s.prompts.advice],
+                    ] as const
+                  )
+                    .filter(([, a]) => a)
+                    .map(([q, a]) => (
+                      <div key={q}>
+                        <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">{q}</dt>
+                        <dd className="mt-0.5 text-sm text-slate-300">{a}</dd>
+                      </div>
+                    ))}
+                </dl>
+              )}
               <p className="mt-3 text-xs text-slate-500">
                 {s.authorName ?? "A member"} · {timeAgo(s.createdAt)}
               </p>

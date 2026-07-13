@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { addPhoto, deletePhoto, setPhotoShared, tswKey } from "@/lib/tsw-db";
+import { addPhoto, deletePhoto, listPhotos, setPhotoShared, tswKey } from "@/lib/tsw-db";
+
+/** The member's own photos — used by the story form's before/after picker. */
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const photos = await listPhotos(tswKey(user));
+    return NextResponse.json({
+      photos: photos.map((p) => ({
+        id: p.id,
+        takenAt: p.takenAt,
+        area: p.area,
+        imageData: p.imageData,
+      })),
+    });
+  } catch (err) {
+    console.error("Failed to list photos:", err);
+    return NextResponse.json({ error: "Couldn't load your photos." }, { status: 503 });
+  }
+}
 
 // Images are stored as compressed data-URLs inside the Firestore doc; the
 // client downsizes before upload. Cap well below Firestore's 1MB doc limit.
