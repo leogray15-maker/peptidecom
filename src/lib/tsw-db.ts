@@ -85,6 +85,9 @@ export interface TswPhoto {
   imageData: string; // compressed data-URL (kept well under the 1MB doc limit)
   shared: boolean;
   createdAt: string;
+  /** Free client-side severity estimate (see src/lib/photo-score.ts).
+   * Absent on photos uploaded before the feature existed. */
+  estimate?: import("@/lib/photo-score").PhotoEstimate | null;
 }
 
 export async function listPhotos(uid: string): Promise<TswPhoto[]> {

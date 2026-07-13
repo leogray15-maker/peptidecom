@@ -15,6 +15,18 @@ const createSchema = z.object({
     .string()
     .max(MAX_IMAGE_CHARS)
     .regex(/^data:image\/(jpeg|png|webp);base64,/),
+  // Client-computed severity estimate (free canvas heuristic / local model).
+  estimate: z
+    .object({
+      score: z.number().min(0).max(100),
+      composite: z.number().min(0).max(1),
+      inflamedFraction: z.number().min(0).max(1),
+      rednessIndex: z.number().min(0).max(1),
+      version: z.number().int().min(1).max(100),
+      method: z.enum(["heuristic", "tfjs", "blended"]),
+    })
+    .optional()
+    .nullable(),
 });
 
 const patchSchema = z.object({
@@ -41,6 +53,7 @@ export async function POST(req: Request) {
       caption: parsed.data.caption ?? null,
       imageData: parsed.data.imageData,
       shared: false, // always private by default
+      estimate: parsed.data.estimate ?? null,
     });
     return NextResponse.json({ ok: true, id });
   } catch (err) {
