@@ -13,12 +13,27 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  buildCohortStatements,
+  computePersonalInsight,
+  rotateStatements,
+  weeksSinceStart,
+} from "@/lib/insights";
+import { getLatestAggregates } from "@/lib/insights-db";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
 import { type DailyLog, computeStats, dateKey, stageName } from "@/lib/tsw";
-import { type TswProfile, getProfile, listLogs, tswKey } from "@/lib/tsw-db";
+import {
+  type TriggerLog,
+  type TswProfile,
+  getProfile,
+  listLogs,
+  listTriggers,
+  tswKey,
+} from "@/lib/tsw-db";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
@@ -50,16 +65,31 @@ export default async function DashboardPage() {
     });
 
   const uid = user ? tswKey(user) : null;
-  const [recentPosts, logs, profile] = await Promise.all([
+  const [recentPosts, logs, profile, triggers, aggregates] = await Promise.all([
     safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
     uid ? safe(() => listLogs(uid), [] as DailyLog[]) : Promise.resolve([] as DailyLog[]),
     uid ? safe(() => getProfile(uid), {} as TswProfile) : Promise.resolve({} as TswProfile),
+    uid ? safe(() => listTriggers(uid), [] as TriggerLog[]) : Promise.resolve([] as TriggerLog[]),
+    safe(getLatestAggregates, null),
   ]);
 
   const stats = computeStats(logs);
   const stage = stageName(profile.recoveryStage);
   const todayLogged = logs.some((l) => l.date === dateKey());
   const firstName = user?.name?.split(" ")[0] ?? "there";
+
+  // Insights: the member's own strongest pattern + rotating cohort stats
+  // (aggregated nightly, never per-request — see /api/cron/aggregate).
+  const personalInsight = computePersonalInsight(logs, triggers, dateKey());
+  const cohortStatements = aggregates
+    ? rotateStatements(
+        buildCohortStatements(aggregates, {
+          stage: profile.recoveryStage,
+          weeksSinceStart: weeksSinceStart(logs, profile, dateKey()),
+        }),
+        personalInsight ? 3 : 4
+      )
+    : [];
 
   return (
     <div>
@@ -131,6 +161,9 @@ export default async function DashboardPage() {
         </div>
         <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
       </Link>
+
+      {/* Cohort + personal insights */}
+      <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
 
       {/* Quick links */}
       <h2 className="mt-8 text-lg font-semibold text-white">Jump back in</h2>

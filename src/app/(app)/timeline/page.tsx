@@ -17,7 +17,10 @@ export default async function TimelinePage() {
         title="Where am I in this?"
         subtitle="A rough map of the road many people walk. Mark where you are — not to be graded, just so this place can meet you there."
       />
-      <TimelineClient currentStage={profile.recoveryStage ?? null} />
+      <TimelineClient
+        currentStage={profile.recoveryStage ?? null}
+        startDate={profile.tswStartDate ?? null}
+      />
       <PeerSupportNote />
     </div>
   );

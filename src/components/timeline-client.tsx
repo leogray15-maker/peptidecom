@@ -2,12 +2,79 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, MapPin } from "lucide-react";
-import { TSW_STAGES, type MilestoneDef } from "@/lib/tsw";
+import { CalendarDays, Check, Loader2, MapPin } from "lucide-react";
+import { TSW_STAGES, type MilestoneDef, dateKey, daysBetween } from "@/lib/tsw";
 import { MilestoneCelebration } from "@/components/milestone-celebration";
 import { cn } from "@/lib/utils";
 
-export function TimelineClient({ currentStage }: { currentStage: string | null }) {
+/** Optional "when did you stop?" anchor. Feeds the personal recovery clock and
+ * the anonymised day-since-start cohort curves. */
+function StartDateCard({ startDate }: { startDate: string | null }) {
+  const router = useRouter();
+  const [value, setValue] = useState(startDate ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    const res = await fetch("/api/tsw/start-date", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: value || null }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) {
+      setError(data.error ?? "Couldn't save.");
+      return;
+    }
+    setSaved(true);
+    router.refresh();
+  }
+
+  const days = startDate ? daysBetween(startDate, dateKey()) : null;
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="h-4 w-4 text-brand-300" />
+        <p className="font-semibold text-white">When did you stop steroids?</p>
+      </div>
+      <p className="mt-1 text-sm text-slate-500">
+        Optional — it anchors your recovery clock, so your charts and community comparisons
+        line up with how far along you actually are.
+        {days != null && days >= 0 && (
+          <span className="text-slate-300"> You&apos;re {days} days in.</span>
+        )}
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          type="date"
+          className="input max-w-48"
+          value={value}
+          max={dateKey()}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <button onClick={save} disabled={saving || value === (startDate ?? "")} className="btn-secondary">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
+          Save
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
+    </div>
+  );
+}
+
+export function TimelineClient({
+  currentStage,
+  startDate,
+}: {
+  currentStage: string | null;
+  startDate: string | null;
+}) {
   const router = useRouter();
   const [saving, setSaving] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState<MilestoneDef[]>([]);
@@ -36,6 +103,7 @@ export function TimelineClient({ currentStage }: { currentStage: string | null }
   return (
     <div className="space-y-4">
       <MilestoneCelebration milestones={celebrating} onClose={() => setCelebrating([])} />
+      <StartDateCard startDate={startDate} />
       {error && <p className="text-sm text-rose-400">{error}</p>}
 
       <ol className="relative space-y-4 before:absolute before:bottom-6 before:left-[19px] before:top-6 before:w-px before:bg-lab-border">

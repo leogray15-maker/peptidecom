@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { pearson } from "@/lib/insights";
 import { type DailyLog, SYMPTOMS, dateKey, daysBetween, zoneLabel } from "@/lib/tsw";
 
 // Chart palette validated for the dark card surface (#0f0f15):
@@ -27,23 +28,6 @@ const tooltipStyle = {
   borderRadius: 12,
   color: "#e2e8f0",
 } as const;
-
-function pearson(pairs: [number, number][]): number | null {
-  const n = pairs.length;
-  if (n < 7) return null;
-  const mx = pairs.reduce((s, p) => s + p[0], 0) / n;
-  const my = pairs.reduce((s, p) => s + p[1], 0) / n;
-  let num = 0;
-  let dx = 0;
-  let dy = 0;
-  for (const [x, y] of pairs) {
-    num += (x - mx) * (y - my);
-    dx += (x - mx) ** 2;
-    dy += (y - my) ** 2;
-  }
-  if (dx === 0 || dy === 0) return null;
-  return num / Math.sqrt(dx * dy);
-}
 
 export function InsightsClient({ logs }: { logs: DailyLog[] }) {
   const today = dateKey();

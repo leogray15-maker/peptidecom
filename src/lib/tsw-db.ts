@@ -31,10 +31,14 @@ export async function getProfile(uid: string): Promise<TswProfile> {
 
 export async function setStage(uid: string, stage: string): Promise<void> {
   const db = await adminDb();
-  await db
-    .collection("users")
-    .doc(uid)
-    .set({ recoveryStage: stage, stageUpdatedAt: new Date().toISOString() }, { merge: true });
+  const ref = db.collection("users").doc(uid);
+  const now = new Date().toISOString();
+  const prev = ((await ref.get()).data() as TswProfile | undefined)?.recoveryStage ?? null;
+  await ref.set({ recoveryStage: stage, stageUpdatedAt: now }, { merge: true });
+  // Append-only stage history — feeds the time-to-stage cohort stats.
+  if (prev !== stage) {
+    await ref.collection("stageEvents").add({ stage, at: now });
+  }
 }
 
 export async function setTswStartDate(uid: string, date: string | null): Promise<void> {
