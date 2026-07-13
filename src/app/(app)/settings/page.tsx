@@ -1,6 +1,10 @@
 import { Download } from "lucide-react";
+import { ConditionSettings } from "@/components/condition-picker";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
+import { getCondition } from "@/lib/conditions";
+import { safe } from "@/lib/safe-db";
+import { type TswProfile, getProfile, tswKey } from "@/lib/tsw-db";
 import { formatDate } from "@/lib/utils";
 import { ManageBillingButton } from "@/components/manage-billing-button";
 
@@ -25,6 +29,7 @@ const statusLabels: Record<string, string> = {
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) return null;
+  const profile = await safe(() => getProfile(tswKey(user)), {} as TswProfile);
 
   return (
     <div className="max-w-2xl">
@@ -83,6 +88,16 @@ export default async function SettingsPage() {
           <p className="mt-3 text-xs text-slate-500">
             Update your card, switch plans or cancel through the secure Stripe portal.
           </p>
+        </section>
+
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white">Condition</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            The tracker, stages and trigger suggestions adapt to what you&apos;re dealing with.
+          </p>
+          <div className="mt-4">
+            <ConditionSettings current={getCondition(profile.condition).id} />
+          </div>
         </section>
 
         <section className="card">

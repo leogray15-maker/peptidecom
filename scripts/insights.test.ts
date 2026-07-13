@@ -126,6 +126,7 @@ test("computeUserFeatures: returns null for empty users", () => {
 
 function fakeFeature(overrides: Partial<UserFeatures> = {}): UserFeatures {
   return {
+    condition: "tsw",
     stage: "early",
     severityByWeek: new Map([[0, 7], [4, 5]]),
     sleep: { lowN: 4, lowFlares: 2, lowSevSum: 28, highN: 4, highFlares: 1, highSevSum: 16 },
@@ -137,15 +138,14 @@ function fakeFeature(overrides: Partial<UserFeatures> = {}): UserFeatures {
 
 test(`aggregateCohort: suppresses everything below MIN_COHORT (${MIN_COHORT})`, () => {
   const agg = aggregateCohort(Array.from({ length: MIN_COHORT - 1 }, () => fakeFeature()));
-  assert.equal(agg.severityByWeek.length, 0);
   assert.equal(agg.sleepNextDay, null);
   assert.equal(agg.triggerKinds.length, 0);
-  assert.equal(agg.stageTransitions.length, 0);
+  assert.deepEqual(agg.byCondition, {});
 });
 
 test("aggregateCohort: publishes at MIN_COHORT with correct values", () => {
   const agg = aggregateCohort(Array.from({ length: MIN_COHORT }, () => fakeFeature()));
-  assert.deepEqual(agg.severityByWeek, [
+  assert.deepEqual(agg.byCondition.tsw.severityByWeek, [
     { week: 0, avgSeverity: 7, nUsers: MIN_COHORT },
     { week: 4, avgSeverity: 5, nUsers: MIN_COHORT },
   ]);
@@ -155,7 +155,22 @@ test("aggregateCohort: publishes at MIN_COHORT with correct values", () => {
   assert.equal(agg.sleepNextDay!.highFlareRate, 0.25);
   assert.equal(agg.triggerKinds[0].kind, "stress");
   assert.equal(agg.triggerKinds[0].avgNextDayDelta, 1.5);
-  assert.equal(agg.stageTransitions[0].medianDays, 40);
+  assert.equal(agg.byCondition.tsw.stageTransitions[0].medianDays, 40);
+});
+
+test("aggregateCohort: pools sleep across conditions, segments the curves", () => {
+  // 15 TSW + 15 acne users: neither condition clears MIN_COHORT alone for
+  // curves/stages, but pooled sleep (30 users) does.
+  const features = [
+    ...Array.from({ length: 15 }, () => fakeFeature()),
+    ...Array.from({ length: 15 }, () =>
+      fakeFeature({ condition: "acne", stage: "active", stageDurations: [{ from: "active", to: "treatment", days: 20 }] })
+    ),
+  ];
+  const agg = aggregateCohort(features);
+  assert.ok(agg.sleepNextDay, "pooled sleep stat should publish at 30 users");
+  assert.equal(agg.sleepNextDay!.nUsers, 30);
+  assert.deepEqual(agg.byCondition, {}, "per-condition segments must stay suppressed below the floor");
 });
 
 test("aggregate output contains no identifying fields", () => {
@@ -170,10 +185,23 @@ test("aggregate output contains no identifying fields", () => {
 
 test("buildCohortStatements: user's own stage transition ranks first", () => {
   const agg = aggregateCohort(Array.from({ length: MIN_COHORT }, () => fakeFeature()));
-  const statements = buildCohortStatements(agg, { stage: "early", weeksSinceStart: 1 });
+  const statements = buildCohortStatements(agg, {
+    stage: "early",
+    weeksSinceStart: 1,
+    condition: "tsw",
+  });
   assert.ok(statements.length >= 3);
   assert.equal(statements[0].id, "stage-early-middle");
   assert.ok(statements[0].text.includes("From where you are"));
+});
+
+test("buildCohortStatements: another condition still gets the pooled stats", () => {
+  const agg = aggregateCohort(Array.from({ length: MIN_COHORT }, () => fakeFeature()));
+  const statements = buildCohortStatements(agg, { stage: "active", condition: "acne" });
+  // No acne segment exists → no curve/stage statements, but pooled sleep and
+  // trigger stats still apply.
+  assert.ok(statements.length >= 1);
+  assert.ok(statements.every((s) => !s.id.startsWith("stage-") && !s.id.startsWith("curve")));
 });
 
 test("rotateStatements: keeps top stat, deterministic within a day, bounded", () => {

@@ -13,9 +13,11 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import { ConditionPickerModal } from "@/components/condition-picker";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
+import { anyStageName } from "@/lib/conditions";
 import {
   buildCohortStatements,
   computePersonalInsight,
@@ -25,7 +27,7 @@ import {
 import { getLatestAggregates } from "@/lib/insights-db";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
-import { type DailyLog, computeStats, dateKey, stageName } from "@/lib/tsw";
+import { type DailyLog, computeStats, dateKey } from "@/lib/tsw";
 import {
   type TriggerLog,
   type TswProfile,
@@ -41,7 +43,7 @@ export const metadata = { title: "Dashboard" };
 const recoveryLinks = [
   { href: "/tracker", label: "Log today's skin", icon: ClipboardList, desc: "20 seconds. Body map, severity, done." },
   { href: "/photos", label: "Photo timeline", icon: Camera, desc: "Add a photo or compare then vs now." },
-  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "The withdrawal map, stage by stage." },
+  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "Your journey mapped, stage by stage." },
   { href: "/insights", label: "Your trends", icon: TrendingUp, desc: "Severity, sleep and patterns — your data." },
   { href: "/triggers", label: "Triggers", icon: ListChecks, desc: "Catch what helps and what flares you." },
   { href: "/won", label: "The Won wall", icon: Trophy, desc: "Recovery stories. Proof it gets better." },
@@ -74,7 +76,7 @@ export default async function DashboardPage() {
   ]);
 
   const stats = computeStats(logs);
-  const stage = stageName(profile.recoveryStage);
+  const stage = anyStageName(profile.recoveryStage, profile.condition);
   const todayLogged = logs.some((l) => l.date === dateKey());
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
@@ -86,6 +88,7 @@ export default async function DashboardPage() {
         buildCohortStatements(aggregates, {
           stage: profile.recoveryStage,
           weeksSinceStart: weeksSinceStart(logs, profile, dateKey()),
+          condition: profile.condition,
         }),
         personalInsight ? 3 : 4
       )
@@ -93,6 +96,11 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      {/* One-time onboarding: adapts the whole app to the member's condition.
+          Existing (pre-multi-condition) accounts see TSW pre-selected. */}
+      {user && !profile.condition && (
+        <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
+      )}
       <PageHeader
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."

@@ -23,7 +23,13 @@ function effectBadge(effect: number) {
   return { label: "no change", cls: "bg-slate-500/15 text-slate-400" };
 }
 
-export function TriggersClient({ initialEntries }: { initialEntries: TriggerItem[] }) {
+export function TriggersClient({
+  initialEntries,
+  suggestions,
+}: {
+  initialEntries: TriggerItem[];
+  suggestions: { kind: string; name: string }[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,6 +107,28 @@ export function TriggersClient({ initialEntries }: { initialEntries: TriggerItem
 
       {open && (
         <form onSubmit={save} className="card grid gap-4 sm:grid-cols-2">
+          {suggestions.length > 0 && (
+            <div className="sm:col-span-2">
+              <p className="label !mb-2">Common for your condition — tap to fill</p>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestions.map((s) => (
+                  <button
+                    key={`${s.kind}-${s.name}`}
+                    type="button"
+                    onClick={() => setForm({ ...form, name: s.name, kind: s.kind })}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition",
+                      form.name === s.name
+                        ? "border-brand-500 bg-brand-500/20 text-brand-200"
+                        : "border-lab-border text-slate-400 hover:border-brand-700 hover:text-slate-200"
+                    )}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div>
             <label className="label">What was it?</label>
             <input

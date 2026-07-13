@@ -67,7 +67,7 @@ export function StoryForm() {
         type="number"
         min={0}
         max={600}
-        placeholder="How many months into withdrawal are you? (optional)"
+        placeholder="How many months into your journey are you? (optional)"
         value={monthsIn}
         onChange={(e) => setMonthsIn(e.target.value)}
       />

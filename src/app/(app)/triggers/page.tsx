@@ -2,16 +2,22 @@ import { PageHeader } from "@/components/page-header";
 import { PeerSupportNote } from "@/components/peer-support-note";
 import { TriggersClient } from "@/components/triggers-client";
 import { getCurrentUser } from "@/lib/auth";
+import { getCondition } from "@/lib/conditions";
 import { safe } from "@/lib/safe-db";
-import { type TriggerLog, listTriggers, tswKey } from "@/lib/tsw-db";
+import { type TriggerLog, type TswProfile, getProfile, listTriggers, tswKey } from "@/lib/tsw-db";
 
 export const metadata = { title: "Triggers & routine" };
 
 export default async function TriggersPage() {
   const user = await getCurrentUser();
-  const entries = user
-    ? await safe(() => listTriggers(tswKey(user)), [] as TriggerLog[])
-    : [];
+  const uid = user ? tswKey(user) : null;
+  const [entries, profile] = uid
+    ? await Promise.all([
+        safe(() => listTriggers(uid), [] as TriggerLog[]),
+        safe(() => getProfile(uid), {} as TswProfile),
+      ])
+    : [[], {} as TswProfile];
+  const condition = getCondition(profile.condition);
 
   return (
     <div>
@@ -28,6 +34,7 @@ export default async function TriggersPage() {
           effect: e.effect,
           note: e.note,
         }))}
+        suggestions={condition.triggerSuggestions}
       />
       <PeerSupportNote />
     </div>

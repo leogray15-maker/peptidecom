@@ -3,18 +3,16 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Moon, Pencil, Trash2 } from "lucide-react";
-import {
-  type DailyLog,
-  type MilestoneDef,
-  SYMPTOMS,
-  dateKey,
-  zoneLabel,
-} from "@/lib/tsw";
+import { anySymptomLabel, anyZoneLabel } from "@/lib/conditions";
+import { type DailyLog, type MilestoneDef, type BodyZone, dateKey } from "@/lib/tsw";
 import { BodyMap } from "@/components/body-map";
 import { MilestoneCelebration } from "@/components/milestone-celebration";
 import { cn, formatDate } from "@/lib/utils";
 
-const symptomLabel = (id: string) => SYMPTOMS.find((s) => s.id === id)?.label ?? id;
+interface SymptomOption {
+  id: string;
+  label: string;
+}
 
 const MOODS = ["😞", "😕", "😐", "🙂", "😊"];
 
@@ -28,7 +26,15 @@ function severityColor(s: number) {
  * tap zones → drag one slider → tap chips → save. Everything else optional.
  * The 7-day strip doubles as a date picker, so a missed day can be filled in
  * after the fact and any recent entry re-opened for editing. */
-export function TrackerClient({ recentLogs }: { recentLogs: DailyLog[] }) {
+export function TrackerClient({
+  recentLogs,
+  zones,
+  symptoms,
+}: {
+  recentLogs: DailyLog[];
+  zones: BodyZone[];
+  symptoms: SymptomOption[];
+}) {
   const router = useRouter();
   const today = dateKey();
   const todayLog = recentLogs.find((l) => l.date === today) ?? null;
@@ -128,6 +134,8 @@ export function TrackerClient({ recentLogs }: { recentLogs: DailyLog[] }) {
           date={selectedDate}
           isToday={selectedDate === today}
           log={selectedLog}
+          zones={zones}
+          symptoms={symptoms}
           onSaved={onSaved}
           onBackToToday={selectedDate !== today ? () => pickDay(today) : undefined}
         />
@@ -165,12 +173,12 @@ export function TrackerClient({ recentLogs }: { recentLogs: DailyLog[] }) {
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {l.areas.map((a) => (
                           <span key={a} className="badge border border-brand-800 bg-brand-950/60 text-brand-200">
-                            {zoneLabel(a)}
+                            {anyZoneLabel(a)}
                           </span>
                         ))}
                         {l.symptoms.map((s) => (
                           <span key={s} className="badge border border-lab-border text-slate-400">
-                            {symptomLabel(s)}
+                            {anySymptomLabel(s)}
                           </span>
                         ))}
                       </div>
@@ -199,12 +207,16 @@ function LogEditor({
   date,
   isToday,
   log,
+  zones,
+  symptoms: symptomOptions,
   onSaved,
   onBackToToday,
 }: {
   date: string;
   isToday: boolean;
   log: DailyLog | null;
+  zones: BodyZone[];
+  symptoms: SymptomOption[];
   onSaved: (newMilestones: MilestoneDef[]) => void;
   onBackToToday?: () => void;
 }) {
@@ -271,7 +283,7 @@ function LogEditor({
           {isToday ? "Where is it today?" : "Where was it that day?"}
         </p>
         <p className="mb-3 text-sm text-slate-500">Tap everywhere that&apos;s affected. Skip if nowhere — that&apos;s a great day.</p>
-        <BodyMap selected={areas} onToggle={toggle(areas, setAreas)} />
+        <BodyMap selected={areas} onToggle={toggle(areas, setAreas)} zones={zones} />
       </div>
 
       {/* 2 — severity */}
@@ -307,7 +319,7 @@ function LogEditor({
       <div>
         <p className="mb-3 font-semibold text-white">What&apos;s it doing?</p>
         <div className="flex flex-wrap gap-2">
-          {SYMPTOMS.map((s) => (
+          {symptomOptions.map((s) => (
             <button
               key={s.id}
               type="button"

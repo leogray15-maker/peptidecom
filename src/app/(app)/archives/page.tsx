@@ -41,10 +41,10 @@ export default function ArchivesPage() {
             <Sparkles className="h-6 w-6 text-gold-300" />
           </div>
           <h2 className="mt-5 max-w-xl text-2xl font-bold leading-snug text-white">
-            You didn&apos;t just survive withdrawal. You trained something.
+            You didn&apos;t just survive this. You trained something.
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-300">
-            Everyone who walks through TSW comes out the other side with something hard-won:
+            Everyone who walks through a long recovery comes out the other side with something hard-won:
             patience under pressure, self-trust against expert opinion, the ability to keep going
             with no guarantees. The Arcane Archives is our personal-development membership — a
             place to take what this taught you and build with it on purpose.

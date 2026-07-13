@@ -1,24 +1,45 @@
+import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PeerSupportNote } from "@/components/peer-support-note";
 import { StoryForm } from "@/components/story-form";
+import { getCurrentUser } from "@/lib/auth";
+import { DEFAULT_CONDITION, conditionLabel, getCondition } from "@/lib/conditions";
 import { safe } from "@/lib/safe-db";
 import { zoneLabel } from "@/lib/tsw";
 import {
   type RecoveryStory,
   type SharedPhoto,
+  type TswProfile,
+  getProfile,
   listSharedPhotos,
   listStories,
+  tswKey,
 } from "@/lib/tsw-db";
 import { formatDate, timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Won — recovery stories" };
 
-export default async function WonPage() {
-  const [stories, sharedPhotos] = await Promise.all([
+export default async function WonPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ all?: string }>;
+}) {
+  const { all } = await searchParams;
+  const user = await getCurrentUser();
+  const [allStories, sharedPhotos, profile] = await Promise.all([
     safe(() => listStories(), [] as RecoveryStory[]),
     safe(() => listSharedPhotos(12), [] as SharedPhoto[]),
+    user ? safe(() => getProfile(tswKey(user)), {} as TswProfile) : ({} as TswProfile),
   ]);
+
+  // Default to stories from the member's own condition; "?all=1" shows every
+  // journey (plenty transfers: sleep, stress, patience).
+  const myCondition = getCondition(profile.condition).id;
+  const showAll = all === "1";
+  const stories = showAll
+    ? allStories
+    : allStories.filter((s) => (s.condition ?? DEFAULT_CONDITION) === myCondition);
 
   return (
     <div>
@@ -27,6 +48,30 @@ export default async function WonPage() {
         subtitle="Recovery stories from members further down the road. On your worst day, this page is the proof."
         action={<StoryForm />}
       />
+
+      {/* Condition filter */}
+      <div className="mb-6 flex flex-wrap gap-1.5">
+        <Link
+          href="/won"
+          className={
+            !showAll
+              ? "badge bg-brand-500/20 text-brand-200"
+              : "badge border border-lab-border text-slate-400 hover:text-slate-200"
+          }
+        >
+          {conditionLabel(myCondition)}
+        </Link>
+        <Link
+          href="/won?all=1"
+          className={
+            showAll
+              ? "badge bg-brand-500/20 text-brand-200"
+              : "badge border border-lab-border text-slate-400 hover:text-slate-200"
+          }
+        >
+          All conditions
+        </Link>
+      </div>
 
       {/* Shared progress photos */}
       {sharedPhotos.length > 0 && (
@@ -57,10 +102,23 @@ export default async function WonPage() {
       {stories.length === 0 ? (
         <div className="card flex flex-col items-center py-14 text-center">
           <Trophy className="h-10 w-10 text-gold-400" />
-          <p className="mt-4 font-semibold text-white">The wall is waiting for its first story.</p>
+          <p className="mt-4 font-semibold text-white">
+            {!showAll && allStories.length > 0
+              ? `No ${conditionLabel(myCondition)} stories yet.`
+              : "The wall is waiting for its first story."}
+          </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-            If you&apos;re further along — even just past your first hard stretch — your story is
-            someone else&apos;s lifeline. Share what you wish you&apos;d been able to read.
+            {!showAll && allStories.length > 0 ? (
+              <>
+                There are stories from other conditions on the wall — much of what carries
+                people through transfers. Try &ldquo;All conditions&rdquo; above.
+              </>
+            ) : (
+              <>
+                If you&apos;re further along — even just past your first hard stretch — your story
+                is someone else&apos;s lifeline. Share what you wish you&apos;d been able to read.
+              </>
+            )}
           </p>
         </div>
       ) : (
@@ -72,6 +130,11 @@ export default async function WonPage() {
                 <h2 className="font-semibold text-white">{s.title}</h2>
                 {s.monthsIn != null && (
                   <span className="badge bg-gold-500/15 text-gold-300">{s.monthsIn} months in</span>
+                )}
+                {showAll && (
+                  <span className="badge border border-lab-border text-slate-400">
+                    {conditionLabel(s.condition ?? DEFAULT_CONDITION)}
+                  </span>
                 )}
               </div>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-300">{s.body}</p>

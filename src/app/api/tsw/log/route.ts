@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { BODY_ZONES, SYMPTOMS, dateKey, daysBetween } from "@/lib/tsw";
+import { ALL_SYMPTOM_IDS, ALL_ZONE_IDS } from "@/lib/conditions";
+import { dateKey, daysBetween } from "@/lib/tsw";
 import { deleteLog, saveLogAndAward, tswKey } from "@/lib/tsw-db";
 
-const zoneIds = BODY_ZONES.map((z) => z.id);
-const symptomIds = SYMPTOMS.map((s) => s.id);
-
+// Zones/symptoms validate against the union across conditions, so logs stay
+// valid if the member switches condition later.
 const schema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  areas: z.array(z.enum(zoneIds as [string, ...string[]])).max(BODY_ZONES.length),
+  areas: z.array(z.enum(ALL_ZONE_IDS)).max(ALL_ZONE_IDS.length),
   severity: z.number().int().min(1).max(10),
-  symptoms: z.array(z.enum(symptomIds as [string, ...string[]])).max(SYMPTOMS.length),
+  symptoms: z.array(z.enum(ALL_SYMPTOM_IDS)).max(ALL_SYMPTOM_IDS.length),
   sleep: z.number().int().min(1).max(5).nullable(),
   mood: z.number().int().min(1).max(5).nullable(),
   note: z.string().max(2000).optional().nullable(),

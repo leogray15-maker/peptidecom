@@ -7,7 +7,8 @@
 // and every stat carries the number of contributing users so small cohorts
 // can be suppressed. See MIN_COHORT.
 
-import { BAD_FLARE_SEVERITY, type DailyLog, daysBetween, stageName } from "@/lib/tsw";
+import { anyStageName, getCondition } from "@/lib/conditions";
+import { BAD_FLARE_SEVERITY, type DailyLog, daysBetween } from "@/lib/tsw";
 
 /** Minimum number of distinct users behind a stat before it may be shown
  * (or even written). Guards against small-sample noise and re-identification. */
@@ -66,6 +67,9 @@ export interface TriggerLike {
 /** Everything the aggregator needs to know about one user — already stripped
  * of identity. Never persisted; lives only inside the aggregation run. */
 export interface UserFeatures {
+  /** Condition id (lib/conditions.ts) — segments the condition-specific
+   * stats; sleep/trigger stats stay pooled across conditions. */
+  condition: string;
   stage: string | null;
   /** Per-week (since anchor) mean severity. Week = floor(days/7), capped. */
   severityByWeek: Map<number, number>;
@@ -91,7 +95,11 @@ const MAX_WEEK = 156; // cap the curve at 3 years
 export function computeUserFeatures(
   logs: DailyLog[],
   triggers: TriggerLike[],
-  profile: { recoveryStage?: string | null; tswStartDate?: string | null },
+  profile: {
+    recoveryStage?: string | null;
+    tswStartDate?: string | null;
+    condition?: string | null;
+  },
   stageEvents: StageEvent[]
 ): UserFeatures | null {
   if (logs.length === 0 && stageEvents.length < 2) return null;
@@ -158,6 +166,7 @@ export function computeUserFeatures(
   }
 
   return {
+    condition: getCondition(profile.condition).id,
     stage: profile.recoveryStage ?? null,
     severityByWeek,
     sleep,
@@ -174,13 +183,34 @@ export function addDays(dateKeyStr: string, n: number): string {
 
 // ─── Cohort aggregation ──────────────────────────────────────────────────────
 
+export interface WeekPoint {
+  week: number;
+  avgSeverity: number;
+  nUsers: number;
+}
+
+export interface StageTransition {
+  from: string;
+  to: string;
+  medianDays: number;
+  nUsers: number;
+}
+
+/** Condition-specific stats — stage journeys and recovery curves don't mix
+ * meaningfully across conditions, so they're segmented. */
+export interface ConditionSegment {
+  severityByWeek: WeekPoint[];
+  stageTransitions: StageTransition[];
+}
+
 /** What gets persisted to Firestore (insights_aggregates/latest).
  * Cohort statistics only — nothing here can be traced to a user, and every
- * stat already satisfies MIN_COHORT (enforced in aggregateCohort). */
+ * stat already satisfies MIN_COHORT (enforced in aggregateCohort).
+ * Sleep/trigger stats are pooled across conditions (bigger samples — the
+ * physiology transfers); curves and stage timings are per condition. */
 export interface CohortAggregates {
   generatedAt: string;
   totalUsers: number; // users who contributed anything (safe: single global count)
-  severityByWeek: { week: number; avgSeverity: number; nUsers: number }[];
   sleepNextDay: {
     nUsers: number;
     lowFlareRate: number; // mean of per-user flare rates after rough nights
@@ -189,10 +219,10 @@ export interface CohortAggregates {
     highAvgSeverity: number;
   } | null;
   triggerKinds: { kind: string; avgNextDayDelta: number; nUsers: number }[];
-  stageTransitions: { from: string; to: string; medianDays: number; nUsers: number }[];
+  byCondition: Record<string, ConditionSegment>;
 }
 
-export function aggregateCohort(features: UserFeatures[]): CohortAggregates {
+function segmentFor(features: UserFeatures[]): ConditionSegment {
   // Severity by week-since-start: average each contributing user's own weekly
   // mean, so prolific loggers don't dominate.
   const weekAcc = new Map<number, { sum: number; n: number }>();
@@ -209,7 +239,30 @@ export function aggregateCohort(features: UserFeatures[]): CohortAggregates {
     .map(([week, v]) => ({ week, avgSeverity: round1(v.sum / v.n), nUsers: v.n }))
     .sort((a, b) => a.week - b.week);
 
+  // Stage transitions: median days per from→to pair.
+  const transAcc = new Map<string, { days: number[]; users: Set<number> }>();
+  features.forEach((f, idx) => {
+    for (const d of f.stageDurations) {
+      const key = `${d.from}→${d.to}`;
+      const cur = transAcc.get(key) ?? { days: [], users: new Set<number>() };
+      cur.days.push(d.days);
+      cur.users.add(idx);
+      transAcc.set(key, cur);
+    }
+  });
+  const stageTransitions = [...transAcc.entries()]
+    .filter(([, v]) => v.users.size >= MIN_COHORT)
+    .map(([key, v]) => {
+      const [from, to] = key.split("→");
+      return { from, to, medianDays: Math.round(median(v.days) ?? 0), nUsers: v.users.size };
+    });
+
+  return { severityByWeek, stageTransitions };
+}
+
+export function aggregateCohort(features: UserFeatures[]): CohortAggregates {
   // Sleep → next day, per-user rates first, then averaged across users.
+  // Pooled across every condition for sample size.
   const sleepUsers = features.filter(
     (f) => f.sleep.lowN >= MIN_OBS_PER_USER && f.sleep.highN >= MIN_OBS_PER_USER
   );
@@ -241,31 +294,26 @@ export function aggregateCohort(features: UserFeatures[]): CohortAggregates {
     .map(([kind, v]) => ({ kind, avgNextDayDelta: round1(v.sum / v.n), nUsers: v.n }))
     .sort((a, b) => b.avgNextDayDelta - a.avgNextDayDelta);
 
-  // Stage transitions: median days per from→to pair.
-  const transAcc = new Map<string, { days: number[]; users: Set<number> }>();
-  features.forEach((f, idx) => {
-    for (const d of f.stageDurations) {
-      const key = `${d.from}→${d.to}`;
-      const cur = transAcc.get(key) ?? { days: [], users: new Set<number>() };
-      cur.days.push(d.days);
-      cur.users.add(idx);
-      transAcc.set(key, cur);
+  // Condition-specific segments (curves + stage timings).
+  const byConditionFeatures = new Map<string, UserFeatures[]>();
+  for (const f of features) {
+    byConditionFeatures.set(f.condition, [...(byConditionFeatures.get(f.condition) ?? []), f]);
+  }
+  const byCondition: Record<string, ConditionSegment> = {};
+  for (const [condition, fs] of byConditionFeatures) {
+    const segment = segmentFor(fs);
+    // Only store segments that actually cleared the cohort floor somewhere.
+    if (segment.severityByWeek.length > 0 || segment.stageTransitions.length > 0) {
+      byCondition[condition] = segment;
     }
-  });
-  const stageTransitions = [...transAcc.entries()]
-    .filter(([, v]) => v.users.size >= MIN_COHORT)
-    .map(([key, v]) => {
-      const [from, to] = key.split("→");
-      return { from, to, medianDays: Math.round(median(v.days) ?? 0), nUsers: v.users.size };
-    });
+  }
 
   return {
     generatedAt: new Date().toISOString(),
     totalUsers: features.length,
-    severityByWeek,
     sleepNextDay,
     triggerKinds,
-    stageTransitions,
+    byCondition,
   };
 }
 
@@ -287,12 +335,20 @@ const KIND_PHRASES: Record<string, string> = {
 };
 
 /** Turn the aggregate doc into human sentences, most relevant first.
- * Every stat here already passed MIN_COHORT at aggregation time. */
+ * Every stat here already passed MIN_COHORT at aggregation time.
+ * Curves and stage stats come from the user's own condition segment; sleep
+ * and trigger stats are pooled across all conditions. */
 export function buildCohortStatements(
   agg: CohortAggregates,
-  user: { stage?: string | null; weeksSinceStart?: number | null }
+  user: { stage?: string | null; weeksSinceStart?: number | null; condition?: string | null }
 ): CohortStatement[] {
   const out: CohortStatement[] = [];
+  const conditionId = getCondition(user.condition).id;
+  const segment: ConditionSegment = agg.byCondition?.[conditionId] ?? {
+    severityByWeek: [],
+    stageTransitions: [],
+  };
+  const nameOf = (stageId: string) => anyStageName(stageId, conditionId) ?? stageId;
 
   if (agg.sleepNextDay) {
     const { lowFlareRate, highFlareRate, nUsers, lowAvgSeverity, highAvgSeverity } = agg.sleepNextDay;
@@ -313,9 +369,9 @@ export function buildCohortStatements(
   }
 
   // Stage transition starting from where this user is → most relevant stat.
-  for (const t of agg.stageTransitions) {
-    const fromName = stageName(t.from) ?? t.from;
-    const toName = stageName(t.to) ?? t.to;
+  for (const t of segment.stageTransitions) {
+    const fromName = nameOf(t.from);
+    const toName = nameOf(t.to);
     const isUsers = user.stage === t.from;
     out.push({
       id: `stage-${t.from}-${t.to}`,
@@ -326,16 +382,16 @@ export function buildCohortStatements(
     });
   }
 
-  // The user's neighbourhood of the severity curve.
-  if (agg.severityByWeek.length >= 2) {
+  // The user's neighbourhood of their condition's severity curve.
+  if (segment.severityByWeek.length >= 2) {
     const week = user.weeksSinceStart ?? null;
     const near =
       week != null
-        ? agg.severityByWeek.reduce((best, p) =>
+        ? segment.severityByWeek.reduce((best, p) =>
             Math.abs(p.week - week) < Math.abs(best.week - week) ? p : best
           )
         : null;
-    const later = near ? agg.severityByWeek.filter((p) => p.week >= near.week + 4) : [];
+    const later = near ? segment.severityByWeek.filter((p) => p.week >= near.week + 4) : [];
     if (near && later.length > 0 && later[later.length - 1].avgSeverity < near.avgSeverity) {
       const far = later[later.length - 1];
       out.push({
@@ -344,12 +400,12 @@ export function buildCohortStatements(
         relevance: 4,
       });
     } else {
-      const first = agg.severityByWeek[0];
-      const last = agg.severityByWeek[agg.severityByWeek.length - 1];
+      const first = segment.severityByWeek[0];
+      const last = segment.severityByWeek[segment.severityByWeek.length - 1];
       if (last.avgSeverity < first.avgSeverity) {
         out.push({
           id: "curve-overall",
-          text: `Across the whole community, average severity fell from ${first.avgSeverity}/10 around week ${first.week} to ${last.avgSeverity}/10 by week ${last.week}.`,
+          text: `Across members with your condition, average severity fell from ${first.avgSeverity}/10 around week ${first.week} to ${last.avgSeverity}/10 by week ${last.week}.`,
           relevance: 2,
         });
       }

@@ -21,6 +21,9 @@ export interface TswProfile {
   recoveryStage?: string | null;
   tswStartDate?: string | null; // YYYY-MM-DD
   stageUpdatedAt?: string | null;
+  /** Condition id from lib/conditions.ts. Missing = "tsw" (every account
+   * predating multi-condition support) — resolved via getCondition(). */
+  condition?: string | null;
 }
 
 export async function getProfile(uid: string): Promise<TswProfile> {
@@ -44,6 +47,11 @@ export async function setStage(uid: string, stage: string): Promise<void> {
 export async function setTswStartDate(uid: string, date: string | null): Promise<void> {
   const db = await adminDb();
   await db.collection("users").doc(uid).set({ tswStartDate: date }, { merge: true });
+}
+
+export async function setCondition(uid: string, condition: string): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).set({ condition }, { merge: true });
 }
 
 // ─── Daily logs (users/{uid}/dailyLogs/{YYYY-MM-DD}) ─────────────────────────
@@ -371,6 +379,8 @@ export interface RecoveryStory {
   body: string;
   monthsIn: number | null;
   createdAt: string;
+  /** Condition id; stories from before multi-condition are TSW (missing). */
+  condition?: string | null;
 }
 
 export async function listStories(limit = 50): Promise<RecoveryStory[]> {

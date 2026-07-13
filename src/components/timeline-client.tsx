@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Check, Loader2, MapPin } from "lucide-react";
-import { TSW_STAGES, type MilestoneDef, dateKey, daysBetween } from "@/lib/tsw";
+import { type MilestoneDef, type TswStage, dateKey, daysBetween } from "@/lib/tsw";
 import { MilestoneCelebration } from "@/components/milestone-celebration";
 import { cn } from "@/lib/utils";
 
-/** Optional "when did you stop?" anchor. Feeds the personal recovery clock and
- * the anonymised day-since-start cohort curves. */
-function StartDateCard({ startDate }: { startDate: string | null }) {
+/** Optional "when did this start?" anchor. Feeds the personal recovery clock
+ * and the anonymised day-since-start cohort curves. */
+function StartDateCard({ startDate, question }: { startDate: string | null; question: string }) {
   const router = useRouter();
   const [value, setValue] = useState(startDate ?? "");
   const [saving, setSaving] = useState(false);
@@ -41,7 +41,7 @@ function StartDateCard({ startDate }: { startDate: string | null }) {
     <div className="card">
       <div className="flex items-center gap-2">
         <CalendarDays className="h-4 w-4 text-brand-300" />
-        <p className="font-semibold text-white">When did you stop steroids?</p>
+        <p className="font-semibold text-white">{question}</p>
       </div>
       <p className="mt-1 text-sm text-slate-500">
         Optional — it anchors your recovery clock, so your charts and community comparisons
@@ -71,9 +71,13 @@ function StartDateCard({ startDate }: { startDate: string | null }) {
 export function TimelineClient({
   currentStage,
   startDate,
+  stages,
+  startDateQuestion,
 }: {
   currentStage: string | null;
   startDate: string | null;
+  stages: TswStage[];
+  startDateQuestion: string;
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState<string | null>(null);
@@ -103,11 +107,11 @@ export function TimelineClient({
   return (
     <div className="space-y-4">
       <MilestoneCelebration milestones={celebrating} onClose={() => setCelebrating([])} />
-      <StartDateCard startDate={startDate} />
+      <StartDateCard startDate={startDate} question={startDateQuestion} />
       {error && <p className="text-sm text-rose-400">{error}</p>}
 
       <ol className="relative space-y-4 before:absolute before:bottom-6 before:left-[19px] before:top-6 before:w-px before:bg-lab-border">
-        {TSW_STAGES.map((stage, i) => {
+        {stages.map((stage, i) => {
           const isHere = currentStage === stage.id;
           return (
             <li key={stage.id} className="relative pl-12">

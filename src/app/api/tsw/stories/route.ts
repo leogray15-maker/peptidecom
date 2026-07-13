@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { addStory, tswKey } from "@/lib/tsw-db";
+import { DEFAULT_CONDITION } from "@/lib/conditions";
+import { addStory, getProfile, tswKey } from "@/lib/tsw-db";
 
 const schema = z.object({
   title: z.string().min(3).max(160),
@@ -22,11 +23,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const id = await addStory(tswKey(user), {
+    const uid = tswKey(user);
+    // Stories carry the author's condition so the wall can match readers with
+    // journeys like theirs.
+    const profile = await getProfile(uid).catch(() => ({}) as { condition?: string | null });
+    const id = await addStory(uid, {
       title: parsed.data.title,
       body: parsed.data.body,
       monthsIn: parsed.data.monthsIn ?? null,
       authorName: user.name,
+      condition: profile.condition ?? DEFAULT_CONDITION,
     });
     return NextResponse.json({ ok: true, id });
   } catch (err) {
