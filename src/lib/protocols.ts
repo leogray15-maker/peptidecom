@@ -12,9 +12,11 @@ export interface LibraryArticle {
 }
 
 export const LIBRARY_CATEGORIES = [
+  "Biohacking Foundations",
   "Skin & Sun",
   "Gut & Microbiome",
   "Diet & Food",
+  "Food Sourcing",
   "Products & Environment",
   "Rituals",
 ] as const;
@@ -23,6 +25,298 @@ export const LIBRARY_INTRO =
   "This is the healing wing of the Lab — the protocols for putting your body back together from the inside out. Cut the processed food, fix the gut, get the sun, ditch the endocrine disruptors. It compounds daily, with discipline. Peptides help — but only once the fundamentals below are in place.";
 
 export const LIBRARY: LibraryArticle[] = [
+  {
+    slug: "your-vessel",
+    title: "Your Vessel",
+    category: "Biohacking Foundations",
+    summary: "Your body is the one home you live in 24/7. Take care of the vessel before the house and the car.",
+    body: `We all have a vessel — the body we live in. It's the one thing you never get to step out of.
+
+# You Live In Your Vessel 24/7
+
+Every time you look in the mirror you feel one of two things: quiet pride, or a flicker of shame. There's no in-between, and there's no getting away from it, because you are always in your vessel.
+
+Most people pour everything into big houses and fancy cars and neglect the one home they actually live in every second of every day — their body.
+
+# Where Do You Want To Live?
+
+Most people have no idea how good they're capable of feeling, because they've never been metabolically flexible. Instead they live with:
+
+- Brain fog
+- Waking up tired
+- No drive to work
+- Stiffness
+- No confidence
+
+# A Neglected Vessel Costs You
+
+Every successful person tells you to prioritise health for a reason. Without health there is no sustained success — and chasing anything worthwhile is far harder when you're running on:
+
+- Low energy all day
+- Dysregulated mood
+- Elevated stress
+- Constant low-grade anxiety
+
+If you're dedicating your life to a mission, your vessel is the machine you'll run it from. Build it first.`,
+  },
+  {
+    slug: "there-is-no-overnight-process",
+    title: "There Is No Overnight Process",
+    category: "Biohacking Foundations",
+    summary: "A biohacked body can't be bought, borrowed or rushed. It's built one disciplined step at a time.",
+    body: `One last warning before you start: this is not an overnight process.
+
+# It Takes Time
+
+Real change here requires a genuine commitment. You already said you'd sacrifice comfort for what you want — this is where that gets tested.
+
+# It Can't Be Bought
+
+A biohacked body cannot be bought, borrowed, inherited or fast-tracked. The only way to build it and keep it is consistent hard work. That's exactly why it conveys respect, discipline and self-mastery — because so few are willing to earn it.
+
+# The Student's Mindset
+
+Everyone who stays successful is always learning. Go into this with an open, student's mind rather than assuming you already know it all.
+
+# One Step At A Time
+
+Every large journey traces back to a series of small steps. No matter how small the step feels, progress is progress.
+
+# If You Don't Quit, You Can't Fail
+
+The only way to truly fail is to quit. Put your mind to anything for long enough and you will reach it — this is the closest thing to a cheat code there is.
+
+# It Won't Be Easy
+
+You can't build a new version of yourself without letting the old one go, and that's uncomfortable. Nothing worth having — money, a strong body, real confidence — comes without hardship. That difficulty is exactly why it's rare and valuable.
+
+Make the promise now: you'll put the work in.`,
+  },
+  {
+    slug: "food-is-fuel",
+    title: "Food Is Fuel",
+    category: "Biohacking Foundations",
+    summary: "Stop eating for escape. Fuel the vessel with quality inputs and point it at a destination.",
+    body: `The first law of thermodynamics: energy can't be created or destroyed, only changed from one form to another.
+
+# This Applies To Food
+
+When you eat, your body extracts energy and nutrients from the food and puts them to work running its functions. That's why some foods are healthy and some aren't — some are dense in usable nutrients, and others bring things your body has to fight, with little nutrition in return.
+
+# Your Body Is A Car
+
+Your body is a high-performance machine. What would you rather run it on — high-grade fuel, or the equivalent of used vegetable oil? The quality of your inputs shows up directly in the quality of your outputs.
+
+We were all born with an incredible machine. The difference is that only some people maintain it — the right fuel, the right care — and that's the machine that wins the race.
+
+# Food Was Not Made For Pleasure
+
+Modern eating treats food as pleasure and escape. It works: you can get lost in something sweet and, for a moment, forget your real problems.
+
+I did this myself with fruit. Because it's sweet and "healthy," I could eat endlessly and still look disciplined to everyone around me. But the intention was the same — eating to escape. And when the taste ends, the problems are still there, so you reach for more.
+
+# See It As Fuel
+
+Stop treating food as pleasure or escape and start treating it as fuel. And fuel needs a destination — decide what you're driving toward.`,
+  },
+  {
+    slug: "food-pyramid-propaganda",
+    title: "The Food Pyramid Propaganda",
+    category: "Biohacking Foundations",
+    summary: "The grain-heavy pyramid was built to sell addiction, not health. Do the opposite of the 99%.",
+    body: `Time for a controversial one: the food guidance most of us were raised on.
+
+# The Food Pyramid
+
+The pyramid they teach in schools looks harmless — a colourful spread of foods meant to guide you to health. But look closer at what sits at the base: cereals, grains and seed oils. It's less a road to health and more a road to mediocrity.
+
+Ask yourself whether someone operating at the top of their game is eating cereal and bread, or a good steak.
+
+# The School System
+
+The system conditioned us to treat the pyramid as one-size-fits-all — while serving kids pizza for breakfast, sugar-loaded snacks at break, and burgers with cookies at lunch. No one questioned it, because the parents were raised on the same message.
+
+The lesson: look at what the majority do, and do the opposite.
+
+# The Grain Problem
+
+The adult pyramid recommends an enormous number of grain servings. Grains contribute to:
+
+- Weight gain
+- Inflammation
+- Insulin resistance
+
+Inflammation is why a heavy meal makes you want to sleep straight after — your body fighting what you just ate is not a sign it wanted it.
+
+# There Is No Essential Carbohydrate
+
+Everyone is obsessed with carbs, but there is no such thing as an essential carbohydrate. Fats and protein are non-negotiable — your brain is largely fat, and hormones like testosterone are built from cholesterol. Yet the message is always "cut the fat, it's too many calories."
+
+# Follow The Money
+
+Carbs are cheap, addictive and easy to sell. You can't make protein or real fats addictive, so the industry leans on refined carbs, labels them "low fat," and funds studies to keep the story going — the same playbook once used to call cigarettes harmless.
+
+Understand the incentive, and the guidance makes a lot more sense.`,
+  },
+  {
+    slug: "dont-eat-gluten",
+    title: "Don't Eat Gluten",
+    category: "Biohacking Foundations",
+    summary: "Gluten inflames the gut, spikes insulin and leaks bacteria into your blood. Cut it out.",
+    body: `Bread, pasta and grains — the cheap, filling foods — come with a hidden cost.
+
+# Gluten Starts Fires
+
+You'll find gluten in wheat, barley and rye. It's a trigger for inflammation, which can cascade into:
+
+- Autoimmune issues
+- Joint pain
+- Digestive problems
+
+# Refining Strips The Nutrients
+
+During refining, most nutrients are stripped out of cereals, pasta and bread. Even when the label says "high fiber" or "high iron," that was true of the grain before it was processed — not after.
+
+# It Spikes Your Insulin
+
+Refined staples like white bread and white rice spike insulin harder than almost anything. Chronically elevated insulin drives:
+
+- Fat storage
+- Brain fog
+- Type 2 diabetes
+- Inflammation
+
+# It Lets Bacteria Through
+
+Gluten can irritate the lining of the small intestine, letting undigested food and bacteria leak into the bloodstream. This often flies under the radar as chronic fatigue, skin issues, joint pain and digestive discomfort — with most people never connecting it to the cause.
+
+# Actionable Step
+
+Cut out gluten.`,
+  },
+  {
+    slug: "dont-use-vegetable-oils",
+    title: "Don't Use Vegetable Oils",
+    category: "Biohacking Foundations",
+    summary: "Industrial seed oils are barely a century old and made with petroleum solvents. Use real fats.",
+    body: `Vegetable oil, sunflower oil, canola (rapeseed) oil — you've seen them in every shop, marketed as "heart healthy." They're anything but.
+
+# A Short, Questionable History
+
+Unlike butter, animal fat and traditional oils, industrial seed oils only appeared in the early 1900s — under a century ago. Their rise tracks closely with the first real rise in obesity and chronic disease. The average person now consumes an enormous amount of them every year.
+
+# How Seed Oils Are Made
+
+Take canola/rapeseed oil as the example, since it's one of the most common. The process runs roughly:
+
+1. Start with a genetically modified seed, heavily treated with pesticides
+2. Subject it to extreme heat, causing oxidation and rancidity
+3. Extract the oil using a petroleum solvent
+4. Acid-treat it to strip out the solvent
+5. Add chemicals to fix the colour
+6. Deodorise it to remove the chemical smell
+
+# How Butter Is Made
+
+Take cream from milk, and shake it until it's solid. That's it.
+
+# What To Use Instead
+
+Go back to what people used before the industrial oils:
+
+- Coconut oil
+- Avocado oil
+- Extra virgin olive oil (cold, not for high heat)
+- Animal fat — beef tallow, duck fat
+- Butter and ghee
+
+Check the label: real butter has one or two ingredients — milk, maybe salt. Avoid anything "spreadable."
+
+# Actionable Step
+
+Cut out all seed oils.`,
+  },
+  {
+    slug: "do-not-eat-processed-sugar",
+    title: "Do Not Eat Processed Sugar",
+    category: "Biohacking Foundations",
+    summary: "Zero nutrients, drug-like addiction and a wrecked ability to focus. Cut all processed sugar.",
+    body: `Processed sugar hides in roughly eight out of ten packaged foods — and it's doing real damage.
+
+# Zero Nutrients
+
+Your body pulls nutrients out of food and puts them to use. Sugar has none to give. It's pure empty energy that taxes the body rather than feeding it — despite the old line that "sugar gives you energy."
+
+# It Behaves Like A Drug
+
+Sugar is genuinely addictive. People get withdrawal-like symptoms — shakiness, irritability — when they go without it for too long. That makes it one of the hardest things to cut.
+
+# It Wrecks Your Focus
+
+Eat anything with added sugar or artificial sweeteners and your ability to concentrate takes a hit. You may not notice it until you've cut it out and feel the difference — then eat it again and watch your focus fall off.
+
+# Long-Term Cost
+
+Chronic high sugar intake is linked to:
+
+1. Obesity
+2. Type 2 diabetes
+3. Heart disease
+4. Tooth decay
+5. Fatty liver disease
+6. Metabolic syndrome
+
+# Actionable Step
+
+Cut out all processed sugar.`,
+  },
+  {
+    slug: "clean-your-cupboards",
+    title: "Clean Your Cupboards",
+    category: "Biohacking Foundations",
+    summary: "Every tempting wrapper in the house steals focus. Remove the battle instead of fighting it.",
+    body: `Willpower is a limited resource. Don't spend it fighting the snacks in your own kitchen.
+
+# The Craving Never Fully Leaves
+
+You'll always see something sweet and think "that looks good." The urge doesn't vanish — and every time it fires, it's one more moment you have to resist.
+
+# Don't Fight An Uphill Battle
+
+If a chocolate bar or a bag of crisps is sitting an arm's reach away, at some point you'll give in. Then, the moment the taste fades, the regret arrives. Why keep it there at all if you don't intend to eat it?
+
+# It Costs You Focus
+
+Every time you notice that snack, your brain starts a small argument — one side for eating it, one against — and that burns real mental energy. As someone trying to do focused work, you can't afford to run that loop all day.
+
+# Actionable Step
+
+Clean out your cupboards. Get rid of the junk, or at minimum keep it out of sight and out of reach. If family keeps it in the house, do your best to block it from your own routine — it simply isn't an option anymore.`,
+  },
+  {
+    slug: "you-can-mix-fuels",
+    title: "You Can Mix Fuels",
+    category: "Biohacking Foundations",
+    summary: "The 'never mix fat and carbs' rule is a myth. Nature's most perfect foods combine both.",
+    body: `There's a popular idea that the body, like a car, should run on either fat or carbs — never both. In practice, that's a myth.
+
+# Nature Mixes Fuels
+
+The most perfect food for a human — breast milk — contains saturated fat, sugar and protein together. And it's not alone:
+
+- Honeycomb eaten whole: carbs from honey, plus fat and protein from larvae and royal jelly
+- Whole animal, nose-to-tail: glycogen (sugar) in fresh meat, blood and organs, alongside fat and protein
+- Eggs: mostly fat and protein, with a few grams of sugar in a fresh egg
+- Caviar: fat, protein and some carbohydrate
+
+# The Best Foods Combine Both
+
+Think about the food combinations people find most satisfying — bone marrow with honey, mashed potato with butter, good ice cream. Fat and carbohydrate together. Our ancestors weren't skimming the fat off milk or discarding the royal jelly from honeycomb.
+
+# The Takeaway
+
+If you want less energy and lower hormones, restrict yourself to a single fuel and overeat protein. If you want to thrive — more energy, healthier hormones, better fertility — you can absolutely mix fuels. The quality of the food is what matters most.`,
+  },
   {
     slug: "how-to-not-ruin-your-skin",
     title: "How To Not Ruin Your Skin",
@@ -407,6 +701,188 @@ Your body needs these micronutrients. Being deficient in even one — such as zi
 Cover your food with sea salt, don't be shy — but avoid table salt at all costs.`,
   },
   {
+    slug: "never-frozen-meat",
+    title: "Never Frozen Meat",
+    category: "Food Sourcing",
+    summary: "Meat should be fresh, not frozen. Conventional grocery meat is fine — freezer meat isn't.",
+    body: `Meat should always be fresh. Frozen meat isn't the goal — save it for genuine emergencies.
+
+# Keep It Fresh
+
+Frozen meat isn't ideal unless you're in a survival situation. If you already have a freezer full of it, don't panic — leave it for emergencies, or pass it on to someone else, and buy fresh going forward so you can actually make progress.
+
+# Conventional Is Fine
+
+You don't need anything exotic. Ordinary fresh meat from the grocery store is perfectly acceptable — fresh matters more than fancy.`,
+  },
+  {
+    slug: "sourcing-beef",
+    title: "Sourcing Beef",
+    category: "Food Sourcing",
+    summary: "Buy meat cut fresh by the store butcher, not vacuum-sealed branded packs.",
+    body: `Grass-fed beef has more nutrients and is preferable, but for muscle meat it doesn't have to be grass-fed. What matters most is that it's fresh.
+
+# Buy From The Butcher Counter
+
+The best grocery meat comes from stores with an in-house butcher. They deal with a farm, receive sections of the animal, and cut it fresh in the back. If you ask whether it's fresh and they say yes, it almost always is.
+
+Buy the meat that's cut and wrapped in the back — the cuts on a paper tray under plastic wrap. Avoid the vacuum-sealed, branded packs produced off-site, where there's less transparency about what's added.
+
+# If You're Concerned
+
+Some regions have stricter handling that can involve chemical rinses. If that worries you, ask the butcher to cut you a fresh section and to rinse the table and knife with water first — you can watch them do it — or buy a larger cut still in its original packaging from the cooler.
+
+If packaged meat is all you can get, it's still a solid second-best. Don't stress too much.`,
+  },
+  {
+    slug: "sourcing-chicken",
+    title: "Sourcing Chicken",
+    category: "Food Sourcing",
+    summary: "If you eat chicken, make it pasture-raised and soy-free — but most of the time, choose beef.",
+    body: `If you eat chicken, source it well — but most of the time, beef is the better choice.
+
+# Aim For Pasture-Raised
+
+Ideally the birds are non-GMO and fed no soy. Look for pasture-raised rather than free-range: "free-range" can still mean a crowded barn with token outdoor access, while pasture-raised means the birds are mainly outdoors. Many larger health-focused stores carry a pasture-raised source.
+
+# But Usually, Choose Beef
+
+Nine times out of ten, skip the chicken and eat beef instead.`,
+  },
+  {
+    slug: "raw-dairy",
+    title: "Raw Dairy",
+    category: "Food Sourcing",
+    summary: "Raw goat's milk edges out raw cow's milk. Never drink homogenised milk — it raises estrogen.",
+    body: `# Goat Milk Edges It
+
+Raw goat's milk beats raw cow's milk. Raw cow's milk is still an excellent food, but goat's milk has:
+
+- Higher vitamin C
+- Higher lactoferrin
+- A better amino acid balance
+- More inositol
+- A closer resemblance to breast milk
+
+Raw cow's milk arguably tastes better — either way, both are excellent.
+
+# Sourcing It
+
+If you're lucky enough to live somewhere with easy access, great. If not, you may need to hunt for a farm, or organise with others who want raw dairy — a group can even contract a farmer to produce for them. Start with the online directories that map where to buy raw dairy.
+
+If you can't get raw milk at all, Parmigiano Reggiano — found in most shops — is made from raw cow's milk and is a good stand-in.
+
+# One Rule
+
+Do not drink homogenised milk. It will raise estrogen.`,
+  },
+  {
+    slug: "sourcing-honey",
+    title: "Sourcing Honey",
+    category: "Food Sourcing",
+    summary: "Real raw honey is never heated above body temperature and the bees are never fed sugar.",
+    body: `Real raw honey is easy to fake on a label. Here's how to tell.
+
+# The Two Rules
+
+For honey to be genuinely raw:
+
+- It must never be heated above roughly body temperature (about 93°F)
+- The bees must be fed nothing but honey — not sugar or corn syrup in the off-season
+
+Many beekeepers feed sugar and heat their honey, and it can still legally be labelled "raw."
+
+# How To Check
+
+Ask whether the honey is ever heated. Many will say no — then admit they warm it "just to pour it." Ask how hot: if the answer is around 100°F or more, the honey is already compromised, no matter what the label says. Check the back of any store-bought "raw" honey.
+
+# Better Still
+
+If you can get local honey — some farm shops carry it — even better.`,
+  },
+  {
+    slug: "red-meat-as-the-base",
+    title: "Red Meat As The Base",
+    category: "Food Sourcing",
+    summary: "Red meat should be the base of the diet — but mind what you pair it with and when you eat it.",
+    body: `Red meat should be the main part of the diet. It builds energy, glands, muscle and hormones.
+
+# Mind The Combinations
+
+Don't mix fruit or honey with red meat — it pushes the body to convert the protein into fuel instead of using it to heal. You want the fat to be the fuel and the protein to do the repair work.
+
+The exceptions are pineapple, papaya and maple syrup. Red meat is acidic, and so are these, so they can be combined without turning the protein into "protein sugar." The problem is mixing acidic foods with alkaline ones.
+
+# Timing Notes
+
+- Don't leave red meat sitting in sauce for longer than a few hours — it drives the same fuel conversion and blunts the healing benefit.
+- Red meat close to bedtime can keep you awake. It's stimulating, so give yourself a buffer before sleep.`,
+  },
+  {
+    slug: "water",
+    title: "Water",
+    category: "Food Sourcing",
+    summary: "Naturally carbonated mineral water is superior. If not that, RO water with electrolytes added.",
+    body: `# Naturally Carbonated Water Is Superior
+
+The CO2 in carbonated water has been linked to lower histamine, improved blood flow and more cellular energy — which can ease nervousness and low mood. Natural spring water also tends to be high in magnesium, supporting GABA, the calming neurotransmitter. CO2 has also been associated with more stomach acid and faster gastric emptying.
+
+# Get The Natural Kind
+
+You want naturally carbonated mineral water. If the label doesn't say "natural," the carbonation is synthetic. The reason natural carbonation matters: it lets the water pass inspection without added chemicals. Other waters are often dosed with chemicals to reduce bacteria and pass bacterial testing — natural carbonation is antibacterial on its own, and it won't disrupt the bacteria in your body.
+
+# Alternatives
+
+There may be local springs worth accessing — websites exist to help you find them. Otherwise, reverse osmosis water works, but because RO strips everything out, you'll need to add electrolytes back in.`,
+  },
+  {
+    slug: "food-combining-rule",
+    title: "A Rule Of Thumb: Food Combining",
+    category: "Food Sourcing",
+    summary: "Don't mix alkaline and acidic foods in one meal — indigestion and gas are the warning signs.",
+    body: `A simple rule of thumb: don't mix alkaline foods with acidic foods in the same meal.
+
+Doing so can cause indigestion — and symptoms like excess gas are a sign that digestion isn't going smoothly. Keep meals simple and combine foods that sit on the same side of that line.`,
+  },
+  {
+    slug: "pineapple-for-bones",
+    title: "Pineapple For Bones",
+    category: "Food Sourcing",
+    summary: "Pineapple aids protein digestion, clears lymph and stimulates bone regeneration. Pairs with red meat.",
+    body: `Pineapple mostly aids protein digestion, and helps with fats too. It can be eaten with red meat, helps build bone, and breaks down lymphatic congestion.
+
+# It Regenerates Bone
+
+Pineapple appears to stimulate bone regeneration. Under a microscope, bone grows as a web that then fills in — and pineapple seems to encourage exactly that process.
+
+# The Pairing
+
+Raw red meat with pineapple is a strong combination — and it doesn't have to be raw if you're not eating raw foods yet. A rare cooked steak or burger works just as well.`,
+  },
+  {
+    slug: "when-you-eat-beef-and-rice",
+    title: "When You Eat Beef + Rice",
+    category: "Food Sourcing",
+    summary: "Fruit and honey are the main fuel, but the occasional rice-and-beef plate done right works.",
+    body: `As covered elsewhere, your main fuel should come from fruit and honey. But once in a while, boiled potatoes or white rice are fine — and they can help gym performance.
+
+# A Note On Grains
+
+Grains do reduce brain function, so if your focus is on demanding work, fruit is the better fuel. Save the rice for training days.
+
+# How To Make Beef And Rice
+
+Plain rice with chopped beef in a pan tends to be dehydrating. This version isn't:
+
+1. Rinse 200g of raw rice at least five times, until the water runs clear
+2. Cook it in a stainless steel bowl with about 400ml of boiling water — use stainless steel, never a non-stick-coated rice cooker
+3. Split 300g of fatty ground beef into two patties, seasoned with nothing but salt — quality meat doesn't need more
+4. Cook the patties rare inside, never overcooked, in a cast iron or stainless steel pan greased with animal fat (pork lard or beef tallow) for its high smoke point
+5. Separate the yolks from the whites and add a few raw yolks on top of the rice
+
+Done right, this meal should leave you hydrated and full of energy.`,
+  },
+  {
     slug: "daily-products-to-avoid",
     title: "Daily Products To Avoid",
     category: "Products & Environment",
@@ -535,6 +1011,25 @@ Mix baking soda with water and apply. If you think you smell, it's your diet —
 # 16. Tallow Balm Instead Of Sunscreen
 
 Made from beef tallow, rich in saturated fat and nutrients for skin health, and it works as sunscreen. Coconut oil is a decent alternative.`,
+  },
+  {
+    slug: "fluoride-in-your-water",
+    title: "Fluoride In Your Water",
+    category: "Products & Environment",
+    summary: "Fluoride is added to most tap water. Filter it out — reverse osmosis removes it, and skip fluoride toothpaste.",
+    body: `Most tap water has fluoride added to it. It's worth understanding what it is and filtering it out.
+
+# Why Filter It
+
+Fluoride is one more thing your body has to deal with in water you drink every day. Alongside heavy metals, recycled hormones and chlorine, it adds to your total toxic load — and the goal is always to reduce that load so the body can spend its energy healing rather than firefighting.
+
+# How To Remove It
+
+Standard carbon filters don't remove fluoride. A 5-stage reverse osmosis filter does, along with heavy metals, plastics and recycled estrogens. Filter your drinking water — and ideally your shower water too, since your skin absorbs readily.
+
+# Toothpaste Too
+
+Most conventional toothpaste contains fluoride. Swap it for a natural alternative — coconut oil and baking soda work well, with a tongue scraper.`,
   },
   {
     slug: "creating-potions",
