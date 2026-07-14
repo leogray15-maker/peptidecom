@@ -70,6 +70,24 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
 
   const hasWeight = ratingData.some((d) => d.weight != null);
 
+  // Headline weight numbers: latest reading and total change since the first
+  // one — the "170.4 · −20.3" glance the chart alone doesn't give.
+  const weightStats = useMemo(() => {
+    const weighed = [...initialEntries]
+      .filter((e) => e.weightKg != null)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (weighed.length === 0) return null;
+    const first = weighed[0];
+    const latest = weighed[weighed.length - 1];
+    return {
+      latest: latest.weightKg as number,
+      latestDate: latest.date,
+      change: Math.round(((latest.weightKg as number) - (first.weightKg as number)) * 10) / 10,
+      sinceDate: first.date,
+      readings: weighed.length,
+    };
+  }, [initialEntries]);
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -255,6 +273,38 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
       {hasWeight && (
         <div className="card">
           <p className="font-semibold text-white">Weight</p>
+          {weightStats && (
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-md">
+              <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+                <p className="text-xs text-slate-500">Latest</p>
+                <p className="mt-0.5 text-2xl font-bold text-white">
+                  {weightStats.latest}
+                  <span className="text-sm font-normal text-slate-500"> kg</span>
+                </p>
+                <p className="text-[11px] text-slate-500">{formatDate(weightStats.latestDate)}</p>
+              </div>
+              <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+                <p className="text-xs text-slate-500">Change</p>
+                <p
+                  className={cn(
+                    "mt-0.5 text-2xl font-bold",
+                    weightStats.change < 0
+                      ? "text-emerald-300"
+                      : weightStats.change > 0
+                        ? "text-amber-300"
+                        : "text-white"
+                  )}
+                >
+                  {weightStats.change > 0 ? "+" : ""}
+                  {weightStats.change}
+                  <span className="text-sm font-normal text-slate-500"> kg</span>
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  since {formatDate(weightStats.sinceDate)} · {weightStats.readings} readings
+                </p>
+              </div>
+            </div>
+          )}
           <div className="mt-4 h-40 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={ratingData} margin={{ top: 5, right: 10, left: -12, bottom: 0 }}>

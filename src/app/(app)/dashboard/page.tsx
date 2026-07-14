@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BookOpen,
   Calculator,
   Camera,
   ClipboardList,
-  GraduationCap,
   LifeBuoy,
   LineChart,
   ListChecks,
@@ -52,8 +52,8 @@ const recoveryLinks = [
 const labLinks = [
   { href: "/peptides", label: "Peptide tracker", icon: Syringe },
   { href: "/calculator", label: "Calculator", icon: Calculator },
+  { href: "/library", label: "Peptide library", icon: BookOpen },
   { href: "/progress", label: "Progress", icon: LineChart },
-  { href: "/protocols", label: "Protocols", icon: GraduationCap },
 ];
 
 export default async function DashboardPage() {

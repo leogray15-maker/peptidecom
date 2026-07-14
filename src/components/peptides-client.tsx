@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Syringe, Trash2 } from "lucide-react";
-import { PEPTIDE_PRESETS } from "@/lib/peptides";
+import { INJECTION_SITES, PEPTIDE_PRESETS, siteLabel } from "@/lib/peptides";
 import { RESEARCH_GOALS, dateKey, daysBetween, goalEmoji, goalLabel } from "@/lib/tsw";
 import { formatDate } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export interface PeptideEntry {
   peptide: string;
   doseMg: number;
   purpose: string | null;
+  site: string | null;
   note: string | null;
 }
 
@@ -26,6 +27,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
     peptide: "",
     doseMg: "",
     purpose: "",
+    site: "",
     note: "",
   });
 
@@ -73,6 +75,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
         peptide: form.peptide.trim(),
         doseMg: parseFloat(form.doseMg),
         purpose: form.purpose || null,
+        site: form.site || null,
         note: form.note.trim() || null,
       }),
     });
@@ -159,6 +162,19 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
               ))}
             </select>
           </div>
+          <div>
+            <label className="label">Injection site (optional)</label>
+            <select
+              className="input"
+              value={form.site}
+              onChange={(e) => setForm({ ...form, site: e.target.value })}
+            >
+              <option value="">—</option>
+              {INJECTION_SITES.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+          </div>
           <div className="sm:col-span-2">
             <label className="label">Progress note (optional)</label>
             <input
@@ -233,6 +249,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {formatDate(e.date)}
+                    {e.site ? ` · ${siteLabel(e.site)}` : ""}
                     {e.purpose ? ` · ${goalEmoji(e.purpose)} ${goalLabel(e.purpose)}` : ""}
                     {e.note ? ` · ${e.note}` : ""}
                   </p>

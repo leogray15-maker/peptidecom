@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { siteLabel } from "@/lib/peptides";
 import { SYMPTOMS, goalLabel, zoneLabel } from "@/lib/tsw";
 import { listJournal, listLogs, listPeptideLogs, listTriggers, tswKey } from "@/lib/tsw-db";
 
@@ -50,8 +51,15 @@ export async function GET(req: Request) {
     } else if (kind === "peptides") {
       const entries = await listPeptideLogs(uid);
       rows = [
-        ["date", "peptide", "dose_mg", "purpose", "note"],
-        ...entries.map((e) => [e.date, e.peptide, e.doseMg, goalLabel(e.purpose) ?? "", e.note]),
+        ["date", "peptide", "dose_mg", "site", "purpose", "note"],
+        ...entries.map((e) => [
+          e.date,
+          e.peptide,
+          e.doseMg,
+          siteLabel(e.site) ?? "",
+          goalLabel(e.purpose) ?? "",
+          e.note,
+        ]),
       ];
     } else {
       const logs = await listLogs(uid);

@@ -275,6 +275,9 @@ export interface PeptideLog {
   purpose: string | null; // RESEARCH_GOALS id
   note: string | null;
   createdAt: string;
+  /** Injection site id (lib/peptides.ts INJECTION_SITES) — rotation tracking.
+   * Absent on logs from before the feature existed. */
+  site?: string | null;
 }
 
 export async function listPeptideLogs(uid: string): Promise<PeptideLog[]> {
