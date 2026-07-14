@@ -307,6 +307,51 @@ export async function deletePeptideLog(uid: string, id: string): Promise<void> {
   await db.collection("users").doc(uid).collection("peptideLogs").doc(id).delete();
 }
 
+// ─── Dose protocols (users/{uid}/peptideProtocols/{id}) ─────────────────────
+// Schedules ("BPC-157, 0.5 mg, daily") that drive the tracker's Today view.
+// The shape lives in lib/protocol-schedule.ts so client code can share it.
+
+import type { PeptideProtocol } from "@/lib/protocol-schedule";
+
+export async function listProtocols(uid: string): Promise<PeptideProtocol[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("peptideProtocols")
+    .orderBy("createdAt", "asc")
+    .get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<PeptideProtocol, "id">), id: d.id }));
+}
+
+export async function addProtocol(
+  uid: string,
+  protocol: Omit<PeptideProtocol, "id" | "createdAt">
+): Promise<string> {
+  const db = await adminDb();
+  const ref = await db
+    .collection("users")
+    .doc(uid)
+    .collection("peptideProtocols")
+    .add({ ...protocol, createdAt: new Date().toISOString() });
+  return ref.id;
+}
+
+export async function setProtocolActive(uid: string, id: string, active: boolean): Promise<void> {
+  const db = await adminDb();
+  await db
+    .collection("users")
+    .doc(uid)
+    .collection("peptideProtocols")
+    .doc(id)
+    .set({ active }, { merge: true });
+}
+
+export async function deleteProtocol(uid: string, id: string): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).collection("peptideProtocols").doc(id).delete();
+}
+
 // ─── Milestones (users/{uid}/milestones/{key}) ───────────────────────────────
 
 export interface MilestoneRecord {

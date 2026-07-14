@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test:insights": "tsx scripts/insights.test.ts",
     "test:photo-score": "tsx scripts/photo-score.test.ts",
+    "test:protocols": "tsx scripts/protocol-schedule.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
