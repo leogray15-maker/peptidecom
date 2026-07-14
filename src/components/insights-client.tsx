@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -10,12 +11,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { pearson } from "@/lib/insights";
 import { type DailyLog, SYMPTOMS, dateKey, daysBetween, zoneLabel } from "@/lib/tsw";
 
 // Chart palette validated for the dark card surface (#0f0f15):
 // OKLCH lightness band, chroma, CVD separation and contrast all pass.
 const SEVERITY_COLOR = "#7c5cff";
 const SLEEP_COLOR = "#0d9488";
+const MOOD_COLOR = "#d97706";
 const GRID = "#20202b";
 const AXIS = "#6b6b7b";
 
@@ -25,23 +28,6 @@ const tooltipStyle = {
   borderRadius: 12,
   color: "#e2e8f0",
 } as const;
-
-function pearson(pairs: [number, number][]): number | null {
-  const n = pairs.length;
-  if (n < 7) return null;
-  const mx = pairs.reduce((s, p) => s + p[0], 0) / n;
-  const my = pairs.reduce((s, p) => s + p[1], 0) / n;
-  let num = 0;
-  let dx = 0;
-  let dy = 0;
-  for (const [x, y] of pairs) {
-    num += (x - mx) * (y - my);
-    dx += (x - mx) ** 2;
-    dy += (y - my) ** 2;
-  }
-  if (dx === 0 || dy === 0) return null;
-  return num / Math.sqrt(dx * dy);
-}
 
 export function InsightsClient({ logs }: { logs: DailyLog[] }) {
   const today = dateKey();
@@ -58,6 +44,7 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
     date: new Date(l.date + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
     severity: l.severity,
     sleep: l.sleep ?? undefined,
+    mood: l.mood ?? undefined,
     itch: l.symptoms.includes("itch") ? l.severity : undefined,
   }));
 
@@ -140,11 +127,12 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
         )}
       </div>
 
-      {/* Sleep (small multiple sharing the same x-axis — scales differ, so no dual axis) */}
+      {/* Sleep & mood (small multiple sharing the same x-axis — 1–5 scales, so
+          they can share one chart; severity stays separate above) */}
       <div className="card">
-        <p className="font-semibold text-white">Sleep quality — last 30 days</p>
-        <p className="mt-0.5 text-sm text-slate-500">Read it against the severity chart above — same days, same order.</p>
-        {chartData.some((d) => d.sleep != null) ? (
+        <p className="font-semibold text-white">Sleep &amp; mood — last 30 days</p>
+        <p className="mt-0.5 text-sm text-slate-500">Read them against the severity chart above — same days, same order.</p>
+        {chartData.some((d) => d.sleep != null || d.mood != null) ? (
           <div className="mt-4 h-40 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -152,13 +140,15 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
                 <XAxis dataKey="date" stroke={AXIS} fontSize={11} tickLine={false} />
                 <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} stroke={AXIS} fontSize={11} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
                 <Line type="monotone" dataKey="sleep" name="Sleep (1–5)" stroke={SLEEP_COLOR} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey="mood" name="Mood (1–5)" stroke={MOOD_COLOR} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
           <p className="py-8 text-center text-sm text-slate-500">
-            Add sleep to your daily logs to unlock the itch-vs-sleep picture.
+            Add sleep and mood to your daily logs to unlock this picture.
           </p>
         )}
         {sleepSeverity != null && Math.abs(sleepSeverity) >= 0.3 && (
@@ -209,8 +199,8 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
             </div>
           )}
           <p className="mt-4 text-xs text-slate-500">
-            These reflect what you logged — they&apos;re a mirror, not a verdict. Bring surprises to
-            your doctor with the appointment builder.
+            These reflect what you logged — they&apos;re a mirror, not a verdict. Anything that
+            surprises you is worth raising with a clinician.
           </p>
         </div>
       </div>

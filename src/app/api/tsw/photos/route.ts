@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { addPhoto, deletePhoto, setPhotoShared, tswKey } from "@/lib/tsw-db";
+import { addPhoto, deletePhoto, listPhotos, setPhotoShared, tswKey } from "@/lib/tsw-db";
+
+/** The member's own photos — used by the story form's before/after picker. */
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const photos = await listPhotos(tswKey(user));
+    return NextResponse.json({
+      photos: photos.map((p) => ({
+        id: p.id,
+        takenAt: p.takenAt,
+        area: p.area,
+        imageData: p.imageData,
+      })),
+    });
+  } catch (err) {
+    console.error("Failed to list photos:", err);
+    return NextResponse.json({ error: "Couldn't load your photos." }, { status: 503 });
+  }
+}
 
 // Images are stored as compressed data-URLs inside the Firestore doc; the
 // client downsizes before upload. Cap well below Firestore's 1MB doc limit.
@@ -15,6 +35,18 @@ const createSchema = z.object({
     .string()
     .max(MAX_IMAGE_CHARS)
     .regex(/^data:image\/(jpeg|png|webp);base64,/),
+  // Client-computed severity estimate (free canvas heuristic / local model).
+  estimate: z
+    .object({
+      score: z.number().min(0).max(100),
+      composite: z.number().min(0).max(1),
+      inflamedFraction: z.number().min(0).max(1),
+      rednessIndex: z.number().min(0).max(1),
+      version: z.number().int().min(1).max(100),
+      method: z.enum(["heuristic", "tfjs", "blended"]),
+    })
+    .optional()
+    .nullable(),
 });
 
 const patchSchema = z.object({
@@ -41,6 +73,7 @@ export async function POST(req: Request) {
       caption: parsed.data.caption ?? null,
       imageData: parsed.data.imageData,
       shared: false, // always private by default
+      estimate: parsed.data.estimate ?? null,
     });
     return NextResponse.json({ ok: true, id });
   } catch (err) {

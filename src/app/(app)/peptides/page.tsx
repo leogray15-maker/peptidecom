@@ -1,16 +1,22 @@
+import { DoseScheduleSection } from "@/components/dose-schedule";
 import { PageHeader } from "@/components/page-header";
 import { PeptidesClient } from "@/components/peptides-client";
 import { getCurrentUser } from "@/lib/auth";
+import type { PeptideProtocol } from "@/lib/protocol-schedule";
 import { safe } from "@/lib/safe-db";
-import { type PeptideLog, listPeptideLogs, tswKey } from "@/lib/tsw-db";
+import { type PeptideLog, listPeptideLogs, listProtocols, tswKey } from "@/lib/tsw-db";
 
 export const metadata = { title: "Peptide tracker" };
 
 export default async function PeptidesPage() {
   const user = await getCurrentUser();
-  const entries = user
-    ? await safe(() => listPeptideLogs(tswKey(user)), [] as PeptideLog[])
-    : [];
+  const uid = user ? tswKey(user) : null;
+  const [entries, protocols] = uid
+    ? await Promise.all([
+        safe(() => listPeptideLogs(uid), [] as PeptideLog[]),
+        safe(() => listProtocols(uid), [] as PeptideProtocol[]),
+      ])
+    : [[], []];
 
   return (
     <div>
@@ -18,6 +24,12 @@ export default async function PeptidesPage() {
         title="Peptide tracker"
         subtitle="Every dose on the record — what you took, how much, when, and how it's going."
       />
+      <div className="mb-6">
+        <DoseScheduleSection
+          protocols={protocols}
+          logs={entries.map((e) => ({ date: e.date, peptide: e.peptide }))}
+        />
+      </div>
       <PeptidesClient
         initialEntries={entries.map((e) => ({
           id: e.id,

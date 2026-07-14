@@ -5,20 +5,37 @@ import {
   Camera,
   ClipboardList,
   GraduationCap,
-  HeartHandshake,
   LifeBuoy,
   LineChart,
+  ListChecks,
   Map,
   Syringe,
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import { ConditionPickerModal } from "@/components/condition-picker";
+import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
+import { anyStageName } from "@/lib/conditions";
+import {
+  buildCohortStatements,
+  computePersonalInsight,
+  rotateStatements,
+  weeksSinceStart,
+} from "@/lib/insights";
+import { getLatestAggregates } from "@/lib/insights-db";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
-import { type DailyLog, computeStats, dateKey, stageName } from "@/lib/tsw";
-import { type TswProfile, getProfile, listLogs, tswKey } from "@/lib/tsw-db";
+import { type DailyLog, computeStats, dateKey } from "@/lib/tsw";
+import {
+  type TriggerLog,
+  type TswProfile,
+  getProfile,
+  listLogs,
+  listTriggers,
+  tswKey,
+} from "@/lib/tsw-db";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
@@ -26,9 +43,9 @@ export const metadata = { title: "Dashboard" };
 const recoveryLinks = [
   { href: "/tracker", label: "Log today's skin", icon: ClipboardList, desc: "20 seconds. Body map, severity, done." },
   { href: "/photos", label: "Photo timeline", icon: Camera, desc: "Add a photo or compare then vs now." },
-  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "The withdrawal map, stage by stage." },
+  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "Your journey mapped, stage by stage." },
   { href: "/insights", label: "Your trends", icon: TrendingUp, desc: "Severity, sleep and patterns — your data." },
-  { href: "/doctor", label: "Doctor prep", icon: HeartHandshake, desc: "Build a printable appointment summary." },
+  { href: "/triggers", label: "Triggers", icon: ListChecks, desc: "Catch what helps and what flares you." },
   { href: "/won", label: "The Won wall", icon: Trophy, desc: "Recovery stories. Proof it gets better." },
 ];
 
@@ -48,23 +65,42 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       include: { author: true, category: true, _count: { select: { comments: true } } },
     });
-  const recentPosts = await safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>);
 
   const uid = user ? tswKey(user) : null;
-  const [logs, profile] = uid
-    ? await Promise.all([
-        safe(() => listLogs(uid), [] as DailyLog[]),
-        safe(() => getProfile(uid), {} as TswProfile),
-      ])
-    : [[], {} as TswProfile];
+  const [recentPosts, logs, profile, triggers, aggregates] = await Promise.all([
+    safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
+    uid ? safe(() => listLogs(uid), [] as DailyLog[]) : Promise.resolve([] as DailyLog[]),
+    uid ? safe(() => getProfile(uid), {} as TswProfile) : Promise.resolve({} as TswProfile),
+    uid ? safe(() => listTriggers(uid), [] as TriggerLog[]) : Promise.resolve([] as TriggerLog[]),
+    safe(getLatestAggregates, null),
+  ]);
 
   const stats = computeStats(logs);
-  const stage = stageName(profile.recoveryStage);
+  const stage = anyStageName(profile.recoveryStage, profile.condition);
   const todayLogged = logs.some((l) => l.date === dateKey());
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
+  // Insights: the member's own strongest pattern + rotating cohort stats
+  // (aggregated nightly, never per-request — see /api/cron/aggregate).
+  const personalInsight = computePersonalInsight(logs, triggers, dateKey());
+  const cohortStatements = aggregates
+    ? rotateStatements(
+        buildCohortStatements(aggregates, {
+          stage: profile.recoveryStage,
+          weeksSinceStart: weeksSinceStart(logs, profile, dateKey()),
+          condition: profile.condition,
+        }),
+        personalInsight ? 3 : 4
+      )
+    : [];
+
   return (
     <div>
+      {/* One-time onboarding: adapts the whole app to the member's condition.
+          Existing (pre-multi-condition) accounts see TSW pre-selected. */}
+      {user && !profile.condition && (
+        <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
+      )}
       <PageHeader
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."
@@ -133,6 +169,9 @@ export default async function DashboardPage() {
         </div>
         <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
       </Link>
+
+      {/* Cohort + personal insights */}
+      <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
 
       {/* Quick links */}
       <h2 className="mt-8 text-lg font-semibold text-white">Jump back in</h2>

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, CheckSquare, Gauge, History, Users } from "lucide-react";
+import { ArrowLeft, CheckSquare, Gauge, History, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/admin", label: "Overview", icon: Gauge, exact: true },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/stories", label: "Stories", icon: Trophy },
   { href: "/admin/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/admin/activity", label: "Activity", icon: History },
 ];

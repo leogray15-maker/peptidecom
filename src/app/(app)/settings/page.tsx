@@ -1,7 +1,19 @@
+import { Download } from "lucide-react";
+import { ConditionSettings } from "@/components/condition-picker";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
+import { getCondition } from "@/lib/conditions";
+import { safe } from "@/lib/safe-db";
+import { type TswProfile, getProfile, tswKey } from "@/lib/tsw-db";
 import { formatDate } from "@/lib/utils";
 import { ManageBillingButton } from "@/components/manage-billing-button";
+
+const exports = [
+  { data: "logs", label: "Daily skin logs" },
+  { data: "triggers", label: "Triggers" },
+  { data: "journal", label: "Journal" },
+  { data: "peptides", label: "Peptide doses" },
+];
 
 export const metadata = { title: "Settings" };
 
@@ -17,6 +29,7 @@ const statusLabels: Record<string, string> = {
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) return null;
+  const profile = await safe(() => getProfile(tswKey(user)), {} as TswProfile);
 
   return (
     <div className="max-w-2xl">
@@ -75,6 +88,31 @@ export default async function SettingsPage() {
           <p className="mt-3 text-xs text-slate-500">
             Update your card, switch plans or cancel through the secure Stripe portal.
           </p>
+        </section>
+
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white">Condition</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            The tracker, stages and trigger suggestions adapt to what you&apos;re dealing with.
+          </p>
+          <div className="mt-4">
+            <ConditionSettings current={getCondition(profile.condition).id} />
+          </div>
+        </section>
+
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white">Your data</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Everything you&apos;ve logged is yours. Download it as CSV — open it in any
+            spreadsheet, or bring it to an appointment.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {exports.map((e) => (
+              <a key={e.data} href={`/api/tsw/export?data=${e.data}`} className="btn-secondary" download>
+                <Download className="h-4 w-4" /> {e.label}
+              </a>
+            ))}
+          </div>
         </section>
       </div>
     </div>

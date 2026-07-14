@@ -1,11 +1,12 @@
 "use client";
 
-import { BODY_ZONES } from "@/lib/tsw";
+import { BODY_ZONES, type BodyZone } from "@/lib/tsw";
 import { cn } from "@/lib/utils";
 
-/** Tappable front-view body map. Each zone is a rounded SVG shape; "Back" has
- * no front-view shape so it lives in the chip row underneath (which also acts
- * as the accessible fallback for every zone). */
+/** Tappable front-view body map. Each zone is a rounded SVG shape; zones with
+ * no front-view shape (e.g. "Back", or condition-specific face zones) live in
+ * the chip row underneath (which also acts as the accessible fallback for
+ * every zone). The zone list is condition-configurable. */
 
 interface Shape {
   zone: string;
@@ -44,11 +45,16 @@ function shapesFor(selected: Set<string>): Shape[] {
 export function BodyMap({
   selected,
   onToggle,
+  zones = BODY_ZONES,
 }: {
   selected: string[];
   onToggle: (zone: string) => void;
+  zones?: BodyZone[];
 }) {
   const set = new Set(selected);
+  const zoneIds = new Set(zones.map((z) => z.id));
+  const label = (id: string) => zones.find((z) => z.id === id)?.label ?? id;
+  const shapes = shapesFor(set).filter((s) => zoneIds.has(s.zone));
   return (
     <div>
       <svg
@@ -57,12 +63,12 @@ export function BodyMap({
         role="group"
         aria-label="Body map — tap the areas that are affected today"
       >
-        {shapesFor(set).map(({ zone, el }) => (
+        {shapes.map(({ zone, el }) => (
           <g
             key={zone}
             role="checkbox"
             aria-checked={set.has(zone)}
-            aria-label={BODY_ZONES.find((z) => z.id === zone)?.label ?? zone}
+            aria-label={label(zone)}
             tabIndex={0}
             onClick={() => onToggle(zone)}
             onKeyDown={(e) => {
@@ -72,15 +78,15 @@ export function BodyMap({
               }
             }}
           >
-            <title>{BODY_ZONES.find((z) => z.id === zone)?.label ?? zone}</title>
+            <title>{label(zone)}</title>
             {el}
           </g>
         ))}
       </svg>
 
-      {/* Chip fallback — includes "Back", which the front view can't show */}
+      {/* Chip fallback — includes every zone the SVG can't show */}
       <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-        {BODY_ZONES.map((z) => (
+        {zones.map((z) => (
           <button
             key={z.id}
             type="button"

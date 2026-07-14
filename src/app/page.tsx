@@ -80,7 +80,7 @@ const steps = [
 const faqs = [
   {
     q: "What does membership include?",
-    a: "Everything, immediately: the daily skin tracker, photo timeline, the “where am I?” stage map, insights, trigger tracking, doctor prep, flare-day support, the healing protocol library, the peptide tracker and calculator, the community forums and the WhatsApp chat. One membership — nothing held back.",
+    a: "Everything, immediately: the daily skin tracker, photo timeline, the “where am I?” stage map, insights, trigger tracking, flare-day support, the healing protocol library, the peptide tracker and calculator, the community forums and the WhatsApp chat. One membership — nothing held back.",
   },
   {
     q: "What's the founding offer?",

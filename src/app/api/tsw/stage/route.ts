@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { TSW_STAGES, computeStats, earnedMilestones } from "@/lib/tsw";
+import { CONDITIONS } from "@/lib/conditions";
+import { computeStats, earnedMilestones } from "@/lib/tsw";
 import { awardNewMilestones, listLogs, setStage, tswKey } from "@/lib/tsw-db";
 
+// Any condition's stage ids are accepted — the client only offers the ones
+// for the member's own condition.
+const allStageIds = [...new Set(CONDITIONS.flatMap((c) => c.stages.map((s) => s.id)))];
+
 const schema = z.object({
-  stage: z.enum(TSW_STAGES.map((s) => s.id) as [string, ...string[]]),
+  stage: z.enum(allStageIds as [string, ...string[]]),
 });
 
 export async function POST(req: Request) {

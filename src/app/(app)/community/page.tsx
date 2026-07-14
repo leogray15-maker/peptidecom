@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { getCurrentUser } from "@/lib/auth";
+import { conditionLabel, getCondition } from "@/lib/conditions";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
+import { type TswProfile, getProfile, tswKey } from "@/lib/tsw-db";
 import { Avatar } from "@/components/avatar";
 import { timeAgo } from "@/lib/utils";
 import { NewPostForm } from "@/components/new-post-form";
@@ -12,12 +15,25 @@ export const metadata = { title: "Community" };
 export default async function CommunityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cat?: string }>;
+  searchParams: Promise<{ cat?: string; all?: string }>;
 }) {
-  const { cat } = await searchParams;
+  const { cat, all } = await searchParams;
+  const user = await getCurrentUser();
+  const profile = user
+    ? await safe(() => getProfile(tswKey(user)), {} as TswProfile)
+    : ({} as TswProfile);
+  const myCondition = getCondition(profile.condition).id;
+  // Default to same-condition discussion; "?all=1" opens the whole feed
+  // (cross-condition threads — sleep, stress, peptides — travel well).
+  const showAll = all === "1";
+  const withAll = (href: string) => (showAll ? `${href}${href.includes("?") ? "&" : "?"}all=1` : href);
+
   const getPosts = () =>
     prisma.post.findMany({
-      where: cat ? { category: { slug: cat } } : undefined,
+      where: {
+        ...(cat ? { category: { slug: cat } } : {}),
+        ...(showAll ? {} : { condition: myCondition }),
+      },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 50,
       include: {
@@ -40,11 +56,36 @@ export default async function CommunityPage({
 
       <NewPostForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
 
+      {/* Condition scope */}
+      <div className="mt-5 flex flex-wrap items-center gap-1.5">
+        <span className="text-xs uppercase tracking-wider text-slate-600">Showing</span>
+        <Link
+          href={cat ? `/community?cat=${cat}` : "/community"}
+          className={
+            !showAll
+              ? "badge bg-brand-500/20 text-brand-200"
+              : "badge border border-lab-border text-slate-400 hover:text-slate-200"
+          }
+        >
+          {conditionLabel(myCondition)}
+        </Link>
+        <Link
+          href={cat ? `/community?cat=${cat}&all=1` : "/community?all=1"}
+          className={
+            showAll
+              ? "badge bg-brand-500/20 text-brand-200"
+              : "badge border border-lab-border text-slate-400 hover:text-slate-200"
+          }
+        >
+          All conditions
+        </Link>
+      </div>
+
       {/* Filter by group — recovery stages first, so members match with their phase */}
       {categories.length > 0 && (
         <div className="mt-5 flex flex-wrap gap-1.5">
           <Link
-            href="/community"
+            href={withAll("/community")}
             className={
               !cat
                 ? "badge bg-brand-500/20 text-brand-200"
@@ -56,7 +97,7 @@ export default async function CommunityPage({
           {categories.map((c) => (
             <Link
               key={c.id}
-              href={`/community?cat=${c.slug}`}
+              href={withAll(`/community?cat=${c.slug}`)}
               className={
                 cat === c.slug
                   ? "badge bg-brand-500/20 text-brand-200"
@@ -73,7 +114,14 @@ export default async function CommunityPage({
       <div className="mt-6 space-y-3">
         {posts.length === 0 ? (
           <div className="card text-sm text-slate-400">
-            No posts yet — start the first discussion above.
+            {!showAll ? (
+              <>
+                No {conditionLabel(myCondition)} posts here yet — try &ldquo;All
+                conditions&rdquo; above, or start the first discussion.
+              </>
+            ) : (
+              <>No posts yet — start the first discussion above.</>
+            )}
           </div>
         ) : (
           posts.map((post) => {

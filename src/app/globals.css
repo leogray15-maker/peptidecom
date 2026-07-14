@@ -62,34 +62,6 @@ body {
   }
 }
 
-/* Printable doctor summary: hide the app chrome, print the sheet in black on white. */
-@media print {
-  body {
-    background: white !important;
-    color: black !important;
-  }
-  .no-print,
-  aside,
-  nav,
-  header,
-  footer {
-    display: none !important;
-  }
-  main {
-    max-width: 100% !important;
-  }
-  .print-sheet {
-    border: none !important;
-    box-shadow: none !important;
-    background: white !important;
-    padding: 0 !important;
-  }
-  .print-sheet * {
-    color: black !important;
-    border-color: #ccc !important;
-  }
-}
-
 /* Slow breathing guide on the flare-day support page. */
 @keyframes breathe {
   0%, 100% { transform: scale(0.7); opacity: 0.6; }

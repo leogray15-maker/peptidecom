@@ -97,6 +97,7 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
   }
 
   async function remove(id: string) {
+    if (!confirm("Delete this journal entry? This can't be undone.")) return;
     await fetch(`/api/journal?id=${id}`, { method: "DELETE" });
     router.refresh();
   }

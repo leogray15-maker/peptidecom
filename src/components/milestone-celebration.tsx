@@ -73,6 +73,23 @@ export function MilestoneCelebration({
           </p>
         )}
 
+        {/* Big milestones are the natural moment to ask for a story — one
+            link, no pressure, consent handled properly in the form itself. */}
+        {["recovered", "days_90", "flare_free_week"].includes(primary.key) && (
+          <Link
+            href="/won?share=1"
+            onClick={close}
+            className="mt-5 block rounded-2xl border border-brand-500/40 bg-brand-500/10 p-4 text-left transition hover:border-brand-400"
+          >
+            <p className="text-sm font-semibold text-brand-200">
+              Your story could carry someone through their worst week
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Share it on the Won wall — a few guided questions, two minutes, entirely optional.
+            </p>
+          </Link>
+        )}
+
         {/* The bridge — after the congratulations, never instead of it */}
         <div className="mt-6 rounded-2xl border border-lab-border bg-lab-bg p-4 text-left">
           <p className="text-xs font-semibold uppercase tracking-widest text-gold-400/90">

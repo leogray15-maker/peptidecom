@@ -160,6 +160,9 @@ model Post {
   authorId   String
   categoryId String?
   pinned     Boolean   @default(false)
+  // Author's condition at posting time (lib/conditions.ts id). Existing rows
+  // default to "tsw" — every account predating multi-condition was TSW.
+  condition  String    @default("tsw")
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

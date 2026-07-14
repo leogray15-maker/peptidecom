@@ -7,10 +7,20 @@ import {
   GitCompareArrows,
   Loader2,
   Lock,
+  ScanEye,
   Trash2,
   Users,
   X,
 } from "lucide-react";
+import {
+  type PhotoEstimate,
+  PHOTO_SCORE_VERSION,
+  estimateAgreement,
+  extractImageFeatures,
+  pickBaseline,
+  scorePhoto,
+} from "@/lib/photo-score";
+import { loadPhotoModel } from "@/lib/photo-model";
 import { BODY_ZONES, dateKey, daysBetween, zoneLabel } from "@/lib/tsw";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -21,6 +31,7 @@ export interface PhotoItem {
   caption: string | null;
   imageData: string;
   shared: boolean;
+  estimate: PhotoEstimate | null;
 }
 
 /** Downscale + re-encode a photo client-side so it fits comfortably inside a
@@ -54,7 +65,13 @@ async function compressImage(file: File): Promise<string> {
   }
 }
 
-export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) {
+export function PhotosClient({
+  initialPhotos,
+  manualSeverityByDate,
+}: {
+  initialPhotos: PhotoItem[];
+  manualSeverityByDate: Record<string, number>;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -63,6 +80,8 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
   const [caption, setCaption] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState<PhotoEstimate | null>(null);
+  const [estimating, setEstimating] = useState(false);
 
   const MAX_COMPARE = 4;
   const [compareMode, setCompareMode] = useState(false);
@@ -84,10 +103,60 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
     return [...groups.entries()];
   }, [newestFirst]);
 
+  /** Free client-side severity estimate (canvas heuristic; local TF.js model
+   * blended in when deployed — see src/lib/photo-score.ts & photo-model.ts).
+   * Never calls any paid vision API. Best-effort: failure just means no chip. */
+  async function estimateSeverity(dataUrl: string, forArea: string | null) {
+    setEstimating(true);
+    setEstimate(null);
+    try {
+      const features = await extractImageFeatures(dataUrl);
+      // Baseline: the member's own least-inflamed scored photo, so skin tone
+      // and typical lighting cancel out.
+      const scored = initialPhotos
+        .filter((p) => p.estimate)
+        .map((p) => ({ composite: p.estimate!.composite, area: p.area }));
+      const heuristic = scorePhoto(features, pickBaseline(scored, forArea));
+      if (heuristic == null) return; // too dark / blown out to judge
+
+      let score = heuristic;
+      let method: PhotoEstimate["method"] = "heuristic";
+      const model = await loadPhotoModel();
+      if (model) {
+        const img = new Image();
+        await new Promise<void>((res, rej) => {
+          img.onload = () => res();
+          img.onerror = () => rej(new Error("decode failed"));
+          img.src = dataUrl;
+        });
+        const modelScore = await model.predict(img);
+        if (modelScore != null) {
+          score = Math.round((heuristic + modelScore) / 2);
+          method = "blended";
+        }
+      }
+
+      setEstimate({
+        score,
+        composite: features.composite,
+        inflamedFraction: features.inflamedFraction,
+        rednessIndex: features.rednessIndex,
+        version: PHOTO_SCORE_VERSION,
+        method,
+      });
+    } catch {
+      // Estimation is supplementary — never block the upload on it.
+    } finally {
+      setEstimating(false);
+    }
+  }
+
   async function pick(file: File) {
     setError(null);
     try {
-      setPreview(await compressImage(file));
+      const data = await compressImage(file);
+      setPreview(data);
+      void estimateSeverity(data, area || null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't read that image.");
     }
@@ -105,6 +174,7 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
         area: area || null,
         caption: caption.trim() || null,
         imageData: preview,
+        estimate,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -115,9 +185,21 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
     }
     setPreview(null);
     setCaption("");
+    setEstimate(null);
     if (fileRef.current) fileRef.current.value = "";
     router.refresh();
   }
+
+  // How well the estimate has been tracking the member's own ratings —
+  // validation before anyone is tempted to treat the number as authoritative.
+  const agreement = useMemo(() => {
+    const pairs: [number, number][] = [];
+    for (const p of initialPhotos) {
+      const manual = manualSeverityByDate[p.takenAt];
+      if (p.estimate && manual != null) pairs.push([p.estimate.score, manual]);
+    }
+    return estimateAgreement(pairs);
+  }, [initialPhotos, manualSeverityByDate]);
 
   async function toggleShare(p: PhotoItem) {
     await fetch("/api/tsw/photos", {
@@ -326,8 +408,39 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
 
         {preview && (
           <div className="mt-5 grid gap-4 sm:grid-cols-[160px,1fr]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Preview" className="h-40 w-40 rounded-2xl object-cover" />
+            <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt="Preview" className="h-40 w-40 rounded-2xl object-cover" />
+              {estimating ? (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Estimating…
+                </p>
+              ) : estimate ? (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span
+                    className="badge border border-brand-500/40 bg-brand-500/10 text-brand-200"
+                    title="A free, on-device colour analysis of this photo — an experiment, not a diagnosis. Your own rating in the daily tracker is what counts."
+                  >
+                    <ScanEye className="h-3 w-3" /> est. {estimate.score}/100
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEstimate(null)}
+                    className="text-slate-600 hover:text-slate-300"
+                    aria-label="Discard the estimate"
+                    title="Don't save this estimate"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
+              {estimate && (
+                <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                  Experimental estimate, computed on your device. Your tracker rating stays the
+                  real record.
+                </p>
+              )}
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="label">Date taken</label>
@@ -357,6 +470,32 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
         )}
         {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
       </div>
+
+      {/* Estimate calibration — validate the heuristic against the member's
+          own ratings before it earns any trust. */}
+      {agreement && (
+        <div className="card !py-4">
+          <p className="flex items-center gap-2 text-sm text-slate-400">
+            <ScanEye className="h-4 w-4 shrink-0 text-brand-300" />
+            {agreement.r >= 0.5 ? (
+              <>
+                The photo estimate has been tracking your own ratings well so far
+                ({agreement.n} matched days). Still an experiment — your rating is the record.
+              </>
+            ) : agreement.r >= 0.2 ? (
+              <>
+                The photo estimate loosely follows your own ratings ({agreement.n} matched days).
+                Treat it as a curiosity for now.
+              </>
+            ) : (
+              <>
+                The photo estimate isn&apos;t matching your own ratings yet ({agreement.n} matched
+                days) — trust your slider, not the number.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Timeline */}
       {photos.length === 0 ? (
@@ -393,7 +532,17 @@ export function PhotosClient({ initialPhotos }: { initialPhotos: PhotoItem[] }) 
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.imageData} alt={p.caption ?? `Photo from ${p.takenAt}`} className="aspect-square w-full object-cover" />
                     <div className="p-3">
-                      <p className="text-xs font-medium text-slate-200">{formatDate(p.takenAt)}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-medium text-slate-200">{formatDate(p.takenAt)}</p>
+                        {p.estimate && (
+                          <span
+                            className="flex shrink-0 items-center gap-1 text-[10px] text-slate-500"
+                            title="Experimental on-device severity estimate (0–100)"
+                          >
+                            <ScanEye className="h-3 w-3" /> ~{p.estimate.score}
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 truncate text-xs text-slate-500">
                         {p.area ? zoneLabel(p.area) : "Overall"}
                         {p.caption ? ` · ${p.caption}` : ""}
