@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Syringe, Trash2 } from "lucide-react";
 import { PEPTIDE_PRESETS } from "@/lib/peptides";
-import { RESEARCH_GOALS, dateKey, goalEmoji, goalLabel } from "@/lib/tsw";
+import { RESEARCH_GOALS, dateKey, daysBetween, goalEmoji, goalLabel } from "@/lib/tsw";
 import { formatDate } from "@/lib/utils";
 
 export interface PeptideEntry {
@@ -88,6 +88,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
   }
 
   async function remove(id: string) {
+    if (!confirm("Delete this dose entry? This can't be undone.")) return;
     await fetch(`/api/peptides?id=${id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -197,6 +198,12 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
               <p className="mt-2 text-sm text-slate-400">
                 Last dose <span className="font-medium text-slate-200">{s.lastDose} mg</span> on{" "}
                 {formatDate(s.lastDate)}
+                <span className="text-slate-500">
+                  {" "}·{" "}
+                  {daysBetween(s.lastDate, dateKey()) === 0
+                    ? "today"
+                    : `${daysBetween(s.lastDate, dateKey())} day${daysBetween(s.lastDate, dateKey()) === 1 ? "" : "s"} ago`}
+                </span>
               </p>
               <p className="mt-0.5 text-xs text-slate-500">
                 {s.count} dose{s.count === 1 ? "" : "s"} logged ·{" "}

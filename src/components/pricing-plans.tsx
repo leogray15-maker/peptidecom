@@ -51,7 +51,7 @@ export function PricingPlans({ founding }: { founding: FoundingStatus }) {
               <Lock className="h-3.5 w-3.5" /> Founding offer
             </span>
             <span className="text-xs font-semibold text-gold-300">
-              {founding.remaining} of {founding.limit} spots left
+              {founding.taken} of {founding.limit} members in · {founding.remaining} spot{founding.remaining === 1 ? "" : "s"} left
             </span>
           </div>
 

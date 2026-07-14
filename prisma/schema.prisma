@@ -25,6 +25,77 @@ enum SubscriptionStatus {
   INCOMPLETE
 }
 
+// ─── Admin CRM ───────────────────────────────────────────────────────────────
+
+// Where a customer sits in their journey. Usually derived from subscription
+// status; admins can pin a manual override (e.g. VIP) from the CRM.
+enum LifecycleStage {
+  LEAD
+  TRIAL
+  ACTIVE
+  AT_RISK
+  CHURNED
+  VIP
+}
+
+enum CrmTaskStatus {
+  OPEN
+  DONE
+}
+
+enum CrmTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model CrmNote {
+  id          String   @id @default(cuid())
+  userId      String
+  authorEmail String
+  body        String   @db.Text
+  pinned      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model CrmTask {
+  id          String          @id @default(cuid())
+  userId      String? // optional link to a customer
+  title       String
+  details     String?         @db.Text
+  status      CrmTaskStatus   @default(OPEN)
+  priority    CrmTaskPriority @default(MEDIUM)
+  dueAt       DateTime?
+  createdBy   String // admin email
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, dueAt])
+  @@index([userId])
+}
+
+// Audit trail of admin actions (role changes, notes, tags, tasks…).
+model CrmActivity {
+  id         String   @id @default(cuid())
+  userId     String? // affected customer, if any
+  actorEmail String
+  action     String // machine key, e.g. "customer.role_changed"
+  detail     String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
 model User {
   id            String    @id @default(cuid())
   firebaseUid   String?   @unique
@@ -48,9 +119,17 @@ model User {
   subscriptionStatus     SubscriptionStatus  @default(NONE)
   foundingMember         Boolean             @default(false) // locked-in founding price
 
+  // Admin CRM
+  crmStage        LifecycleStage? // manual override; derived from billing when null
+  crmTags         String[]        @default([])
+  lastContactedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  crmNotes       CrmNote[]
+  crmTasks       CrmTask[]
+  crmActivities  CrmActivity[]
   posts          Post[]
   comments       Comment[]
   votes          Vote[]
@@ -81,6 +160,9 @@ model Post {
   authorId   String
   categoryId String?
   pinned     Boolean   @default(false)
+  // Author's condition at posting time (lib/conditions.ts id). Existing rows
+  // default to "tsw" — every account predating multi-condition was TSW.
+  condition  String    @default("tsw")
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

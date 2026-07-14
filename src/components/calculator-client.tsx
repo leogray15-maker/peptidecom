@@ -8,11 +8,18 @@ import {
   calculateReconstitution,
 } from "@/lib/peptides";
 
+/** "2500 mcg" reads awkwardly for compounds dosed in milligrams — show mg at
+ * or above 1000 mcg. */
+function fmtDose(mcg: number) {
+  return mcg >= 1000 ? `${Math.round((mcg / 1000) * 100) / 100} mg` : `${mcg} mcg`;
+}
+
 export function CalculatorClient() {
   const [presetSlug, setPresetSlug] = useState("tirzepatide");
   const [vialMg, setVialMg] = useState(10);
   const [bacWaterMl, setBacWaterMl] = useState(2);
   const [doseMcg, setDoseMcg] = useState(2500);
+  const [doseUnit, setDoseUnit] = useState<"mcg" | "mg">("mg");
   const [unitsPerMl, setUnitsPerMl] = useState(100);
 
   const preset = PEPTIDE_PRESETS.find((p) => p.slug === presetSlug);
@@ -37,6 +44,8 @@ export function CalculatorClient() {
     if (p) {
       setVialMg(p.commonVialMg[Math.floor(p.commonVialMg.length / 2)] ?? vialMg);
       setDoseMcg(p.typicalDoseMcg[0]);
+      // Match the unit to how this compound is usually discussed.
+      setDoseUnit(p.typicalDoseMcg[0] >= 1000 ? "mg" : "mcg");
     }
   }
 
@@ -113,19 +122,39 @@ export function CalculatorClient() {
         </div>
 
         <div>
-          <label className="label">Desired dose (mcg)</label>
+          <div className="flex items-center justify-between">
+            <label className="label !mb-0">Desired dose</label>
+            <div className="flex overflow-hidden rounded-lg border border-lab-border text-xs">
+              {(["mcg", "mg"] as const).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setDoseUnit(u)}
+                  className={
+                    doseUnit === u
+                      ? "bg-brand-500/20 px-2.5 py-1 font-semibold text-brand-200"
+                      : "px-2.5 py-1 text-slate-400 hover:text-slate-200"
+                  }
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
           <input
             type="number"
-            className="input"
+            className="input mt-1.5"
             min={0}
-            step="1"
-            value={doseMcg}
-            onChange={(e) => setDoseMcg(parseFloat(e.target.value) || 0)}
+            step={doseUnit === "mg" ? "0.05" : "1"}
+            value={doseUnit === "mg" ? Math.round((doseMcg / 1000) * 1000) / 1000 : doseMcg}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value) || 0;
+              setDoseMcg(doseUnit === "mg" ? v * 1000 : v);
+            }}
           />
           {preset && (
             <p className="mt-1.5 text-xs text-slate-500">
-              Typical research range: {preset.typicalDoseMcg[0]}–
-              {preset.typicalDoseMcg[1]} mcg · {preset.frequency}
+              Typical research range: {fmtDose(preset.typicalDoseMcg[0])}–{fmtDose(preset.typicalDoseMcg[1])} · {preset.frequency}
             </p>
           )}
         </div>

@@ -5,20 +5,37 @@ import {
   Camera,
   ClipboardList,
   GraduationCap,
-  HeartHandshake,
   LifeBuoy,
   LineChart,
+  ListChecks,
   Map,
   Syringe,
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import { ConditionPickerModal } from "@/components/condition-picker";
+import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
+import { anyStageName } from "@/lib/conditions";
+import {
+  buildCohortStatements,
+  computePersonalInsight,
+  rotateStatements,
+  weeksSinceStart,
+} from "@/lib/insights";
+import { getLatestAggregates } from "@/lib/insights-db";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
-import { type DailyLog, computeStats, dateKey, stageName } from "@/lib/tsw";
-import { type TswProfile, getProfile, listLogs, tswKey } from "@/lib/tsw-db";
+import { type DailyLog, computeStats, dateKey } from "@/lib/tsw";
+import {
+  type TriggerLog,
+  type TswProfile,
+  getProfile,
+  listLogs,
+  listTriggers,
+  tswKey,
+} from "@/lib/tsw-db";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
@@ -26,9 +43,9 @@ export const metadata = { title: "Dashboard" };
 const recoveryLinks = [
   { href: "/tracker", label: "Log today's skin", icon: ClipboardList, desc: "20 seconds. Body map, severity, done." },
   { href: "/photos", label: "Photo timeline", icon: Camera, desc: "Add a photo or compare then vs now." },
-  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "The withdrawal map, stage by stage." },
+  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "Your journey mapped, stage by stage." },
   { href: "/insights", label: "Your trends", icon: TrendingUp, desc: "Severity, sleep and patterns — your data." },
-  { href: "/doctor", label: "Doctor prep", icon: HeartHandshake, desc: "Build a printable appointment summary." },
+  { href: "/triggers", label: "Triggers", icon: ListChecks, desc: "Catch what helps and what flares you." },
   { href: "/won", label: "The Won wall", icon: Trophy, desc: "Recovery stories. Proof it gets better." },
 ];
 
@@ -48,35 +65,54 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       include: { author: true, category: true, _count: { select: { comments: true } } },
     });
-  const recentPosts = await safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>);
 
   const uid = user ? tswKey(user) : null;
-  const [logs, profile] = uid
-    ? await Promise.all([
-        safe(() => listLogs(uid), [] as DailyLog[]),
-        safe(() => getProfile(uid), {} as TswProfile),
-      ])
-    : [[], {} as TswProfile];
+  const [recentPosts, logs, profile, triggers, aggregates] = await Promise.all([
+    safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
+    uid ? safe(() => listLogs(uid), [] as DailyLog[]) : Promise.resolve([] as DailyLog[]),
+    uid ? safe(() => getProfile(uid), {} as TswProfile) : Promise.resolve({} as TswProfile),
+    uid ? safe(() => listTriggers(uid), [] as TriggerLog[]) : Promise.resolve([] as TriggerLog[]),
+    safe(getLatestAggregates, null),
+  ]);
 
   const stats = computeStats(logs);
-  const stage = stageName(profile.recoveryStage);
+  const stage = anyStageName(profile.recoveryStage, profile.condition);
   const todayLogged = logs.some((l) => l.date === dateKey());
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
+  // Insights: the member's own strongest pattern + rotating cohort stats
+  // (aggregated nightly, never per-request — see /api/cron/aggregate).
+  const personalInsight = computePersonalInsight(logs, triggers, dateKey());
+  const cohortStatements = aggregates
+    ? rotateStatements(
+        buildCohortStatements(aggregates, {
+          stage: profile.recoveryStage,
+          weeksSinceStart: weeksSinceStart(logs, profile, dateKey()),
+          condition: profile.condition,
+        }),
+        personalInsight ? 3 : 4
+      )
+    : [];
+
   return (
     <div>
+      {/* One-time onboarding: adapts the whole app to the member's condition.
+          Existing (pre-multi-condition) accounts see TSW pre-selected. */}
+      {user && !profile.condition && (
+        <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
+      )}
       <PageHeader
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."
       />
 
-      {/* Recovery stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card">
-          <p className="text-sm text-slate-400">Tracking streak</p>
-          <p className="mt-1 text-3xl font-bold text-white">
+      {/* Recovery stats — 2×2 on phones so the overview fits one screen. */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="card !p-4 sm:!p-6">
+          <p className="text-xs text-slate-400 sm:text-sm">Tracking streak</p>
+          <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
             {stats.streak}
-            <span className="text-base font-normal text-slate-500"> day{stats.streak === 1 ? "" : "s"}</span>
+            <span className="text-sm font-normal text-slate-500 sm:text-base"> day{stats.streak === 1 ? "" : "s"}</span>
           </p>
           {!todayLogged && stats.daysTracked > 0 && (
             <Link href="/tracker" className="mt-1 inline-block text-xs text-brand-300 hover:text-brand-200">
@@ -84,30 +120,30 @@ export default async function DashboardPage() {
             </Link>
           )}
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-400">Days tracked</p>
-          <p className="mt-1 text-3xl font-bold text-white">{stats.daysTracked}</p>
+        <div className="card !p-4 sm:!p-6">
+          <p className="text-xs text-slate-400 sm:text-sm">Days tracked</p>
+          <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">{stats.daysTracked}</p>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-400">Current stage</p>
+        <div className="card !p-4 sm:!p-6">
+          <p className="text-xs text-slate-400 sm:text-sm">Current stage</p>
           {stage ? (
-            <p className="mt-1 text-xl font-bold leading-snug text-white">{stage}</p>
+            <p className="mt-1 text-base font-bold leading-snug text-white sm:text-xl">{stage}</p>
           ) : (
             <Link href="/timeline" className="mt-1 inline-block text-sm font-medium text-brand-300 hover:text-brand-200">
               Mark where you are →
             </Link>
           )}
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-400">Since last bad flare</p>
-          <p className="mt-1 text-3xl font-bold text-white">
+        <div className="card !p-4 sm:!p-6">
+          <p className="text-xs text-slate-400 sm:text-sm">Since last bad flare</p>
+          <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
             {stats.daysSinceBadFlare != null ? (
               <>
                 {stats.daysSinceBadFlare}
-                <span className="text-base font-normal text-slate-500"> day{stats.daysSinceBadFlare === 1 ? "" : "s"}</span>
+                <span className="text-sm font-normal text-slate-500 sm:text-base"> day{stats.daysSinceBadFlare === 1 ? "" : "s"}</span>
               </>
             ) : stats.daysTracked > 0 ? (
-              <span className="text-xl">None logged ✦</span>
+              <span className="text-lg sm:text-xl">None logged ✦</span>
             ) : (
               "—"
             )}
@@ -134,19 +170,33 @@ export default async function DashboardPage() {
         <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
       </Link>
 
+      {/* Cohort + personal insights */}
+      <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
+
       {/* Quick links */}
       <h2 className="mt-8 text-lg font-semibold text-white">Jump back in</h2>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {recoveryLinks.map((l) => (
-          <Link key={l.href} href={l.href} className="card group transition hover:border-brand-600">
-            <div className="flex items-start justify-between">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-900/60 text-brand-300">
+          <Link
+            key={l.href}
+            href={l.href}
+            className="card group !p-4 transition hover:border-brand-600 sm:!p-6"
+          >
+            {/* Phone: one compact row. Desktop: icon + arrow header, text below. */}
+            <div className="flex items-center gap-4 sm:items-start sm:justify-between">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-900/60 text-brand-300">
                 <l.icon className="h-5 w-5" />
               </div>
-              <ArrowRight className="h-4 w-4 text-slate-600 transition group-hover:text-brand-300" />
+              <div className="min-w-0 flex-1 sm:hidden">
+                <p className="font-semibold text-white">{l.label}</p>
+                <p className="mt-0.5 text-sm text-slate-400">{l.desc}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
             </div>
-            <p className="mt-4 font-semibold text-white">{l.label}</p>
-            <p className="mt-1 text-sm text-slate-400">{l.desc}</p>
+            <div className="hidden sm:block">
+              <p className="mt-4 font-semibold text-white">{l.label}</p>
+              <p className="mt-1 text-sm text-slate-400">{l.desc}</p>
+            </div>
           </Link>
         ))}
       </div>

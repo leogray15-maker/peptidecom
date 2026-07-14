@@ -8,6 +8,16 @@
 
 html {
   scroll-behavior: smooth;
+  /* Dark on <html> too, so overscroll bounce and the notch/status-bar area
+   * never flash white on mobile. */
+  @apply bg-lab-bg;
+}
+
+/* Never allow the page itself to pan sideways — anything wider than the
+ * viewport gets clipped instead of spawning a horizontal scrollbar on mobile. */
+html,
+body {
+  overflow-x: clip;
 }
 
 body {
@@ -49,34 +59,6 @@ body {
 
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
-  }
-}
-
-/* Printable doctor summary: hide the app chrome, print the sheet in black on white. */
-@media print {
-  body {
-    background: white !important;
-    color: black !important;
-  }
-  .no-print,
-  aside,
-  nav,
-  header,
-  footer {
-    display: none !important;
-  }
-  main {
-    max-width: 100% !important;
-  }
-  .print-sheet {
-    border: none !important;
-    box-shadow: none !important;
-    background: white !important;
-    padding: 0 !important;
-  }
-  .print-sheet * {
-    color: black !important;
-    border-color: #ccc !important;
   }
 }
 

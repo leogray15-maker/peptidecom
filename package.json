@@ -11,6 +11,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:insights": "tsx scripts/insights.test.ts",
+    "test:photo-score": "tsx scripts/photo-score.test.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
@@ -21,6 +23,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "@tensorflow/tfjs": "^4.22.0",
     "clsx": "^2.1.1",
     "firebase": "^12.15.0",
     "firebase-admin": "^13.10.0",

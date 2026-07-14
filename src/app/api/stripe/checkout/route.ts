@@ -4,8 +4,7 @@ import { stripe, STRIPE_PRICES, FOUNDING_FIRST_MONTH_COUPON } from "@/lib/stripe
 import { getCurrentUser } from "@/lib/auth";
 import { getFoundingStatus } from "@/lib/membership";
 import { prisma } from "@/lib/prisma";
-
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+import { requestAppUrl } from "@/lib/app-url";
 
 /** Build the intro discount. Accepts either a coupon ID or a promotion-code ID
  * (promo_...) in STRIPE_COUPON_FOUNDING_FIRST_MONTH — pasting the wrong one is a
@@ -16,7 +15,8 @@ function introDiscount(): Stripe.Checkout.SessionCreateParams.Discount | null {
   return v.startsWith("promo_") ? { promotion_code: v } : { coupon: v };
 }
 
-export async function POST() {
+export async function POST(req: Request) {
+  const appUrl = requestAppUrl(req);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });

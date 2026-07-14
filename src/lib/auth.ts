@@ -37,6 +37,9 @@ const PREVIEW_USER: User = {
   stripeCurrentPeriodEnd: null,
   subscriptionStatus: "ACTIVE",
   foundingMember: false,
+  crmStage: null,
+  crmTags: [],
+  lastContactedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
