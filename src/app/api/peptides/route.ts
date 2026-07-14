@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
+import { INJECTION_SITES } from "@/lib/peptides";
 import { RESEARCH_GOALS } from "@/lib/tsw";
 import { addPeptideLog, deletePeptideLog, tswKey } from "@/lib/tsw-db";
 
@@ -9,6 +10,7 @@ const schema = z.object({
   peptide: z.string().min(1).max(80),
   doseMg: z.number().positive().max(1000),
   purpose: z.enum(RESEARCH_GOALS.map((g) => g.id) as [string, ...string[]]).optional().nullable(),
+  site: z.enum(INJECTION_SITES.map((s) => s.id) as [string, ...string[]]).optional().nullable(),
   note: z.string().max(1000).optional().nullable(),
 });
 
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
       ...parsed.data,
       peptide: parsed.data.peptide.trim(),
       purpose: parsed.data.purpose ?? null,
+      site: parsed.data.site ?? null,
       note: parsed.data.note ?? null,
     });
     return NextResponse.json({ ok: true, id });

@@ -27,7 +27,7 @@ export default async function PeptidesPage() {
       <div className="mb-6">
         <DoseScheduleSection
           protocols={protocols}
-          logs={entries.map((e) => ({ date: e.date, peptide: e.peptide }))}
+          logs={entries.map((e) => ({ date: e.date, peptide: e.peptide, site: e.site ?? null }))}
         />
       </div>
       <PeptidesClient
@@ -37,6 +37,7 @@ export default async function PeptidesPage() {
           peptide: e.peptide,
           doseMg: e.doseMg,
           purpose: e.purpose ?? null,
+          site: e.site ?? null,
           note: e.note,
         }))}
       />

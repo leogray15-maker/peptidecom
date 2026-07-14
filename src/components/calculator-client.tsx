@@ -14,12 +14,18 @@ function fmtDose(mcg: number) {
   return mcg >= 1000 ? `${Math.round((mcg / 1000) * 100) / 100} mg` : `${mcg} mcg`;
 }
 
-export function CalculatorClient() {
-  const [presetSlug, setPresetSlug] = useState("tirzepatide");
-  const [vialMg, setVialMg] = useState(10);
+export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
+  // Deep-linked from the library (?p=slug) — start on that peptide's numbers.
+  const initial = PEPTIDE_PRESETS.find((p) => p.slug === initialSlug);
+  const [presetSlug, setPresetSlug] = useState(initial?.slug ?? "tirzepatide");
+  const [vialMg, setVialMg] = useState(
+    initial ? (initial.commonVialMg[Math.floor(initial.commonVialMg.length / 2)] ?? 10) : 10
+  );
   const [bacWaterMl, setBacWaterMl] = useState(2);
-  const [doseMcg, setDoseMcg] = useState(2500);
-  const [doseUnit, setDoseUnit] = useState<"mcg" | "mg">("mg");
+  const [doseMcg, setDoseMcg] = useState(initial ? initial.typicalDoseMcg[0] : 2500);
+  const [doseUnit, setDoseUnit] = useState<"mcg" | "mg">(
+    (initial?.typicalDoseMcg[0] ?? 2500) >= 1000 ? "mg" : "mcg"
+  );
   const [unitsPerMl, setUnitsPerMl] = useState(100);
 
   const preset = PEPTIDE_PRESETS.find((p) => p.slug === presetSlug);
