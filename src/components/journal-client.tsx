@@ -260,7 +260,8 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
                 <XAxis dataKey="date" stroke="#6b6b7b" fontSize={11} tickLine={false} />
                 <YAxis domain={[0, 10]} stroke="#6b6b7b" fontSize={11} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="rating" name="Progress (1–10)" stroke="#7c5cff" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                {/* Show dots on sparse data — a 1-2 point line is invisible without them */}
+                <Line type="monotone" dataKey="rating" name="Progress (1–10)" stroke="#7c5cff" strokeWidth={2} dot={ratingData.length < 5 ? { r: 3, fill: "#7c5cff" } : false} activeDot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -312,7 +313,7 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
                 <XAxis dataKey="date" stroke="#6b6b7b" fontSize={11} tickLine={false} />
                 <YAxis domain={["auto", "auto"]} stroke="#6b6b7b" fontSize={11} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#0d9488" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#0d9488" strokeWidth={2} dot={ratingData.filter((d) => d.weight != null).length < 5 ? { r: 3, fill: "#0d9488" } : false} activeDot={{ r: 4 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
