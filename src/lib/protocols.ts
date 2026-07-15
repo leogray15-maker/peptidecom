@@ -275,7 +275,9 @@ Cut out all processed sugar.`,
     title: "Clean Your Cupboards",
     category: "Biohacking Foundations",
     summary: "Every tempting wrapper in the house steals focus. Remove the battle instead of fighting it.",
-    body: `Willpower is a limited resource. Don't spend it fighting the snacks in your own kitchen.
+    body: `![A drawer full of junk food](/protocols/clean-cupboards.jpg)
+
+Willpower is a limited resource. Don't spend it fighting the snacks in your own kitchen.
 
 # The Craving Never Fully Leaves
 
@@ -705,7 +707,9 @@ Cover your food with sea salt, don't be shy — but avoid table salt at all cost
     title: "Never Frozen Meat",
     category: "Food Sourcing",
     summary: "Meat should be fresh, not frozen. Conventional grocery meat is fine — freezer meat isn't.",
-    body: `Meat should always be fresh. Frozen meat isn't the goal — save it for genuine emergencies.
+    body: `![Fresh cuts of meat](/protocols/never-frozen-meat.png)
+
+Meat should always be fresh. Frozen meat isn't the goal — save it for genuine emergencies.
 
 # Keep It Fresh
 
@@ -754,7 +758,9 @@ Nine times out of ten, skip the chicken and eat beef instead.`,
     title: "Raw Dairy",
     category: "Food Sourcing",
     summary: "Raw goat's milk edges out raw cow's milk. Never drink homogenised milk — it raises estrogen.",
-    body: `# Goat Milk Edges It
+    body: `![Raw dairy](/protocols/raw-dairy.png)
+
+# Goat Milk Edges It
 
 Raw goat's milk beats raw cow's milk. Raw cow's milk is still an excellent food, but goat's milk has:
 
@@ -781,7 +787,9 @@ Do not drink homogenised milk. It will raise estrogen.`,
     title: "Sourcing Honey",
     category: "Food Sourcing",
     summary: "Real raw honey is never heated above body temperature and the bees are never fed sugar.",
-    body: `Real raw honey is easy to fake on a label. Here's how to tell.
+    body: `![Raw honey](/protocols/honey.png)
+
+Real raw honey is easy to fake on a label. Here's how to tell.
 
 # The Two Rules
 
@@ -805,7 +813,9 @@ If you can get local honey — some farm shops carry it — even better.`,
     title: "Red Meat As The Base",
     category: "Food Sourcing",
     summary: "Red meat should be the base of the diet — but mind what you pair it with and when you eat it.",
-    body: `Red meat should be the main part of the diet. It builds energy, glands, muscle and hormones.
+    body: `![Rare cooked ribeye](/protocols/red-meat.png)
+
+Red meat should be the main part of the diet. It builds energy, glands, muscle and hormones.
 
 # Mind The Combinations
 
@@ -823,7 +833,9 @@ The exceptions are pineapple, papaya and maple syrup. Red meat is acidic, and so
     title: "Water",
     category: "Food Sourcing",
     summary: "Naturally carbonated mineral water is superior. If not that, RO water with electrolytes added.",
-    body: `# Naturally Carbonated Water Is Superior
+    body: `![Naturally carbonated mineral water](/protocols/water.png)
+
+# Naturally Carbonated Water Is Superior
 
 The CO2 in carbonated water has been linked to lower histamine, improved blood flow and more cellular energy — which can ease nervousness and low mood. Natural spring water also tends to be high in magnesium, supporting GABA, the calming neurotransmitter. CO2 has also been associated with more stomach acid and faster gastric emptying.
 
@@ -864,7 +876,9 @@ Raw red meat with pineapple is a strong combination — and it doesn't have to b
     title: "When You Eat Beef + Rice",
     category: "Food Sourcing",
     summary: "Fruit and honey are the main fuel, but the occasional rice-and-beef plate done right works.",
-    body: `As covered elsewhere, your main fuel should come from fruit and honey. But once in a while, boiled potatoes or white rice are fine — and they can help gym performance.
+    body: `![Beef and rice with egg yolks](/protocols/beef-rice.jpg)
+
+As covered elsewhere, your main fuel should come from fruit and honey. But once in a while, boiled potatoes or white rice are fine — and they can help gym performance.
 
 # A Note On Grains
 
