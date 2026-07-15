@@ -89,16 +89,21 @@ export function Markdown({ content }: { content: string }) {
       continue;
     }
 
-    // A line that is only an image — render it full-width. Imported library
-    // images are hotlinked from their original CDN, so keep it a plain <img>.
+    // A line that is only an image — render it full-width. External CDN images
+    // (Skool etc.) block hot-linking, so route them through our own server
+    // proxy; local /public images pass straight through.
     const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (image) {
       flushList();
+      const rawSrc = image[2];
+      const src = /^https?:\/\//.test(rawSrc)
+        ? `/api/protocol-image?u=${encodeURIComponent(rawSrc)}`
+        : rawSrc;
       blocks.push(
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={key++}
-          src={image[2]}
+          src={src}
           alt={image[1] || ""}
           loading="lazy"
           className="my-4 w-full rounded-xl border border-lab-border"
