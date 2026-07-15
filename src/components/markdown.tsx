@@ -88,6 +88,21 @@ export function Markdown({ content }: { content: string }) {
       continue;
     }
 
+    const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) {
+      flushList();
+      blocks.push(
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={key++}
+          src={image[2]}
+          alt={image[1]}
+          className="my-4 w-full rounded-xl border border-lab-border"
+        />
+      );
+      continue;
+    }
+
     const bullet = line.match(/^[-*]\s+(.*)$/);
     const numbered = line.match(/^\d+[.)]\s+(.*)$/);
     const heading = line.match(/^(#{1,3})\s+(.*)$/);
