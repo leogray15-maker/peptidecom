@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 
 /** A tiny, dependency-free Markdown renderer for the imported library content.
  * Handles the subset actually used: #/##/### headings, - bullet lists,
- * 1. numbered lists, **bold**, *italic*, ***bold italic***, and [text](url).
- * Each non-empty prose line becomes its own paragraph to preserve the punchy,
- * one-thought-per-line rhythm of the source material. */
+ * 1. numbered lists, **bold**, *italic*, ***bold italic***, [text](url), and
+ * standalone ![alt](url) images. Each non-empty prose line becomes its own
+ * paragraph to preserve the punchy, one-thought-per-line rhythm of the source
+ * material. */
 
 const INLINE =
   /\[([^\]]+)\]\(([^)]+)\)|\*\*\*([^*]+)\*\*\*|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
@@ -85,6 +86,24 @@ export function Markdown({ content }: { content: string }) {
     const line = raw.trim();
     if (!line) {
       flushList();
+      continue;
+    }
+
+    // A line that is only an image — render it full-width. Imported library
+    // images are hotlinked from their original CDN, so keep it a plain <img>.
+    const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) {
+      flushList();
+      blocks.push(
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={key++}
+          src={image[2]}
+          alt={image[1] || ""}
+          loading="lazy"
+          className="my-4 w-full rounded-xl border border-lab-border"
+        />
+      );
       continue;
     }
 
