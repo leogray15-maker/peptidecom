@@ -21,6 +21,7 @@ import {
   scorePhoto,
 } from "@/lib/photo-score";
 import { loadPhotoModel } from "@/lib/photo-model";
+import { getConsent } from "@/lib/consent";
 import { BODY_ZONES, dateKey, daysBetween, zoneLabel } from "@/lib/tsw";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -156,7 +157,9 @@ export function PhotosClient({
     try {
       const data = await compressImage(file);
       setPreview(data);
-      void estimateSeverity(data, area || null);
+      // Only run the on-device severity estimate if the member hasn't opted out
+      // in Privacy & Sources.
+      if (getConsent("photoEstimate")) void estimateSeverity(data, area || null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't read that image.");
     }

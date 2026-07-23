@@ -2,18 +2,21 @@ import Link from "next/link";
 import {
   ArrowRight,
   Calculator,
-  Camera,
+  ClipboardCheck,
   ClipboardList,
   GraduationCap,
   LifeBuoy,
   LineChart,
   ListChecks,
   Map,
+  Ruler,
+  ScanEye,
+  ScanLine,
   Syringe,
   TrendingUp,
-  Trophy,
 } from "lucide-react";
 import { ConditionPickerModal } from "@/components/condition-picker";
+import { FeatureCard, type FeatureCardProps } from "@/components/feature-card";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
@@ -40,13 +43,66 @@ import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
-const recoveryLinks = [
-  { href: "/tracker", label: "Log today's skin", icon: ClipboardList, desc: "20 seconds. Body map, severity, done." },
-  { href: "/photos", label: "Photo timeline", icon: Camera, desc: "Add a photo or compare then vs now." },
-  { href: "/timeline", label: "Where am I in this?", icon: Map, desc: "Your journey mapped, stage by stage." },
-  { href: "/insights", label: "Your trends", icon: TrendingUp, desc: "Severity, sleep and patterns — your data." },
-  { href: "/triggers", label: "Triggers", icon: ListChecks, desc: "Catch what helps and what flares you." },
-  { href: "/won", label: "The Won wall", icon: Trophy, desc: "Recovery stories. Proof it gets better." },
+// The skin toolkit — the clean feature cards that anchor the dashboard.
+// AI Flare Grading / EASI / POEM / Ingredient scanner sit up top as the
+// headline tools, then the day-to-day tracking links.
+const skinTools: FeatureCardProps[] = [
+  {
+    href: "/photos",
+    title: "AI Flare Grading",
+    icon: ScanEye,
+    badge: "BETA",
+    description:
+      "Photograph an itchy patch — an on-device estimate of redness and severity. Educational, not diagnostic.",
+  },
+  {
+    href: "/easi",
+    title: "EASI calculator",
+    icon: Ruler,
+    badge: "NEW",
+    description:
+      "Score your Eczema Area & Severity Index — the gold-standard measure dermatologists use.",
+  },
+  {
+    href: "/poem",
+    title: "POEM weekly score",
+    icon: ClipboardCheck,
+    badge: "NEW",
+    description:
+      "The validated 7-question weekly measure. Track your week-on-week trend and share it with your clinician.",
+  },
+  {
+    href: "/scan",
+    title: "Ingredient scanner",
+    icon: ScanLine,
+    badge: "NEW",
+    description:
+      "Paste a product's ingredient list and flag common irritants and allergens — 100% on-device.",
+  },
+  {
+    href: "/tracker",
+    title: "Daily tracker",
+    icon: ClipboardList,
+    description: "20 seconds. Body map, severity, symptoms, sleep and mood — done.",
+  },
+  {
+    href: "/timeline",
+    title: "Where am I in this?",
+    icon: Map,
+    description: "Your recovery journey mapped, stage by stage, so this place can meet you there.",
+  },
+  {
+    href: "/insights",
+    title: "Your trends",
+    icon: TrendingUp,
+    description: "Severity, sleep and patterns surfaced gently from your own logged data.",
+  },
+  {
+    href: "/triggers",
+    title: "Triggers",
+    icon: ListChecks,
+    description: "Log products, foods, weather and stress — and catch what flares you.",
+  },
 ];
 
 const labLinks = [
@@ -173,31 +229,11 @@ export default async function DashboardPage() {
       {/* Cohort + personal insights */}
       <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
 
-      {/* Quick links */}
-      <h2 className="mt-8 text-lg font-semibold text-white">Jump back in</h2>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-        {recoveryLinks.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className="card group !p-4 transition hover:border-brand-600 sm:!p-6"
-          >
-            {/* Phone: one compact row. Desktop: icon + arrow header, text below. */}
-            <div className="flex items-center gap-4 sm:items-start sm:justify-between">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-900/60 text-brand-300">
-                <l.icon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1 sm:hidden">
-                <p className="font-semibold text-white">{l.label}</p>
-                <p className="mt-0.5 text-sm text-slate-400">{l.desc}</p>
-              </div>
-              <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
-            </div>
-            <div className="hidden sm:block">
-              <p className="mt-4 font-semibold text-white">{l.label}</p>
-              <p className="mt-1 text-sm text-slate-400">{l.desc}</p>
-            </div>
-          </Link>
+      {/* Skin toolkit — clean feature cards */}
+      <h2 className="mt-8 text-lg font-semibold text-white">Your skin toolkit</h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
+        {skinTools.map((tool) => (
+          <FeatureCard key={tool.href} {...tool} />
         ))}
       </div>
 
