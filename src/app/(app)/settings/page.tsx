@@ -1,4 +1,5 @@
-import { Download } from "lucide-react";
+import Link from "next/link";
+import { Download, ShieldCheck } from "lucide-react";
 import { ConditionSettings } from "@/components/condition-picker";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
@@ -113,6 +114,17 @@ export default async function SettingsPage() {
               </a>
             ))}
           </div>
+        </section>
+
+        <section className="card">
+          <h2 className="text-lg font-semibold text-white">Privacy &amp; sources</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            See exactly what&apos;s processed on your device, control optional on-device features,
+            and read the clinical sources behind the EASI, POEM and ingredient tools.
+          </p>
+          <Link href="/privacy-sources" className="btn-secondary mt-4">
+            <ShieldCheck className="h-4 w-4" /> Open Privacy &amp; Sources
+          </Link>
         </section>
       </div>
     </div>
