@@ -32,7 +32,7 @@ user's Stripe subscription status is mirrored onto a Firebase **custom claim
 
 | Area | What it does |
 | --- | --- |
-| **Paywall** | £25/mo or £250/yr Stripe subscription. Gated member area, self-serve billing portal. |
+| **Paywall** | £11.99/mo or £70/yr (over 50% off) Stripe subscription. Gated member area, self-serve billing portal. |
 | **Auth** | Firebase email/password + Google sign-in; roles (member / moderator / admin), verified-member badges. |
 | **Live chat** | Real-time Firestore chat with multiple channels, members-only via custom claim. |
 | **Calculator** | Reconstitution maths → exact syringe units, with presets for common peptides and a live syringe fill visual. |
@@ -67,8 +67,8 @@ cp .env.example .env
   - **Project settings → Service accounts → Generate new private key**: put the
     values into `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
 - Stripe keys — from your [Stripe dashboard](https://dashboard.stripe.com).
-- `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL` — create two recurring prices
-  (a £25/month and a £250/year price) on a single product and paste their IDs.
+- `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY` — create two recurring prices
+  (a £11.99/month and a £70/year price) on a single product and paste their IDs.
 
 ### 3. Database & Firestore rules
 
