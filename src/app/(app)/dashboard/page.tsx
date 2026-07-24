@@ -73,11 +73,11 @@ const skinTools: FeatureCardProps[] = [
   },
   {
     href: "/scan",
-    title: "Ingredient scanner",
+    title: "Product scanner",
     icon: ScanLine,
     badge: "NEW",
     description:
-      "Scan a product's barcode for a 0–100 skin-suitability score — irritants and barrier-friendly ingredients, broken down.",
+      "Scan any barcode — skincare scored for sensitive skin, food & drink scored on nutrition. Like Yuka.",
   },
   {
     href: "/tracker",

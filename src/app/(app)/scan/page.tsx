@@ -8,8 +8,8 @@ export default function ScanPage() {
   return (
     <div>
       <PageHeader
-        title="Ingredient scanner"
-        subtitle="Scan a product's barcode — we look it up and grade it 0–100 for sensitive, eczema-prone skin, with the irritants and the barrier-friendly ingredients broken out. No barcode? Paste the list instead."
+        title="Product scanner"
+        subtitle="Scan any barcode — skincare gets a 0–100 score for sensitive, eczema-prone skin (irritants vs barrier-friendly ingredients); food & drink get a nutrition score (Nutri-Score, additives, the good stuff). No barcode? Paste the ingredients instead."
       />
       <ScanClient />
       <PeerSupportNote />

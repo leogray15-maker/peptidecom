@@ -32,6 +32,15 @@ const FIELDS = [
   "ingredients_text_en",
   "ingredients_text_with_allergens",
   "ingredients",
+  // Food scoring (Open Food/Products Facts)
+  "nutriscore_grade",
+  "nutrition_grades",
+  "nova_group",
+  "additives_tags",
+  "additives_n",
+  "labels_tags",
+  "categories_tags",
+  "nutriments",
 ].join(",");
 
 // Open Food Facts asks for an identifying User-Agent: "AppName/Version (contact)".
@@ -122,6 +131,12 @@ export async function GET(req: Request) {
     ingredientsText: null,
     source: "openbeautyfacts",
     found: false,
+    kind: "cosmetic",
+    nutriscoreGrade: null,
+    novaGroup: null,
+    additives: [],
+    organic: false,
+    nutriments: null,
   };
   return NextResponse.json(notFound, { status: 404 });
 }
