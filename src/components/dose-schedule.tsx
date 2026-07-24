@@ -12,7 +12,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { PEPTIDE_PRESETS } from "@/lib/peptides";
+import { INJECTION_SITES, PEPTIDE_PRESETS, siteLabel, suggestNextSite } from "@/lib/peptides";
 import {
   type PeptideProtocol,
   WEEKDAY_LABELS,
@@ -30,13 +30,16 @@ export function DoseScheduleSection({
   logs,
 }: {
   protocols: PeptideProtocol[];
-  logs: { date: string; peptide: string }[];
+  logs: { date: string; peptide: string; site?: string | null }[];
 }) {
   const router = useRouter();
   const today = dateKey();
   const [formOpen, setFormOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Per-protocol injection-site choice, pre-seeded with the rotation
+  // suggestion the first time each row renders.
+  const [sites, setSites] = useState<Record<string, string>>({});
 
   const adherence = useMemo(
     () => computeAdherence(protocols, logs, today, addDays),
@@ -46,7 +49,7 @@ export function DoseScheduleSection({
   const doneCount = adherence.today.filter((t) => t.logged).length;
 
   /** One-tap log: writes a normal dose entry, so history/totals just work. */
-  async function logDose(p: PeptideProtocol) {
+  async function logDose(p: PeptideProtocol, site: string | null) {
     setBusy(p.id);
     setError(null);
     const res = await fetch("/api/peptides", {
@@ -57,6 +60,7 @@ export function DoseScheduleSection({
         peptide: p.peptide,
         doseMg: p.doseMg,
         purpose: p.purpose ?? null,
+        site,
         note: null,
       }),
     });
@@ -117,40 +121,67 @@ export function DoseScheduleSection({
           </div>
 
           <div className="mt-4 space-y-2">
-            {adherence.today.map(({ protocol: p, logged }) => (
-              <div
-                key={p.id}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-xl border px-4 py-2.5",
-                  logged ? "border-emerald-500/30 bg-emerald-500/5" : "border-lab-border bg-lab-bg"
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white">
-                    {p.peptide}
-                    <span className="ml-2 text-xs text-slate-400">{p.doseMg} mg</span>
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {scheduleLabel(p.schedule)}
-                    {p.time ? ` · ${p.time}` : ""}
-                    {p.purpose ? ` · ${goalEmoji(p.purpose)} ${goalLabel(p.purpose)}` : ""}
-                  </p>
+            {adherence.today.map(({ protocol: p, logged }) => {
+              const rotation = suggestNextSite(logs, p.peptide);
+              const site = sites[p.id] ?? rotation?.suggested ?? "";
+              return (
+                <div
+                  key={p.id}
+                  className={cn(
+                    "rounded-xl border px-4 py-2.5",
+                    logged ? "border-emerald-500/30 bg-emerald-500/5" : "border-lab-border bg-lab-bg"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white">
+                        {p.peptide}
+                        <span className="ml-2 text-xs text-slate-400">{p.doseMg} mg</span>
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {scheduleLabel(p.schedule)}
+                        {p.time ? ` · ${p.time}` : ""}
+                        {p.purpose ? ` · ${goalEmoji(p.purpose)} ${goalLabel(p.purpose)}` : ""}
+                      </p>
+                    </div>
+                    {logged ? (
+                      <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-emerald-300">
+                        <Check className="h-4 w-4" /> Logged
+                      </span>
+                    ) : (
+                      <div className="flex shrink-0 items-center gap-2">
+                        <select
+                          className="input !w-auto !py-1 text-xs"
+                          value={site}
+                          onChange={(e) => setSites((cur) => ({ ...cur, [p.id]: e.target.value }))}
+                          aria-label="Injection site"
+                        >
+                          <option value="">Site —</option>
+                          {INJECTION_SITES.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.label}
+                              {rotation?.suggested === s.id ? " ← next" : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => logDose(p, site || null)}
+                          disabled={busy === p.id}
+                          className="btn-primary !px-4 !py-1.5 text-xs"
+                        >
+                          {busy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Log"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {!logged && rotation && (
+                    <p className="mt-1.5 text-[11px] text-slate-500">
+                      Rotation: last was {siteLabel(rotation.last)?.toLowerCase()} — {siteLabel(rotation.suggested)?.toLowerCase()} is due a turn.
+                    </p>
+                  )}
                 </div>
-                {logged ? (
-                  <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-emerald-300">
-                    <Check className="h-4 w-4" /> Logged
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => logDose(p)}
-                    disabled={busy === p.id}
-                    className="btn-primary shrink-0 !px-4 !py-1.5 text-xs"
-                  >
-                    {busy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Log"}
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Last 7 days */}

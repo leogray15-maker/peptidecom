@@ -3,7 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getCurrentUser, hasAccess } from "@/lib/auth";
-import { getFoundingStatus } from "@/lib/membership";
+import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_SAVINGS_PCT, formatPrice } from "@/lib/membership";
 import { PricingPlans } from "@/components/pricing-plans";
 
 export const metadata = { title: "Pricing" };
@@ -25,31 +25,23 @@ export default async function PricingPage() {
   const user = await getCurrentUser();
   const authed = !!user;
   const member = hasAccess(user);
-  const founding = await getFoundingStatus();
 
   return (
     <>
       <SiteHeader />
       <section className="border-b border-lab-border py-16">
         <div className="container-lab text-center">
-          {founding.open && (
-            <span className="badge mb-5 border border-gold-500/40 bg-gold-500/10 text-gold-200">
-              Founding offer · {founding.taken} of {founding.limit} members in · {founding.remaining} spot{founding.remaining === 1 ? "" : "s"} left
-            </span>
-          )}
+          <span className="badge mb-5 border border-brand-500/40 bg-brand-500/10 text-brand-200">
+            Save {YEARLY_SAVINGS_PCT}% with yearly
+          </span>
           <h1 className="text-4xl font-extrabold tracking-tight text-white">
             One membership. Everything included.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            {founding.open ? (
-              <>
-                Get in as a founding member: <span className="font-semibold text-white">£{founding.intro} your first month</span>,
-                then <span className="font-semibold text-white">£{founding.founding}/month locked in for life</span>.
-                After the offer closes it&apos;s £{founding.standard}/month. Cancel anytime.
-              </>
-            ) : (
-              <>Every tool, the full protocol library and the whole community — one membership, cancel anytime.</>
-            )}
+            Every tool, the full protocol library and the whole community — one membership.{" "}
+            <span className="font-semibold text-white">{formatPrice(MONTHLY_PRICE)}/month</span> or{" "}
+            <span className="font-semibold text-white">{formatPrice(YEARLY_PRICE)}/year</span>{" "}
+            (over 50% off). Cancel anytime.
           </p>
         </div>
       </section>
@@ -82,7 +74,7 @@ export default async function PricingPage() {
                 </Link>
               </div>
             ) : authed ? (
-              <PricingPlans founding={founding} />
+              <PricingPlans />
             ) : (
               <div className="card text-center">
                 <p className="text-lg font-semibold text-white">Create an account first</p>

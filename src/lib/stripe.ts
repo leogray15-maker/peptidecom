@@ -14,18 +14,16 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "sk_test_place
 });
 
 export const STRIPE_PRICES = {
-  // Founding recurring price (£45/mo) — first 50 members lock this in for life.
-  founding:
-    process.env.STRIPE_PRICE_FOUNDING ?? process.env.STRIPE_PRICE_MONTHLY ?? "",
-  // Standard recurring price (£55/mo) — everyone after the founding offer closes.
-  standard:
-    process.env.STRIPE_PRICE_STANDARD ?? process.env.STRIPE_PRICE_MONTHLY ?? "",
+  // Monthly recurring price (£11.99/mo). Falls back to the legacy env names so
+  // an existing deploy keeps charging while the new vars are added.
+  monthly:
+    process.env.STRIPE_PRICE_MONTHLY ??
+    process.env.STRIPE_PRICE_STANDARD ??
+    process.env.STRIPE_PRICE_FOUNDING ??
+    "",
+  // Yearly recurring price (£70/yr — over 50% off the monthly rate).
+  yearly: process.env.STRIPE_PRICE_YEARLY ?? "",
 };
-
-/** One-time coupon that discounts a founding member's FIRST invoice down to the
- * £28 intro price (i.e. ~£17 off, duration: once). Applied at checkout. */
-export const FOUNDING_FIRST_MONTH_COUPON =
-  process.env.STRIPE_COUPON_FOUNDING_FIRST_MONTH ?? "";
 
 /** Statuses that grant access to gated content. */
 export const ACTIVE_STATUSES = ["ACTIVE", "TRIALING"] as const;

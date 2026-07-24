@@ -2,27 +2,12 @@
 
 import { useState } from "react";
 import { ChevronDown, Leaf, ShieldAlert, Sparkles } from "lucide-react";
-import {
-  type ProductAnalysis,
-  type ScannedProduct,
-  type ScoreTone,
-} from "@/lib/product-score";
+import { type ProductAnalysis, type ScannedProduct } from "@/lib/product-score";
 import { CATEGORY_LABEL } from "@/lib/irritants";
+import { ScoreRing, TONE_TEXT } from "@/components/score-ring";
 import { cn } from "@/lib/utils";
 
-const toneHex: Record<ScoreTone, string> = {
-  emerald: "#34d399",
-  green: "#84cc16",
-  orange: "#fb923c",
-  rose: "#fb7185",
-};
-
-const toneText: Record<ScoreTone, string> = {
-  emerald: "text-emerald-300",
-  green: "text-lime-300",
-  orange: "text-orange-300",
-  rose: "text-rose-300",
-};
+const toneText = TONE_TEXT;
 
 const severityDot: Record<1 | 2 | 3, string> = {
   1: "bg-amber-400",
@@ -35,34 +20,6 @@ const zoneLabel: Record<string, string> = {
   mid: "mid-list",
   base: "low in the list",
 };
-
-function ScoreRing({ score, tone }: { score: number; tone: ScoreTone }) {
-  const r = 34;
-  const c = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, score)) / 100;
-  return (
-    <div className="relative grid h-24 w-24 shrink-0 place-items-center">
-      <svg viewBox="0 0 80 80" className="h-24 w-24 -rotate-90">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#20202b" strokeWidth="7" />
-        <circle
-          cx="40"
-          cy="40"
-          r={r}
-          fill="none"
-          stroke={toneHex[tone]}
-          strokeWidth="7"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - pct)}
-        />
-      </svg>
-      <div className="absolute text-center">
-        <span className="text-2xl font-extrabold text-white">{score}</span>
-        <span className="block text-[10px] text-slate-500">/ 100</span>
-      </div>
-    </div>
-  );
-}
 
 export function ProductResult({
   product,

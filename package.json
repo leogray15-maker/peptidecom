@@ -16,6 +16,7 @@
     "test:poem": "tsx scripts/poem.test.ts",
     "test:irritants": "tsx scripts/irritants.test.ts",
     "test:product-score": "tsx scripts/product-score.test.ts",
+    "test:food-score": "tsx scripts/food-score.test.ts",
     "test:photo-score": "tsx scripts/photo-score.test.ts",
     "test:protocols": "tsx scripts/protocol-schedule.test.ts",
     "postinstall": "prisma generate",

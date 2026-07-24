@@ -2,6 +2,7 @@
 // Run with: npm run test:protocols
 import assert from "node:assert/strict";
 import { addDays } from "../src/lib/insights";
+import { suggestNextSite } from "../src/lib/peptides";
 import {
   type PeptideProtocol,
   computeAdherence,
@@ -116,6 +117,45 @@ test("computeAdherence: no active protocols → empty today, zero streak", () =>
   const a = computeAdherence([protocol({ active: false })], [], "2026-07-13", addDays);
   assert.equal(a.today.length, 0);
   assert.equal(a.streak, 0);
+});
+
+test("suggestNextSite: least-recently-used site wins, never-used first", () => {
+  const logs = [
+    { date: "2026-07-10", peptide: "BPC-157", site: "abdomen-left" },
+    { date: "2026-07-11", peptide: "BPC-157", site: "abdomen-right" },
+    { date: "2026-07-12", peptide: "BPC-157", site: "thigh-left" },
+  ];
+  const s = suggestNextSite(logs, "bpc-157")!; // name match is case-insensitive
+  assert.equal(s.last, "thigh-left");
+  assert.equal(s.lastDate, "2026-07-12");
+  assert.equal(s.suggested, "thigh-right"); // first never-used site in rotation order
+});
+
+test("suggestNextSite: all sites used → stalest one comes back around", () => {
+  const sites = [
+    "abdomen-left", "abdomen-right", "thigh-left", "thigh-right",
+    "glute-left", "glute-right", "arm-left", "arm-right",
+  ];
+  const logs = sites.map((site, i) => ({
+    date: addDays("2026-07-01", i),
+    peptide: "TB-500",
+    site,
+  }));
+  const s = suggestNextSite(logs, "TB-500")!;
+  assert.equal(s.suggested, "abdomen-left"); // used longest ago
+  assert.equal(s.last, "arm-right");
+});
+
+test("suggestNextSite: no recorded sites (or other peptides only) → null", () => {
+  assert.equal(suggestNextSite([], "BPC-157"), null);
+  assert.equal(
+    suggestNextSite([{ date: "2026-07-10", peptide: "BPC-157", site: null }], "BPC-157"),
+    null
+  );
+  assert.equal(
+    suggestNextSite([{ date: "2026-07-10", peptide: "TB-500", site: "arm-left" }], "BPC-157"),
+    null
+  );
 });
 
 console.log(`\n${passed} protocol-schedule tests passed.`);

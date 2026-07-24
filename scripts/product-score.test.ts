@@ -119,4 +119,30 @@ test("marks a not-found product", () => {
   assert.equal(p.name, null);
 });
 
+test("treats string status 'success' as found", () => {
+  const p = normalizeOffProduct(
+    "123",
+    { status: "success", product: { product_name: "Some Cream" } },
+    "openproductsfacts"
+  );
+  assert.equal(p.found, true);
+  assert.equal(p.name, "Some Cream");
+});
+
+test("found when a product object carries content even if status is 0", () => {
+  // Some Open Facts endpoints return the product with a stale/zero status.
+  const p = normalizeOffProduct(
+    "5010035001847",
+    { status: 0, product: { product_name: "UK Product", brands: "SomeBrand" } },
+    "openfoodfacts"
+  );
+  assert.equal(p.found, true);
+  assert.equal(p.brand, "SomeBrand");
+});
+
+test("empty product object with status 0 stays not-found", () => {
+  const p = normalizeOffProduct("999", { status: 0, product: {} }, "openbeautyfacts");
+  assert.equal(p.found, false);
+});
+
 console.log(`\n${passed} product-score tests passed.\n`);

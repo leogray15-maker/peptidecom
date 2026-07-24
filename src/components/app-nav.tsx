@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   Calculator,
   Camera,
   ClipboardCheck,
@@ -71,6 +72,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/peptides", label: "Peptide tracker", icon: Syringe },
       { href: "/calculator", label: "Calculator", icon: Calculator },
+      { href: "/library", label: "Peptide library", icon: BookOpen },
       { href: "/progress", label: "Journal", icon: LineChart },
     ],
   },

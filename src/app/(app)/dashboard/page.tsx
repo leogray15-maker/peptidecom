@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BookOpen,
   Calculator,
   ClipboardCheck,
   ClipboardList,
-  GraduationCap,
   LifeBuoy,
   LineChart,
   ListChecks,
@@ -73,11 +73,11 @@ const skinTools: FeatureCardProps[] = [
   },
   {
     href: "/scan",
-    title: "Ingredient scanner",
+    title: "Product scanner",
     icon: ScanLine,
     badge: "NEW",
     description:
-      "Scan a product's barcode for a 0–100 skin-suitability score — irritants and barrier-friendly ingredients, broken down.",
+      "Scan any barcode — skincare scored for sensitive skin, food & drink scored on nutrition. Like Yuka.",
   },
   {
     href: "/tracker",
@@ -108,8 +108,8 @@ const skinTools: FeatureCardProps[] = [
 const labLinks = [
   { href: "/peptides", label: "Peptide tracker", icon: Syringe },
   { href: "/calculator", label: "Calculator", icon: Calculator },
+  { href: "/library", label: "Peptide library", icon: BookOpen },
   { href: "/progress", label: "Progress", icon: LineChart },
-  { href: "/protocols", label: "Protocols", icon: GraduationCap },
 ];
 
 export default async function DashboardPage() {

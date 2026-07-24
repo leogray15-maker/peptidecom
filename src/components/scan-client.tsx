@@ -11,11 +11,14 @@ import {
 } from "lucide-react";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ProductResult } from "@/components/product-result";
+import { FoodResult } from "@/components/food-result";
 import {
   type ProductAnalysis,
   type ScannedProduct,
+  type ScoreBand,
   analyzeIngredients,
 } from "@/lib/product-score";
+import { type FoodAnalysis, analyzeFood } from "@/lib/food-score";
 import {
   type GradingCounts,
   type ScanRecord,
@@ -42,10 +45,12 @@ export function ScanClient() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<ScannedProduct | null>(null);
   const [analysis, setAnalysis] = useState<ProductAnalysis | null>(null);
+  const [foodAnalysis, setFoodAnalysis] = useState<FoodAnalysis | null>(null);
   const [manualBarcode, setManualBarcode] = useState("");
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pasteName, setPasteName] = useState("");
+  const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
   const [history, setHistory] = useState<ScanRecord[]>([]);
 
   useEffect(() => {
@@ -55,8 +60,7 @@ export function ScanClient() {
   const counts = useMemo(() => gradingCounts(history), [history]);
   const totalScans = history.length;
 
-  function record(p: ScannedProduct, a: ProductAnalysis) {
-    if (a.empty) return;
+  function record(p: ScannedProduct, a: { score: number; band: ScoreBand }) {
     const next = addScan({
       at: new Date().toISOString(),
       code: p.code || null,
@@ -70,41 +74,59 @@ export function ScanClient() {
     setHistory(next);
   }
 
-  function showProduct(p: ScannedProduct) {
+  /** Score + display a product. Foods get the nutrition scorer, cosmetics the
+   * skin scorer. Returns false when there wasn't enough data to score. */
+  function showProduct(p: ScannedProduct): boolean {
+    if (p.kind === "food") {
+      const fa = analyzeFood(p);
+      if (fa.hasData) {
+        setProduct(p);
+        setFoodAnalysis(fa);
+        setAnalysis(null);
+        record(p, fa);
+        return true;
+      }
+    }
     const a = analyzeIngredients(p.ingredientsText ?? "");
-    setProduct(p);
-    setAnalysis(a);
-    if (!a.empty) record(p, a);
+    if (!a.empty) {
+      setProduct(p);
+      setAnalysis(a);
+      setFoodAnalysis(null);
+      record(p, a);
+      return true;
+    }
+    return false;
   }
 
   async function lookupBarcode(code: string) {
     setScanning(false);
     setError(null);
+    setNotFoundCode(null);
     setLoading(true);
     setProduct(null);
     setAnalysis(null);
+    setFoodAnalysis(null);
     try {
       const res = await fetch(`/api/scan/product?barcode=${encodeURIComponent(code)}`);
       const data = (await res.json().catch(() => null)) as ScannedProduct | null;
       if (res.status === 404 || !data?.found) {
         setError(
-          `No product found for barcode ${code} in the open databases yet. You can paste its ingredients below to score it.`
+          `No product found for barcode ${code} in the open databases yet. Paste its ingredients below to score it now — or add it to the free database so it's there next time.`
         );
+        setNotFoundCode(code);
         setPasteName("");
         setShowPaste(true);
         return;
       }
-      if (!data.ingredientsText) {
+      if (!showProduct(data)) {
+        // Found the product, but not enough data (no nutrition, no ingredients).
         setProduct(data);
-        setAnalysis(null);
         setPasteName(data.name ?? "");
         setShowPaste(true);
         setError(
-          `We found ${data.name ?? "this product"} but its ingredient list isn't in the database yet. Paste it from the pack to score it.`
+          `We found ${data.name ?? "this product"} but there isn't enough data to score it yet. Paste its ingredients from the pack to score it now.`
         );
-        return;
       }
-      showProduct(data);
     } catch {
       setError("Couldn't reach the product database. Check your connection and try again.");
     } finally {
@@ -135,9 +157,16 @@ export function ScanClient() {
       ingredientsText: pasteText,
       source: "manual",
       found: false,
+      kind: "cosmetic",
+      nutriscoreGrade: null,
+      novaGroup: null,
+      additives: [],
+      organic: false,
+      nutriments: null,
     };
     setProduct(p);
     setAnalysis(a);
+    setFoodAnalysis(null);
     setError(null);
     record(p, a);
   }
@@ -145,7 +174,9 @@ export function ScanClient() {
   function reset() {
     setProduct(null);
     setAnalysis(null);
+    setFoodAnalysis(null);
     setError(null);
+    setNotFoundCode(null);
     setShowPaste(false);
     setPasteText("");
     setPasteName("");
@@ -159,13 +190,17 @@ export function ScanClient() {
   }
 
   // ── Result view ──────────────────────────────────────────────────────────
-  if (analysis && product) {
+  if (product && (foodAnalysis || (analysis && !analysis.empty))) {
     return (
       <div className="space-y-5">
         <button onClick={reset} className="btn-ghost -ml-2">
           <ArrowLeft className="h-4 w-4" /> Scan another
         </button>
-        <ProductResult product={product} analysis={analysis} />
+        {foodAnalysis ? (
+          <FoodResult product={product} analysis={foodAnalysis} />
+        ) : (
+          <ProductResult product={product} analysis={analysis!} />
+        )}
       </div>
     );
   }
@@ -185,8 +220,8 @@ export function ScanClient() {
           </div>
           <p className="mt-4 text-lg font-semibold text-white">Scan a product barcode</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">
-            Point your camera at the barcode. We look it up in the open cosmetics database and
-            score it for sensitive, eczema-prone skin.
+            Point your camera at the barcode. We look it up and score it — skincare for sensitive,
+            eczema-prone skin; food &amp; drink on nutrition.
           </p>
           <button onClick={() => setScanning(true)} disabled={loading} className="btn-primary mt-5">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
@@ -213,6 +248,16 @@ export function ScanClient() {
         </div>
 
         {error && <p className="mt-3 text-sm text-amber-300">{error}</p>}
+        {notFoundCode && (
+          <a
+            href={`https://world.openbeautyfacts.org/cgi/product.pl?type=add&code=${notFoundCode}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
+          >
+            Add this product to the open database →
+          </a>
+        )}
       </div>
 
       {/* Paste ingredients (manual / fallback) */}
@@ -329,9 +374,10 @@ export function ScanClient() {
       )}
 
       <p className="text-xs leading-relaxed text-slate-500">
-        Educational tool for sensitive / eczema-prone skin — not a safety verdict or medical
-        advice. Product data comes from Open Beauty Facts &amp; Open Food Facts, community-run
-        databases that can be incomplete or out of date, so always check the physical pack.
+        Educational scores — skincare rated for sensitive / eczema-prone skin, food &amp; drink
+        rated on nutrition. Not a safety verdict or medical advice. Product data comes from Open
+        Beauty Facts, Open Products Facts &amp; Open Food Facts, community-run databases that can be
+        incomplete or out of date, so always check the physical pack.
       </p>
     </div>
   );

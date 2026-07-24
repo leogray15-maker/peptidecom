@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 
 /** A tiny, dependency-free Markdown renderer for the imported library content.
  * Handles the subset actually used: #/##/### headings, - bullet lists,
- * 1. numbered lists, **bold**, *italic*, ***bold italic***, and [text](url).
- * Each non-empty prose line becomes its own paragraph to preserve the punchy,
- * one-thought-per-line rhythm of the source material. */
+ * 1. numbered lists, **bold**, *italic*, ***bold italic***, [text](url), and
+ * standalone ![alt](url) images. Each non-empty prose line becomes its own
+ * paragraph to preserve the punchy, one-thought-per-line rhythm of the source
+ * material. */
 
 const INLINE =
   /\[([^\]]+)\]\(([^)]+)\)|\*\*\*([^*]+)\*\*\*|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
@@ -88,15 +89,23 @@ export function Markdown({ content }: { content: string }) {
       continue;
     }
 
+    // A line that is only an image — render it full-width. External CDN images
+    // (Skool etc.) block hot-linking, so route them through our own server
+    // proxy; local /public images pass straight through.
     const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (image) {
       flushList();
+      const rawSrc = image[2];
+      const src = /^https?:\/\//.test(rawSrc)
+        ? `/api/protocol-image?u=${encodeURIComponent(rawSrc)}`
+        : rawSrc;
       blocks.push(
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={key++}
-          src={image[2]}
-          alt={image[1]}
+          src={src}
+          alt={image[1] || ""}
+          loading="lazy"
           className="my-4 w-full rounded-xl border border-lab-border"
         />
       );

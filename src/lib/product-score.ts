@@ -278,19 +278,55 @@ export function analyzeIngredients(text: string): ProductAnalysis {
 
 // ─── Product shape + API normaliser ──────────────────────────────────────────
 
+export type ProductSource =
+  | "openbeautyfacts"
+  | "openproductsfacts"
+  | "openfoodfacts"
+  | "manual";
+
+/** How a product is scored: cosmetics get a skin-suitability score, foods get a
+ * nutrition score (Yuka-style). */
+export type ProductKind = "cosmetic" | "food";
+
+/** Nutrition values normalised to per-100g/ml. Any field may be missing. */
+export interface Nutriments {
+  energyKcal: number | null;
+  sugars: number | null;
+  saturatedFat: number | null;
+  salt: number | null;
+  proteins: number | null;
+  fiber: number | null;
+  /** Estimated fruit/veg/nut/legume content, %. */
+  fruitsVegetables: number | null;
+}
+
 export interface ScannedProduct {
   code: string;
   name: string | null;
   brand: string | null;
   imageUrl: string | null;
   ingredientsText: string | null;
-  source: "openbeautyfacts" | "openfoodfacts" | "manual";
+  source: ProductSource;
   found: boolean;
+  /** Food vs cosmetic — decides which scorer the UI runs. */
+  kind: ProductKind;
+  /** Nutri-Score letter a–e (foods), when the database has it. */
+  nutriscoreGrade: string | null;
+  /** NOVA processing group 1–4 (foods), when available. */
+  novaGroup: number | null;
+  /** Additive E-numbers, e.g. ["e330","e621"]. */
+  additives: string[];
+  /** Whether the product carries an organic/bio label. */
+  organic: boolean;
+  nutriments: Nutriments | null;
 }
 
-/** Shape of the relevant slice of an Open Beauty/Food Facts v2 response. */
+/** Shape of the relevant slice of an Open Beauty/Products/Food Facts response
+ * (v2 and legacy v0 share these fields). `status` may be the number 1/0 or the
+ * string "success"/"failure" depending on the endpoint version. */
 export interface OffApiResponse {
-  status?: number;
+  status?: number | string;
+  status_verbose?: string;
   code?: string;
   product?: {
     product_name?: string;
@@ -301,8 +337,40 @@ export interface OffApiResponse {
     image_url?: string;
     ingredients_text?: string;
     ingredients_text_en?: string;
+    ingredients_text_with_allergens?: string;
     ingredients?: { text?: string }[];
+    // Food-specific fields (Open Food/Products Facts).
+    nutriscore_grade?: string;
+    nutrition_grades?: string;
+    nova_group?: number | string;
+    additives_tags?: string[];
+    additives_n?: number;
+    labels_tags?: string[];
+    categories_tags?: string[];
+    nutriments?: Record<string, number | string | undefined>;
   };
+}
+
+/** Coerce an Open Facts numeric field (they're sometimes strings) to a number. */
+function num(v: number | string | undefined): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** First non-null nutriment across candidate keys (per-100g preferred). */
+function nutriment(
+  n: Record<string, number | string | undefined>,
+  ...keys: string[]
+): number | null {
+  for (const k of keys) {
+    const v = num(n[k]);
+    if (v != null) return v;
+  }
+  return null;
 }
 
 function firstNonEmpty(...vals: (string | undefined | null)[]): string | null {
@@ -312,16 +380,29 @@ function firstNonEmpty(...vals: (string | undefined | null)[]): string | null {
   return null;
 }
 
-/** Normalise an Open Beauty/Food Facts payload into our ScannedProduct. Pure,
- * so it can be unit-tested against a captured response with no network. */
+/** Normalise an Open Beauty/Products/Food Facts payload into our ScannedProduct.
+ * Pure, so it can be unit-tested against a captured response with no network.
+ *
+ * "Found" is deliberately lenient: different Open Facts endpoints and versions
+ * report success differently (status 1 vs "success"), and some products come
+ * back with a product object but status 0. We treat a product as found when
+ * there's a product object carrying anything identifying — a name, brand or
+ * ingredients — so a real hit is never dropped over a status-field quirk. */
 export function normalizeOffProduct(
   code: string,
   data: OffApiResponse,
-  source: ScannedProduct["source"]
+  source: ProductSource
 ): ScannedProduct {
-  const found = data.status === 1 && !!data.product;
   const p = data.product ?? {};
-  let ingredientsText = firstNonEmpty(p.ingredients_text_en, p.ingredients_text);
+  const name = firstNonEmpty(p.product_name_en, p.product_name);
+  const brand = firstNonEmpty(p.brands);
+  const imageUrl = firstNonEmpty(p.image_front_small_url, p.image_front_url, p.image_url);
+
+  let ingredientsText = firstNonEmpty(
+    p.ingredients_text_en,
+    p.ingredients_text,
+    p.ingredients_text_with_allergens
+  );
   if (!ingredientsText && Array.isArray(p.ingredients) && p.ingredients.length > 0) {
     const joined = p.ingredients
       .map((i) => (typeof i.text === "string" ? i.text : ""))
@@ -329,13 +410,62 @@ export function normalizeOffProduct(
       .join(", ");
     ingredientsText = joined.length > 0 ? joined : null;
   }
+
+  // ── Nutrition (foods) ────────────────────────────────────────────────────
+  const rawN = p.nutriments ?? {};
+  const nutriments: Nutriments = {
+    energyKcal: nutriment(rawN, "energy-kcal_100g", "energy-kcal", "energy-kcal_value"),
+    sugars: nutriment(rawN, "sugars_100g", "sugars"),
+    saturatedFat: nutriment(rawN, "saturated-fat_100g", "saturated-fat"),
+    salt: (() => {
+      const salt = nutriment(rawN, "salt_100g", "salt");
+      if (salt != null) return salt;
+      const sodium = nutriment(rawN, "sodium_100g", "sodium");
+      return sodium != null ? Math.round(sodium * 2.5 * 100) / 100 : null;
+    })(),
+    proteins: nutriment(rawN, "proteins_100g", "proteins"),
+    fiber: nutriment(rawN, "fiber_100g", "fiber"),
+    fruitsVegetables: nutriment(
+      rawN,
+      "fruits-vegetables-nuts-estimate-from-ingredients_100g",
+      "fruits-vegetables-nuts_100g",
+      "fruits-vegetables-legumes-estimate-from-ingredients_100g"
+    ),
+  };
+  const hasNutrition =
+    Object.values(nutriments).some((v) => v != null) || !!p.nutriscore_grade;
+
+  const nutriscoreGrade = firstNonEmpty(p.nutriscore_grade, p.nutrition_grades)?.toLowerCase() ?? null;
+  const novaGroup = num(p.nova_group);
+  const additives = Array.isArray(p.additives_tags)
+    ? p.additives_tags.map((t) => t.replace(/^en:/, "").toLowerCase()).filter((t) => /^e\d/.test(t))
+    : [];
+  const organic = Array.isArray(p.labels_tags)
+    ? p.labels_tags.some((t) => /organic|bio|eu-organic/i.test(t))
+    : false;
+
+  // Food if it came from Open Food Facts, or carries nutrition data. Otherwise
+  // treat it as a cosmetic and score its ingredients for skin.
+  const kind: ProductKind =
+    source === "openfoodfacts" || hasNutrition ? "food" : "cosmetic";
+
+  const statusOk = data.status === 1 || data.status === "success";
+  const hasContent = !!(name || brand || imageUrl || ingredientsText || hasNutrition);
+  const found = !!data.product && (statusOk || hasContent);
+
   return {
     code,
-    name: firstNonEmpty(p.product_name_en, p.product_name),
-    brand: firstNonEmpty(p.brands),
-    imageUrl: firstNonEmpty(p.image_front_small_url, p.image_front_url, p.image_url),
+    name,
+    brand,
+    imageUrl,
     ingredientsText,
     source,
     found,
+    kind,
+    nutriscoreGrade,
+    novaGroup: novaGroup != null ? Math.round(novaGroup) : null,
+    additives,
+    organic,
+    nutriments: hasNutrition ? nutriments : null,
   };
 }
