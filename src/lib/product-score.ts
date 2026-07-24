@@ -278,19 +278,28 @@ export function analyzeIngredients(text: string): ProductAnalysis {
 
 // ─── Product shape + API normaliser ──────────────────────────────────────────
 
+export type ProductSource =
+  | "openbeautyfacts"
+  | "openproductsfacts"
+  | "openfoodfacts"
+  | "manual";
+
 export interface ScannedProduct {
   code: string;
   name: string | null;
   brand: string | null;
   imageUrl: string | null;
   ingredientsText: string | null;
-  source: "openbeautyfacts" | "openfoodfacts" | "manual";
+  source: ProductSource;
   found: boolean;
 }
 
-/** Shape of the relevant slice of an Open Beauty/Food Facts v2 response. */
+/** Shape of the relevant slice of an Open Beauty/Products/Food Facts response
+ * (v2 and legacy v0 share these fields). `status` may be the number 1/0 or the
+ * string "success"/"failure" depending on the endpoint version. */
 export interface OffApiResponse {
-  status?: number;
+  status?: number | string;
+  status_verbose?: string;
   code?: string;
   product?: {
     product_name?: string;
@@ -301,6 +310,7 @@ export interface OffApiResponse {
     image_url?: string;
     ingredients_text?: string;
     ingredients_text_en?: string;
+    ingredients_text_with_allergens?: string;
     ingredients?: { text?: string }[];
   };
 }
@@ -312,16 +322,29 @@ function firstNonEmpty(...vals: (string | undefined | null)[]): string | null {
   return null;
 }
 
-/** Normalise an Open Beauty/Food Facts payload into our ScannedProduct. Pure,
- * so it can be unit-tested against a captured response with no network. */
+/** Normalise an Open Beauty/Products/Food Facts payload into our ScannedProduct.
+ * Pure, so it can be unit-tested against a captured response with no network.
+ *
+ * "Found" is deliberately lenient: different Open Facts endpoints and versions
+ * report success differently (status 1 vs "success"), and some products come
+ * back with a product object but status 0. We treat a product as found when
+ * there's a product object carrying anything identifying — a name, brand or
+ * ingredients — so a real hit is never dropped over a status-field quirk. */
 export function normalizeOffProduct(
   code: string,
   data: OffApiResponse,
-  source: ScannedProduct["source"]
+  source: ProductSource
 ): ScannedProduct {
-  const found = data.status === 1 && !!data.product;
   const p = data.product ?? {};
-  let ingredientsText = firstNonEmpty(p.ingredients_text_en, p.ingredients_text);
+  const name = firstNonEmpty(p.product_name_en, p.product_name);
+  const brand = firstNonEmpty(p.brands);
+  const imageUrl = firstNonEmpty(p.image_front_small_url, p.image_front_url, p.image_url);
+
+  let ingredientsText = firstNonEmpty(
+    p.ingredients_text_en,
+    p.ingredients_text,
+    p.ingredients_text_with_allergens
+  );
   if (!ingredientsText && Array.isArray(p.ingredients) && p.ingredients.length > 0) {
     const joined = p.ingredients
       .map((i) => (typeof i.text === "string" ? i.text : ""))
@@ -329,13 +352,10 @@ export function normalizeOffProduct(
       .join(", ");
     ingredientsText = joined.length > 0 ? joined : null;
   }
-  return {
-    code,
-    name: firstNonEmpty(p.product_name_en, p.product_name),
-    brand: firstNonEmpty(p.brands),
-    imageUrl: firstNonEmpty(p.image_front_small_url, p.image_front_url, p.image_url),
-    ingredientsText,
-    source,
-    found,
-  };
+
+  const statusOk = data.status === 1 || data.status === "success";
+  const hasContent = !!(name || brand || imageUrl || ingredientsText);
+  const found = !!data.product && (statusOk || hasContent);
+
+  return { code, name, brand, imageUrl, ingredientsText, source, found };
 }

@@ -46,6 +46,7 @@ export function ScanClient() {
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pasteName, setPasteName] = useState("");
+  const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
   const [history, setHistory] = useState<ScanRecord[]>([]);
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export function ScanClient() {
   async function lookupBarcode(code: string) {
     setScanning(false);
     setError(null);
+    setNotFoundCode(null);
     setLoading(true);
     setProduct(null);
     setAnalysis(null);
@@ -88,8 +90,9 @@ export function ScanClient() {
       const data = (await res.json().catch(() => null)) as ScannedProduct | null;
       if (res.status === 404 || !data?.found) {
         setError(
-          `No product found for barcode ${code} in the open databases yet. You can paste its ingredients below to score it.`
+          `No product found for barcode ${code} in the open databases yet. Paste its ingredients below to score it now — or add it to the free database so it's there next time.`
         );
+        setNotFoundCode(code);
         setPasteName("");
         setShowPaste(true);
         return;
@@ -146,6 +149,7 @@ export function ScanClient() {
     setProduct(null);
     setAnalysis(null);
     setError(null);
+    setNotFoundCode(null);
     setShowPaste(false);
     setPasteText("");
     setPasteName("");
@@ -213,6 +217,16 @@ export function ScanClient() {
         </div>
 
         {error && <p className="mt-3 text-sm text-amber-300">{error}</p>}
+        {notFoundCode && (
+          <a
+            href={`https://world.openbeautyfacts.org/cgi/product.pl?type=add&code=${notFoundCode}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
+          >
+            Add this product to the open database →
+          </a>
+        )}
       </div>
 
       {/* Paste ingredients (manual / fallback) */}

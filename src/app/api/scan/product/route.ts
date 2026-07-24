@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   type OffApiResponse,
+  type ProductSource,
   type ScannedProduct,
   normalizeOffProduct,
 } from "@/lib/product-score";
@@ -10,11 +11,14 @@ export const dynamic = "force-dynamic";
 
 // Product barcode lookup — the data source behind the Yuka-style scanner.
 //
-// We proxy Open Beauty Facts (cosmetics) first, then fall back to Open Food
-// Facts, both free/open databases. Doing it server-side lets us send the polite
-// User-Agent the Open Facts projects ask for, dodge browser CORS, and cache the
-// response. Only public product data is returned — no user data is involved, so
-// the route stays unauthenticated and side-effect-free.
+// To match Yuka's hit-rate as closely as open data allows, we query ALL three
+// Open Facts databases — Open Beauty Facts (cosmetics), Open Products Facts
+// (general goods) and Open Food Facts (food/household) — in parallel, and try a
+// couple of barcode variants (UPC-A ↔ EAN-13 leading-zero differences are a very
+// common cause of a "not found"). We then pick the richest hit: a match that has
+// an ingredient list beats one without. Doing it server-side lets us send the
+// polite User-Agent the Open Facts projects ask for, dodge browser CORS and
+// cache. Only public product data is returned — unauthenticated, no side effects.
 
 const FIELDS = [
   "code",
@@ -26,35 +30,57 @@ const FIELDS = [
   "image_url",
   "ingredients_text",
   "ingredients_text_en",
+  "ingredients_text_with_allergens",
   "ingredients",
 ].join(",");
 
-const UA = "ArcaneTrack/1.0 (skin ingredient scanner; contact via app)";
+// Open Food Facts asks for an identifying User-Agent: "AppName/Version (contact)".
+const UA = "ArcaneTrack/1.0 (skin ingredient scanner; https://arcanetrack.vercel.app)";
 
-const SOURCES: { host: string; source: ScannedProduct["source"] }[] = [
+// Cosmetics first (this is a skin app), then general products, then food.
+const SOURCES: { host: string; source: ProductSource }[] = [
   { host: "https://world.openbeautyfacts.org", source: "openbeautyfacts" },
+  { host: "https://world.openproductsfacts.org", source: "openproductsfacts" },
   { host: "https://world.openfoodfacts.org", source: "openfoodfacts" },
 ];
 
-/** Fetch + normalise one source. Returns null on network/parse failure so the
- * caller can try the next source. */
+const FETCH_TIMEOUT_MS = 6000;
+
+/** Barcode variants to try. Scanners and databases disagree about leading zeros
+ * between UPC-A (12) and EAN-13 (13), so we try the obvious equivalents. */
+function barcodeVariants(code: string): string[] {
+  const set = new Set<string>([code]);
+  if (code.length === 12) set.add("0" + code); // UPC-A → EAN-13
+  if (code.length === 13 && code.startsWith("0")) set.add(code.slice(1)); // EAN-13 → UPC-A
+  if (code.length === 13 && code.startsWith("00")) set.add(code.slice(2));
+  return [...set];
+}
+
+/** Fetch + normalise one (database, barcode) pair. Never throws — returns null
+ * on network error, timeout, non-200 or a miss, so one slow/blocked source can't
+ * sink the whole lookup. */
 async function lookup(
   host: string,
-  source: ScannedProduct["source"],
+  source: ProductSource,
   barcode: string
 ): Promise<ScannedProduct | null> {
   const url = `${host}/api/v2/product/${barcode}.json?fields=${FIELDS}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": UA, Accept: "application/json" },
-      // Cache product data for a day — barcodes are stable.
-      next: { revalidate: 86_400 },
+      signal: controller.signal,
+      next: { revalidate: 86_400 }, // barcodes are stable — cache a day
     });
     if (!res.ok) return null;
     const data = (await res.json()) as OffApiResponse;
-    return normalizeOffProduct(barcode, data, source);
+    const product = normalizeOffProduct(barcode, data, source);
+    return product.found ? product : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -70,16 +96,24 @@ export async function GET(req: Request) {
     );
   }
 
-  for (const { host, source } of SOURCES) {
-    const product = await lookup(host, source, raw);
-    if (product?.found) {
-      return NextResponse.json(product, {
-        headers: { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
-      });
-    }
+  // Every (database × barcode-variant) combination, in parallel.
+  const codes = barcodeVariants(raw);
+  const results = await Promise.all(
+    codes.flatMap((code) => SOURCES.map((s) => lookup(s.host, s.source, code)))
+  );
+  const hits = results.filter((r): r is ScannedProduct => r !== null);
+
+  // Prefer a hit that actually carries an ingredient list; otherwise any hit.
+  const best = hits.find((h) => !!h.ingredientsText) ?? hits[0] ?? null;
+
+  if (best) {
+    // Report the barcode the user scanned, not the variant we matched on.
+    return NextResponse.json(
+      { ...best, code: raw },
+      { headers: { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" } }
+    );
   }
 
-  // Reachable databases, but no product on this barcode.
   const notFound: ScannedProduct = {
     code: raw,
     name: null,
