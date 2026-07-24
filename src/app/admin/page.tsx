@@ -13,7 +13,7 @@ import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
 import { ACTION_LABEL, lifecycleStage } from "@/lib/admin";
-import { FOUNDING_PRICE, STANDARD_PRICE } from "@/lib/membership";
+import { MONTHLY_PRICE } from "@/lib/membership";
 import { StageBadge, SubscriptionBadge, PriorityBadge } from "@/components/admin/badges";
 import { SignupsChart, type SignupPoint } from "@/components/admin/signups-chart";
 import { formatDate, timeAgo } from "@/lib/utils";
@@ -104,8 +104,10 @@ export default async function AdminOverviewPage() {
     ),
   ]);
 
-  // Estimated MRR from display prices (real numbers live in Stripe).
-  const mrr = foundingActive * FOUNDING_PRICE + (activeSubs - foundingActive) * STANDARD_PRICE;
+  // Estimated MRR from display prices (real numbers live in Stripe). Yearly
+  // members are blended in at the monthly rate as a rough proxy — the exact
+  // split by plan lives in Stripe.
+  const mrr = Math.round(activeSubs * MONTHLY_PRICE);
 
   // Bucket signups into ISO weeks for the chart.
   const buckets = new Map<number, number>();

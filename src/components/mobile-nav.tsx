@@ -3,20 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, ClipboardList, LayoutDashboard, Map, Menu, X } from "lucide-react";
-import { AppNav, ArchivesNavLink, type NavItem } from "@/components/app-nav";
+import { Menu, X } from "lucide-react";
+import { AppNav, ArchivesNavLink } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
 import { Logo } from "@/components/logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
-
-// Curated primary destinations for the bottom tab bar (the 5th slot is "Menu").
-const PRIMARY: NavItem[] = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/tracker", label: "Tracker", icon: ClipboardList },
-  { href: "/photos", label: "Photos", icon: Camera },
-  { href: "/timeline", label: "Stage", icon: Map },
-];
 
 export function MobileNav({
   user,
@@ -52,35 +44,6 @@ export function MobileNav({
           <Menu className="h-5 w-5" />
         </button>
       </header>
-
-      {/* Bottom tab bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-lab-border bg-lab-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        <div className="grid grid-cols-5">
-          {PRIMARY.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition",
-                  active ? "text-brand-200" : "text-slate-400"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
-          <button
-            onClick={() => setOpen(true)}
-            className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-slate-400"
-          >
-            <Menu className="h-5 w-5" />
-            Menu
-          </button>
-        </div>
-      </div>
 
       {/* Drawer */}
       <div

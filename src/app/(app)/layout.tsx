@@ -27,12 +27,12 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-[calc(100vh-2rem)]">
-      {/* Mobile top bar + bottom tabs + drawer */}
+      {/* Mobile top bar + drawer */}
       <MobileNav
         user={{ name: user.name, image: user.image, verified: user.verified }}
       />
 
-      <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:py-6">
+      <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 pb-8 pt-4 sm:px-6 lg:px-8 lg:py-6">
         {/* Sidebar */}
         <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-64 shrink-0 flex-col justify-between rounded-2xl border border-lab-border bg-lab-card p-4 lg:flex">
           <div className="flex min-h-0 flex-1 flex-col">

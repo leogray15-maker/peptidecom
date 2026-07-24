@@ -83,8 +83,8 @@ const faqs = [
     a: "Everything, immediately: the daily skin tracker, photo timeline, the “where am I?” stage map, insights, trigger tracking, flare-day support, the healing protocol library, the peptide tracker and calculator, the community forums and the WhatsApp chat. One membership — nothing held back.",
   },
   {
-    q: "What's the founding offer?",
-    a: "The first 50 members to join pay just £28 for their first month, then lock in £45/month for as long as they stay — for life. Once the 50 spots (or the 28-day window) are gone, membership is £55/month. Founding members keep their locked-in price.",
+    q: "How much is membership?",
+    a: "£11.99/month, or £70/year — that's over 50% off the monthly price. Same full access either way: every tool, the protocol library, the community and the WhatsApp chat. Cancel anytime.",
   },
   {
     q: "Can I cancel anytime?",
@@ -126,7 +126,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/pricing" className="btn-primary px-6 py-3 text-base">
-                Join Arcane Track — £28 first month <ArrowRight className="h-4 w-4" />
+                Join Arcane Track — from £11.99/mo <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href="/login" className="btn-secondary px-6 py-3 text-base">
                 Member login
@@ -274,9 +274,9 @@ export default function LandingPage() {
           <div className="card bg-gradient-to-br from-brand-900/60 to-lab-card py-14 text-center">
             <h2 className="text-3xl font-bold text-white">Start your record today</h2>
             <p className="mx-auto mt-4 max-w-xl leading-relaxed text-slate-300">
-              Founding offer: £28 your first month, then £45/month locked in for life — cancel
-              anytime. Every tool and the full community from the moment you join, and a day-one
-              entry you&apos;ll be glad you made in ninety days.
+              £11.99/month or £70/year (over 50% off) — cancel anytime. Every tool and the full
+              community from the moment you join, and a day-one entry you&apos;ll be glad you made
+              in ninety days.
             </p>
             <div className="mt-8">
               <Link href="/pricing" className="btn-primary px-6 py-3 text-base">

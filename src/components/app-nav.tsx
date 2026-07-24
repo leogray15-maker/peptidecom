@@ -6,6 +6,7 @@ import {
   BookOpen,
   Calculator,
   Camera,
+  ClipboardCheck,
   ClipboardList,
   GraduationCap,
   LayoutDashboard,
@@ -15,7 +16,10 @@ import {
   Map,
   MessageSquare,
   MessagesSquare,
+  Ruler,
+  ScanLine,
   Settings,
+  ShieldCheck,
   Sparkles,
   Syringe,
   TrendingUp,
@@ -47,6 +51,14 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Skin tools",
+    items: [
+      { href: "/easi", label: "EASI calculator", icon: Ruler },
+      { href: "/poem", label: "POEM weekly score", icon: ClipboardCheck },
+      { href: "/scan", label: "Ingredient scanner", icon: ScanLine },
+    ],
+  },
+  {
     title: "Community",
     items: [
       { href: "/community", label: "Community", icon: MessageSquare },
@@ -66,7 +78,10 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   },
   {
     title: null,
-    items: [{ href: "/settings", label: "Settings", icon: Settings }],
+    items: [
+      { href: "/privacy-sources", label: "Privacy & Sources", icon: ShieldCheck },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ],
   },
 ];
 
