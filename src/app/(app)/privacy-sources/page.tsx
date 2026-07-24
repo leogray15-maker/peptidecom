@@ -15,8 +15,8 @@ const sources = [
     cite: "Charman CR, Venn AJ, Williams HC. Arch Dermatol. 2004. Banding: Charman CR, et al. Br J Dermatol. 2013.",
   },
   {
-    title: "Ingredient watch list",
-    cite: "American Contact Dermatitis Society core-allergen series · EU Cosmetics Regulation fragrance-allergen list · National Eczema Association ingredient guidance.",
+    title: "Ingredient watch list & scoring",
+    cite: "American Contact Dermatitis Society core-allergen series · EU Cosmetics Regulation fragrance-allergen list · National Eczema Association ingredient guidance. Product data: Open Beauty Facts & Open Food Facts (open community databases, ODbL).",
   },
   {
     title: "Photo severity estimate",
@@ -43,14 +43,20 @@ export default function PrivacySourcesPage() {
           </div>
           <p className="mt-4 text-sm leading-relaxed text-slate-300">
             The skin tools here are built to keep sensitive data close. Photo grading, the EASI and
-            POEM calculators and the ingredient scanner all run <span className="font-semibold text-white">in your browser</span> —
+            POEM calculators and the ingredient analysis all run <span className="font-semibold text-white">in your browser</span> —
             no photos, ingredient lists or scores are sent to any third-party AI service. Your
             daily logs and photos sync privately to your own account so your timeline follows you
             between devices; nobody else can see them unless you explicitly share.
           </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+            The one exception is the barcode scanner: when you scan or type a barcode, that number
+            (and nothing else about you) is sent to the open Open Beauty Facts / Open Food Facts
+            databases to fetch the product&apos;s name and ingredients. The scoring of those
+            ingredients then happens on your device.
+          </p>
           <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-            <Lock className="h-3.5 w-3.5" /> None of these tools require sending your data to an
-            outside AI provider.
+            <Lock className="h-3.5 w-3.5" /> No photos, logs or health scores are ever sent to an
+            outside provider.
           </p>
         </section>
 

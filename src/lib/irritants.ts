@@ -29,6 +29,23 @@ export interface Irritant {
   /** Lowercased match terms (INCI names, synonyms). Matched as word-ish
    * substrings against the normalised ingredient text. */
   terms: string[];
+  /** Severity 1–3 (3 = strongest sensitiser). Drives the product score and the
+   * dot colour. Defaults to a category baseline when omitted. */
+  severity?: 1 | 2 | 3;
+}
+
+/** Baseline severity when an entry doesn't set its own. */
+export const CATEGORY_SEVERITY: Record<IrritantCategory, 1 | 2 | 3> = {
+  fragrance: 2,
+  preservative: 2,
+  surfactant: 2,
+  alcohol: 1,
+  botanical: 2,
+  other: 1,
+};
+
+export function irritantSeverity(i: Irritant): 1 | 2 | 3 {
+  return i.severity ?? CATEGORY_SEVERITY[i.category];
 }
 
 export const CATEGORY_LABEL: Record<IrritantCategory, string> = {
@@ -47,6 +64,7 @@ export const IRRITANTS: Irritant[] = [
     category: "fragrance",
     why: "The single most common cause of cosmetic contact allergy. “Unscented” is safer than “fragrance-free-scented”.",
     terms: ["fragrance", "parfum", "perfume", "aroma"],
+    severity: 3,
   },
   {
     name: "Linalool",
@@ -114,6 +132,7 @@ export const IRRITANTS: Irritant[] = [
       "isothiazolinone",
       "kathon",
     ],
+    severity: 3,
   },
   {
     name: "Formaldehyde releasers",
@@ -129,18 +148,21 @@ export const IRRITANTS: Irritant[] = [
       "2-bromo-2-nitropropane",
       "sodium hydroxymethylglycinate",
     ],
+    severity: 3,
   },
   {
     name: "Parabens",
     category: "preservative",
     why: "Usually well-tolerated, but a known allergen for a minority — worth knowing if you react.",
     terms: ["paraben"],
+    severity: 1,
   },
   {
     name: "Phenoxyethanol",
     category: "preservative",
     why: "Common preservative; occasionally irritating on very compromised skin.",
     terms: ["phenoxyethanol"],
+    severity: 1,
   },
 
   // ── Harsh surfactants ────────────────────────────────────────────────────
@@ -149,6 +171,7 @@ export const IRRITANTS: Irritant[] = [
     category: "surfactant",
     why: "A strong detergent that strips the skin barrier — a classic eczema aggravator in cleansers.",
     terms: ["sodium lauryl sulfate", "sodium lauryl sulphate", "sls "],
+    severity: 3,
   },
   {
     name: "Sodium laureth sulfate (SLES)",

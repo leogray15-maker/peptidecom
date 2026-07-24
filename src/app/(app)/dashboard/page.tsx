@@ -77,7 +77,7 @@ const skinTools: FeatureCardProps[] = [
     icon: ScanLine,
     badge: "NEW",
     description:
-      "Paste a product's ingredient list and flag common irritants and allergens — 100% on-device.",
+      "Scan a product's barcode for a 0–100 skin-suitability score — irritants and barrier-friendly ingredients, broken down.",
   },
   {
     href: "/tracker",

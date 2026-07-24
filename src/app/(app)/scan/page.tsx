@@ -9,7 +9,7 @@ export default function ScanPage() {
     <div>
       <PageHeader
         title="Ingredient scanner"
-        subtitle="Paste a product's ingredient list — we flag common irritants and contact allergens on your device, before it becomes part of your routine. 100% on-device, nothing uploaded."
+        subtitle="Scan a product's barcode — we look it up and grade it 0–100 for sensitive, eczema-prone skin, with the irritants and the barrier-friendly ingredients broken out. No barcode? Paste the list instead."
       />
       <ScanClient />
       <PeerSupportNote />
