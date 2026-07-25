@@ -3,43 +3,86 @@
 import { BODY_ZONES, type BodyZone } from "@/lib/tsw";
 import { cn } from "@/lib/utils";
 
-/** Tappable front-view body map. Each zone is a rounded SVG shape; zones with
- * no front-view shape (e.g. "Back", or condition-specific face zones) live in
- * the chip row underneath (which also acts as the accessible fallback for
- * every zone). The zone list is condition-configurable. */
+/** Tappable front-view body map.
+ *
+ * A solid human silhouette is always drawn as the backdrop (so the map never
+ * looks broken or empty, whatever condition is selected), with anatomically
+ * shaped, tappable regions layered on top. Zones the silhouette can't show
+ * (e.g. "Back", or condition-specific face zones) live in the chip row
+ * underneath, which is also the accessible fallback for every zone. */
 
-interface Shape {
-  zone: string;
-  el: React.ReactNode;
-}
+// Anatomical region geometry, in a 240×440 viewBox (front-facing figure).
+// Each region renders identically in the faint backdrop and the interactive
+// layer, so the parts always line up into one body.
+const REGION_PATHS: Record<string, string[]> = {
+  scalp: ["M96,42 A26,28 0 0 1 144,42 Z"],
+  face: ["M96,42 A26,30 0 0 0 144,42 Z"],
+  neck: ["M112,72 L128,72 L127,88 L113,88 Z"],
+  chest: [
+    "M113,86 L127,86 C145,88 163,95 168,110 L164,150 L76,150 L72,110 C77,95 95,88 113,86 Z",
+  ],
+  stomach: [
+    "M76,150 L164,150 L158,196 C156,214 144,224 120,224 C96,224 84,214 82,196 Z",
+  ],
+  arms: [
+    "M72,110 C66,142 60,182 56,232 L70,232 C74,184 80,146 84,120 Z",
+    "M168,110 C174,142 180,182 184,232 L170,232 C166,184 160,146 156,120 Z",
+  ],
+  legs: [
+    "M84,222 C86,270 96,300 98,316 C100,360 100,384 99,406 L113,406 C114,384 116,360 116,316 C118,300 120,262 118,222 Z",
+    "M156,222 C154,270 144,300 142,316 C140,360 140,384 141,406 L127,406 C126,384 124,360 124,316 C122,300 120,262 122,222 Z",
+  ],
+};
 
-function shapesFor(selected: Set<string>): Shape[] {
-  const cls = (zone: string) =>
-    cn(
-      "cursor-pointer transition-colors",
-      selected.has(zone)
-        ? "fill-brand-500/70 stroke-brand-300"
-        : "fill-[#1b1b28] stroke-[#2c2c3d] hover:fill-brand-900/70"
-    );
-  const sw = { strokeWidth: 1.5 } as const;
+// Small round highlights (creases, hands, feet) drawn as circles.
+const REGION_DOTS: Record<string, { cx: number; cy: number; r: number }[]> = {
+  "elbow-creases": [
+    { cx: 66, cy: 176, r: 8 },
+    { cx: 174, cy: 176, r: 8 },
+  ],
+  hands: [
+    { cx: 62, cy: 247, r: 12 },
+    { cx: 178, cy: 247, r: 12 },
+  ],
+  "knee-creases": [
+    { cx: 107, cy: 318, r: 9 },
+    { cx: 133, cy: 318, r: 9 },
+  ],
+  feet: [
+    { cx: 105, cy: 418, r: 12 },
+    { cx: 135, cy: 418, r: 12 },
+  ],
+};
 
-  return [
-    // Head
-    { zone: "scalp", el: <path d="M79 40 a21 21 0 0 1 42 0 z" className={cls("scalp")} {...sw} /> },
-    { zone: "face", el: <path d="M79 42 h42 a21 23 0 0 1 -42 0 z" className={cls("face")} {...sw} /> },
-    // Neck & torso
-    { zone: "neck", el: <rect x={91} y={64} width={18} height={11} rx={4} className={cls("neck")} {...sw} /> },
-    { zone: "chest", el: <rect x={70} y={77} width={60} height={33} rx={11} className={cls("chest")} {...sw} /> },
-    { zone: "stomach", el: <rect x={73} y={112} width={54} height={28} rx={11} className={cls("stomach")} {...sw} /> },
-    // Arms
-    { zone: "arms", el: <g className={cls("arms")} {...sw}><rect x={44} y={80} width={19} height={78} rx={9} /><rect x={137} y={80} width={19} height={78} rx={9} /></g> },
-    { zone: "elbow-creases", el: <g className={cls("elbow-creases")} {...sw}><circle cx={53.5} cy={119} r={7.5} /><circle cx={146.5} cy={119} r={7.5} /></g> },
-    { zone: "hands", el: <g className={cls("hands")} {...sw}><ellipse cx={53.5} cy={171} rx={10} ry={12} /><ellipse cx={146.5} cy={171} rx={10} ry={12} /></g> },
-    // Legs
-    { zone: "legs", el: <g className={cls("legs")} {...sw}><rect x={76} y={142} width={22} height={106} rx={10} /><rect x={102} y={142} width={22} height={106} rx={10} /></g> },
-    { zone: "knee-creases", el: <g className={cls("knee-creases")} {...sw}><circle cx={87} cy={198} r={7.5} /><circle cx={113} cy={198} r={7.5} /></g> },
-    { zone: "feet", el: <g className={cls("feet")} {...sw}><ellipse cx={84} cy={260} rx={13} ry={9} /><ellipse cx={116} cy={260} rx={13} ry={9} /></g> },
-  ];
+/** Every zone the silhouette can draw, in back-to-front paint order. */
+const DRAW_ORDER = [
+  "chest",
+  "stomach",
+  "arms",
+  "legs",
+  "neck",
+  "face",
+  "scalp",
+  "elbow-creases",
+  "hands",
+  "knee-creases",
+  "feet",
+];
+
+/** Render a zone's shapes with a given className (used for both the backdrop
+ * and the interactive layer). */
+function zoneShapes(zone: string, className: string): React.ReactNode {
+  const paths = REGION_PATHS[zone];
+  if (paths) {
+    return paths.map((d, i) => <path key={i} d={d} className={className} />);
+  }
+  const dots = REGION_DOTS[zone];
+  if (dots) {
+    return dots.map((c, i) => (
+      <circle key={i} cx={c.cx} cy={c.cy} r={c.r} className={className} />
+    ));
+  }
+  return null;
 }
 
 export function BodyMap({
@@ -54,34 +97,63 @@ export function BodyMap({
   const set = new Set(selected);
   const zoneIds = new Set(zones.map((z) => z.id));
   const label = (id: string) => zones.find((z) => z.id === id)?.label ?? id;
-  const shapes = shapesFor(set).filter((s) => zoneIds.has(s.zone));
+
+  // Interactive zones = those the current condition uses AND the silhouette can
+  // draw. Everything else is handled by the chip row below.
+  const interactiveZones = DRAW_ORDER.filter(
+    (z) => zoneIds.has(z) && (REGION_PATHS[z] || REGION_DOTS[z])
+  );
+
   return (
     <div>
       <svg
-        viewBox="0 0 200 278"
-        className="mx-auto h-72 w-auto select-none"
+        viewBox="0 0 240 440"
+        className="mx-auto h-80 w-auto select-none"
         role="group"
         aria-label="Body map — tap the areas that are affected today"
       >
-        {shapes.map(({ zone, el }) => (
-          <g
-            key={zone}
-            role="checkbox"
-            aria-checked={set.has(zone)}
-            aria-label={label(zone)}
-            tabIndex={0}
-            onClick={() => onToggle(zone)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onToggle(zone);
-              }
-            }}
-          >
-            <title>{label(zone)}</title>
-            {el}
-          </g>
-        ))}
+        {/* Backdrop: the full human silhouette, always visible so the map reads
+            as a body even before anything is tapped. */}
+        <g className="fill-[#20202e] stroke-none">
+          {DRAW_ORDER.map((zone) => (
+            <g key={`bg-${zone}`}>{zoneShapes(zone, "fill-[#20202e]")}</g>
+          ))}
+        </g>
+
+        {/* Interactive layer: highlights on hover/selection. */}
+        <g strokeWidth={1.75}>
+          {interactiveZones.map((zone) => {
+            const on = set.has(zone);
+            return (
+              <g
+                key={zone}
+                role="checkbox"
+                aria-checked={on}
+                aria-label={label(zone)}
+                tabIndex={0}
+                onClick={() => onToggle(zone)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onToggle(zone);
+                  }
+                }}
+                className="cursor-pointer outline-none"
+              >
+                <title>{label(zone)}</title>
+                {zoneShapes(
+                  zone,
+                  cn(
+                    "transition-colors",
+                    on
+                      ? "fill-brand-500/75 stroke-brand-300"
+                      : "fill-transparent stroke-transparent hover:fill-brand-500/25 focus-visible:fill-brand-500/30"
+                  )
+                )}
+              </g>
+            );
+          })}
+        </g>
       </svg>
 
       {/* Chip fallback — includes every zone the SVG can't show */}
