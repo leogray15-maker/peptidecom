@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Syringe } from "lucide-react";
 import {
   PEPTIDE_PRESETS,
@@ -12,6 +12,61 @@ import {
  * or above 1000 mcg. */
 function fmtDose(mcg: number) {
   return mcg >= 1000 ? `${Math.round((mcg / 1000) * 100) / 100} mg` : `${mcg} mcg`;
+}
+
+function numToStr(n: number): string {
+  return Number.isFinite(n) ? String(n) : "";
+}
+
+/** Numeric text field that behaves the way people expect while typing:
+ * clearing it doesn't snap to "0", leading zeros are stripped ("03" → "3",
+ * "01.5" → "1.5"), and a single decimal point is allowed. It stays in sync with
+ * external changes (preset chips, unit toggle) whenever it isn't being edited.
+ *
+ * We use type="text" + inputMode="decimal" rather than type="number" on purpose:
+ * React treats "03" and 3 as equal for number inputs and won't rewrite the raw
+ * text, which is exactly what produced the "03" / "01.5" glitch. */
+function NumberField({
+  value,
+  onChange,
+  className,
+  ariaLabel,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  className?: string;
+  ariaLabel?: string;
+}) {
+  const [text, setText] = useState(() => numToStr(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setText(numToStr(value));
+  }, [value, focused]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      className={className}
+      aria-label={ariaLabel}
+      value={text}
+      onFocus={() => setFocused(true)}
+      onBlur={() => {
+        setFocused(false);
+        setText(numToStr(value));
+      }}
+      onChange={(e) => {
+        let raw = e.target.value.replace(/[^0-9.]/g, "");
+        const parts = raw.split(".");
+        if (parts.length > 2) raw = `${parts[0]}.${parts.slice(1).join("")}`;
+        raw = raw.replace(/^0+(?=\d)/, ""); // strip leading zeros, keep "0" and "0.x"
+        setText(raw);
+        const n = parseFloat(raw);
+        onChange(Number.isFinite(n) ? n : 0);
+      }}
+    />
+  );
 }
 
 export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
@@ -79,13 +134,11 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
 
         <div>
           <label className="label">Peptide in vial (mg)</label>
-          <input
-            type="number"
+          <NumberField
             className="input"
-            min={0}
-            step="0.1"
+            ariaLabel="Peptide in vial in milligrams"
             value={vialMg}
-            onChange={(e) => setVialMg(parseFloat(e.target.value) || 0)}
+            onChange={setVialMg}
           />
           {preset && (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -105,13 +158,11 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
 
         <div>
           <label className="label">Bacteriostatic water added (ml)</label>
-          <input
-            type="number"
+          <NumberField
             className="input"
-            min={0}
-            step="0.1"
+            ariaLabel="Bacteriostatic water added in millilitres"
             value={bacWaterMl}
-            onChange={(e) => setBacWaterMl(parseFloat(e.target.value) || 0)}
+            onChange={setBacWaterMl}
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
             {[1, 1.5, 2, 3, 5].map((ml) => (
@@ -147,16 +198,11 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
               ))}
             </div>
           </div>
-          <input
-            type="number"
+          <NumberField
             className="input mt-1.5"
-            min={0}
-            step={doseUnit === "mg" ? "0.05" : "1"}
+            ariaLabel={`Desired dose in ${doseUnit}`}
             value={doseUnit === "mg" ? Math.round((doseMcg / 1000) * 1000) / 1000 : doseMcg}
-            onChange={(e) => {
-              const v = parseFloat(e.target.value) || 0;
-              setDoseMcg(doseUnit === "mg" ? v * 1000 : v);
-            }}
+            onChange={(n) => setDoseMcg(doseUnit === "mg" ? n * 1000 : n)}
           />
           {preset && (
             <p className="mt-1.5 text-xs text-slate-500">
