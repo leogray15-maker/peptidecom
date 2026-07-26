@@ -5,65 +5,75 @@ import { cn } from "@/lib/utils";
 
 /** Tappable front-view human body map for the daily tracker.
  *
- * One full-body figure serves every condition. A solid silhouette is always
- * drawn as the backdrop (so the map never looks broken or empty), with
- * anatomically placed, tappable regions layered on top — including facial
- * sub-regions on the head (forehead, cheeks, nose, chin, jawline) for
- * face-centric conditions like acne and rosacea. Only the zones the current
- * condition uses become interactive; the rest still contribute to the
- * silhouette. Every zone also appears in the chip row underneath, which is the
- * accessible fallback. */
+ * A single smooth human silhouette is drawn as the backdrop (one seamless
+ * figure, never a pile of blocks). Tappable zones are invisible hit-areas
+ * layered on top and CLIPPED to the body outline, so a selected zone lights up
+ * in the exact shape of that body part and never spills outside the figure.
+ *
+ * One figure serves every condition: face-centric ones (acne, rosacea) tap the
+ * facial sub-regions on the head; the rest use the whole scalp/face and the body
+ * zones. Only the current condition's zones are interactive; the chip row below
+ * is the accessible fallback for every zone. */
 
 type Shape =
   | { t: "path"; d: string }
   | { t: "circle"; cx: number; cy: number; r: number }
   | { t: "ellipse"; cx: number; cy: number; rx: number; ry: number };
 
-// Geometry in a 240×472 viewBox (front-facing figure, slightly enlarged head so
-// the facial regions are comfortably tappable). Painted back-to-front.
+// The seamless silhouette (viewBox 240×480) — head, neck, torso, arms with
+// rounded hands, legs with rounded feet. Used for both the backdrop fill and the
+// clip path.
+const SILHOUETTE: Shape[] = [
+  { t: "ellipse", cx: 120, cy: 52, rx: 30, ry: 34 },
+  { t: "path", d: "M108,78 L132,78 L132,112 L108,112 Z" },
+  { t: "path", d: "M120,104 C90,104 73,116 70,140 C66,163 69,210 78,238 C84,258 103,264 120,264 C137,264 156,258 162,238 C171,210 174,163 170,140 C167,116 150,104 120,104 Z" },
+  { t: "path", d: "M79,130 C64,154 55,206 53,256 C52,268 64,272 70,263 C75,210 86,158 93,136 C91,125 83,123 79,130 Z" },
+  { t: "path", d: "M161,130 C176,154 185,206 187,256 C188,268 176,272 170,263 C165,210 154,158 147,136 C149,125 157,123 161,130 Z" },
+  { t: "path", d: "M84,252 C81,312 89,372 91,416 C92,441 92,456 90,462 C96,466 107,466 111,462 C110,456 111,441 111,416 C113,372 118,312 117,252 Z" },
+  { t: "path", d: "M156,252 C159,312 151,372 149,416 C148,441 148,456 150,462 C144,466 133,466 129,462 C130,456 129,441 129,416 C127,372 122,312 123,252 Z" },
+];
+
+// Region hit-areas, painted back-to-front (bigger parts first so the small
+// highlights on top stay clickable). Everything is clipped to the silhouette.
+const LEFT_ARM = "M79,130 C64,154 55,206 53,256 C52,268 64,272 70,263 C75,210 86,158 93,136 C91,125 83,123 79,130 Z";
+const RIGHT_ARM = "M161,130 C176,154 185,206 187,256 C188,268 176,272 170,263 C165,210 154,158 147,136 C149,125 157,123 161,130 Z";
+const LEFT_LEG = "M84,252 C81,312 89,372 91,416 C92,441 92,456 90,462 C96,466 107,466 111,462 C110,456 111,441 111,416 C113,372 118,312 117,252 Z";
+const RIGHT_LEG = "M156,252 C159,312 151,372 149,416 C148,441 148,456 150,462 C144,466 133,466 129,462 C130,456 129,441 129,416 C127,372 122,312 123,252 Z";
+
 const REGIONS: { zone: string; shapes: Shape[] }[] = [
-  { zone: "chest", shapes: [{ t: "path", d: "M111,108 L129,108 C149,110 167,118 173,133 L169,178 L71,178 L67,133 C73,118 91,110 111,108 Z" }] },
-  { zone: "stomach", shapes: [{ t: "path", d: "M71,178 L169,178 L163,226 C161,244 149,254 120,254 C91,254 79,244 77,226 Z" }] },
-  { zone: "arms", shapes: [
-    { t: "path", d: "M67,133 C61,168 55,210 51,260 L65,260 C69,212 75,170 79,143 Z" },
-    { t: "path", d: "M173,133 C179,168 185,210 189,260 L175,260 C171,212 165,170 161,143 Z" },
-  ] },
-  { zone: "legs", shapes: [
-    { t: "path", d: "M79,252 C81,302 91,338 93,354 C95,400 95,426 94,450 L110,450 C111,426 113,400 113,354 C115,338 117,302 115,252 Z" },
-    { t: "path", d: "M161,252 C159,302 149,338 147,354 C145,400 145,426 146,450 L130,450 C129,426 127,400 127,354 C125,338 123,302 125,252 Z" },
-  ] },
+  { zone: "chest", shapes: [{ t: "path", d: "M120,104 C90,104 73,116 70,140 C67,158 68,175 71,188 L169,188 C172,175 173,158 170,140 C167,116 150,104 120,104 Z" }] },
+  { zone: "stomach", shapes: [{ t: "path", d: "M71,188 L169,188 C172,205 173,222 162,238 C156,258 137,264 120,264 C103,264 84,258 78,238 C67,222 68,205 71,188 Z" }] },
+  { zone: "arms", shapes: [{ t: "path", d: LEFT_ARM }, { t: "path", d: RIGHT_ARM }] },
+  { zone: "legs", shapes: [{ t: "path", d: LEFT_LEG }, { t: "path", d: RIGHT_LEG }] },
   // Head — whole-head zones (TSW / eczema / psoriasis)
-  { zone: "scalp", shapes: [{ t: "path", d: "M91,44 A31,32 0 0 1 149,44 Z" }] },
-  { zone: "face", shapes: [{ t: "path", d: "M91,44 A31,40 0 0 0 149,44 Z" }] },
-  { zone: "neck", shapes: [{ t: "path", d: "M110,92 L130,92 L129,110 L111,110 Z" }] },
+  { zone: "scalp", shapes: [{ t: "ellipse", cx: 120, cy: 38, rx: 29, ry: 22 }] },
+  { zone: "face", shapes: [{ t: "ellipse", cx: 120, cy: 66, rx: 29, ry: 22 }] },
+  { zone: "neck", shapes: [{ t: "path", d: "M106,84 L134,84 L134,113 L106,113 Z" }] },
   { zone: "shoulders", shapes: [
-    { t: "ellipse", cx: 80, cy: 126, rx: 18, ry: 13 },
-    { t: "ellipse", cx: 160, cy: 126, rx: 18, ry: 13 },
+    { t: "ellipse", cx: 84, cy: 118, rx: 22, ry: 16 }, { t: "ellipse", cx: 156, cy: 118, rx: 22, ry: 16 },
   ] },
   // Head — facial sub-regions (acne / rosacea)
-  { zone: "forehead", shapes: [{ t: "ellipse", cx: 120, cy: 36, rx: 23, ry: 11 }] },
+  { zone: "forehead", shapes: [{ t: "ellipse", cx: 120, cy: 40, rx: 23, ry: 12 }] },
   { zone: "cheeks", shapes: [
-    { t: "ellipse", cx: 101, cy: 62, rx: 11, ry: 13 },
-    { t: "ellipse", cx: 139, cy: 62, rx: 11, ry: 13 },
+    { t: "ellipse", cx: 103, cy: 58, rx: 11, ry: 12 }, { t: "ellipse", cx: 137, cy: 58, rx: 11, ry: 12 },
   ] },
-  { zone: "nose", shapes: [{ t: "ellipse", cx: 120, cy: 60, rx: 6, ry: 14 }] },
+  { zone: "nose", shapes: [{ t: "ellipse", cx: 120, cy: 56, rx: 6, ry: 14 }] },
   { zone: "jawline", shapes: [
-    { t: "ellipse", cx: 95, cy: 78, rx: 8, ry: 13 },
-    { t: "ellipse", cx: 145, cy: 78, rx: 8, ry: 13 },
+    { t: "ellipse", cx: 98, cy: 72, rx: 9, ry: 13 }, { t: "ellipse", cx: 142, cy: 72, rx: 9, ry: 13 },
   ] },
-  { zone: "chin", shapes: [{ t: "ellipse", cx: 120, cy: 88, rx: 14, ry: 8 }] },
+  { zone: "chin", shapes: [{ t: "ellipse", cx: 120, cy: 79, rx: 14, ry: 9 }] },
   // Limb detail
   { zone: "elbow-creases", shapes: [
-    { t: "circle", cx: 61, cy: 202, r: 8 }, { t: "circle", cx: 179, cy: 202, r: 8 },
+    { t: "circle", cx: 63, cy: 198, r: 12 }, { t: "circle", cx: 177, cy: 198, r: 12 },
   ] },
   { zone: "hands", shapes: [
-    { t: "circle", cx: 57, cy: 274, r: 12 }, { t: "circle", cx: 183, cy: 274, r: 12 },
+    { t: "circle", cx: 62, cy: 258, r: 15 }, { t: "circle", cx: 178, cy: 258, r: 15 },
   ] },
   { zone: "knee-creases", shapes: [
-    { t: "circle", cx: 104, cy: 354, r: 9 }, { t: "circle", cx: 136, cy: 354, r: 9 },
+    { t: "circle", cx: 101, cy: 362, r: 13 }, { t: "circle", cx: 139, cy: 362, r: 13 },
   ] },
   { zone: "feet", shapes: [
-    { t: "circle", cx: 101, cy: 460, r: 12 }, { t: "circle", cx: 139, cy: 460, r: 12 },
+    { t: "circle", cx: 100, cy: 456, r: 16 }, { t: "circle", cx: 140, cy: 456, r: 16 },
   ] },
 ];
 
@@ -74,6 +84,8 @@ function renderShapes(shapes: Shape[], className: string): React.ReactNode {
     return <ellipse key={i} cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} className={className} />;
   });
 }
+
+const CLIP_ID = "bodymap-silhouette-clip";
 
 export function BodyMap({
   selected,
@@ -93,21 +105,20 @@ export function BodyMap({
   return (
     <div>
       <svg
-        viewBox="0 0 240 472"
+        viewBox="0 0 240 480"
         className="mx-auto h-80 w-auto select-none"
         role="group"
         aria-label="Body map — tap the areas that are affected today"
       >
-        {/* Backdrop: the full human silhouette, always drawn. */}
-        <g className="fill-[#20202e] [pointer-events:none]">
-          {REGIONS.map((r) => (
-            <g key={`bg-${r.zone}`}>{renderShapes(r.shapes, "fill-[#20202e]")}</g>
-          ))}
-        </g>
+        <defs>
+          <clipPath id={CLIP_ID}>{renderShapes(SILHOUETTE, "")}</clipPath>
+        </defs>
 
-        {/* Interactive layer. pointer-events:all so transparent regions are
-            still clickable. */}
-        <g strokeWidth={1.75}>
+        {/* Backdrop: one seamless human silhouette. */}
+        <g className="fill-[#242433] [pointer-events:none]">{renderShapes(SILHOUETTE, "fill-[#242433]")}</g>
+
+        {/* Interactive highlights, clipped to the body so they take its shape. */}
+        <g clipPath={`url(#${CLIP_ID})`}>
           {interactive.map((r) => {
             const on = set.has(r.zone);
             return (
@@ -132,8 +143,8 @@ export function BodyMap({
                   cn(
                     "transition-colors [pointer-events:all]",
                     on
-                      ? "fill-brand-500/75 stroke-brand-300"
-                      : "fill-white/[0.04] stroke-transparent hover:fill-brand-500/30 focus-visible:fill-brand-500/30"
+                      ? "fill-brand-500/80"
+                      : "fill-transparent hover:fill-brand-500/25 focus-visible:fill-brand-500/30"
                   )
                 )}
               </g>
