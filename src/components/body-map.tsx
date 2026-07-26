@@ -3,43 +3,105 @@
 import { BODY_ZONES, type BodyZone } from "@/lib/tsw";
 import { cn } from "@/lib/utils";
 
-/** Tappable front-view body map. Each zone is a rounded SVG shape; zones with
- * no front-view shape (e.g. "Back", or condition-specific face zones) live in
- * the chip row underneath (which also acts as the accessible fallback for
- * every zone). The zone list is condition-configurable. */
+/** Tappable body/face map for the daily tracker.
+ *
+ * Two silhouettes, chosen by the condition's zones:
+ *  • Face-centric conditions (acne, rosacea) get a head-and-shoulders diagram
+ *    with tappable facial regions (forehead, cheeks, nose, chin, jawline…).
+ *  • Everything else gets a full front-facing human figure.
+ *
+ * A solid silhouette is always drawn as the backdrop so the map never looks
+ * broken or empty, with anatomically placed, tappable regions layered on top.
+ * Any zone the silhouette can't show still lives in the chip row underneath,
+ * which is also the accessible fallback for every zone. */
 
-interface Shape {
-  zone: string;
-  el: React.ReactNode;
+type Shape =
+  | { t: "path"; d: string }
+  | { t: "circle"; cx: number; cy: number; r: number }
+  | { t: "ellipse"; cx: number; cy: number; rx: number; ry: number };
+
+interface Silhouette {
+  viewBox: string;
+  heightClass: string;
+  /** Non-interactive structural fill (e.g. the head/neck/torso base). */
+  structure: Shape[];
+  /** Tappable regions by zone id, painted back-to-front. */
+  regions: { zone: string; shapes: Shape[] }[];
 }
 
-function shapesFor(selected: Set<string>): Shape[] {
-  const cls = (zone: string) =>
-    cn(
-      "cursor-pointer transition-colors",
-      selected.has(zone)
-        ? "fill-brand-500/70 stroke-brand-300"
-        : "fill-[#1b1b28] stroke-[#2c2c3d] hover:fill-brand-900/70"
-    );
-  const sw = { strokeWidth: 1.5 } as const;
+// ── Full body (TSW / eczema / psoriasis) ─────────────────────────────────────
+const BODY: Silhouette = {
+  viewBox: "0 0 240 440",
+  heightClass: "h-80",
+  structure: [],
+  regions: [
+    { zone: "chest", shapes: [{ t: "path", d: "M113,86 L127,86 C145,88 163,95 168,110 L164,150 L76,150 L72,110 C77,95 95,88 113,86 Z" }] },
+    { zone: "stomach", shapes: [{ t: "path", d: "M76,150 L164,150 L158,196 C156,214 144,224 120,224 C96,224 84,214 82,196 Z" }] },
+    { zone: "arms", shapes: [
+      { t: "path", d: "M72,110 C66,142 60,182 56,232 L70,232 C74,184 80,146 84,120 Z" },
+      { t: "path", d: "M168,110 C174,142 180,182 184,232 L170,232 C166,184 160,146 156,120 Z" },
+    ] },
+    { zone: "legs", shapes: [
+      { t: "path", d: "M84,222 C86,270 96,300 98,316 C100,360 100,384 99,406 L113,406 C114,384 116,360 116,316 C118,300 120,262 118,222 Z" },
+      { t: "path", d: "M156,222 C154,270 144,300 142,316 C140,360 140,384 141,406 L127,406 C126,384 124,360 124,316 C122,300 120,262 122,222 Z" },
+    ] },
+    { zone: "neck", shapes: [{ t: "path", d: "M112,72 L128,72 L127,88 L113,88 Z" }] },
+    { zone: "face", shapes: [{ t: "path", d: "M96,42 A26,30 0 0 0 144,42 Z" }] },
+    { zone: "scalp", shapes: [{ t: "path", d: "M96,42 A26,28 0 0 1 144,42 Z" }] },
+    { zone: "elbow-creases", shapes: [
+      { t: "circle", cx: 66, cy: 176, r: 8 }, { t: "circle", cx: 174, cy: 176, r: 8 },
+    ] },
+    { zone: "hands", shapes: [
+      { t: "circle", cx: 62, cy: 247, r: 12 }, { t: "circle", cx: 178, cy: 247, r: 12 },
+    ] },
+    { zone: "knee-creases", shapes: [
+      { t: "circle", cx: 107, cy: 318, r: 9 }, { t: "circle", cx: 133, cy: 318, r: 9 },
+    ] },
+    { zone: "feet", shapes: [
+      { t: "circle", cx: 105, cy: 418, r: 12 }, { t: "circle", cx: 135, cy: 418, r: 12 },
+    ] },
+  ],
+};
 
-  return [
-    // Head
-    { zone: "scalp", el: <path d="M79 40 a21 21 0 0 1 42 0 z" className={cls("scalp")} {...sw} /> },
-    { zone: "face", el: <path d="M79 42 h42 a21 23 0 0 1 -42 0 z" className={cls("face")} {...sw} /> },
-    // Neck & torso
-    { zone: "neck", el: <rect x={91} y={64} width={18} height={11} rx={4} className={cls("neck")} {...sw} /> },
-    { zone: "chest", el: <rect x={70} y={77} width={60} height={33} rx={11} className={cls("chest")} {...sw} /> },
-    { zone: "stomach", el: <rect x={73} y={112} width={54} height={28} rx={11} className={cls("stomach")} {...sw} /> },
-    // Arms
-    { zone: "arms", el: <g className={cls("arms")} {...sw}><rect x={44} y={80} width={19} height={78} rx={9} /><rect x={137} y={80} width={19} height={78} rx={9} /></g> },
-    { zone: "elbow-creases", el: <g className={cls("elbow-creases")} {...sw}><circle cx={53.5} cy={119} r={7.5} /><circle cx={146.5} cy={119} r={7.5} /></g> },
-    { zone: "hands", el: <g className={cls("hands")} {...sw}><ellipse cx={53.5} cy={171} rx={10} ry={12} /><ellipse cx={146.5} cy={171} rx={10} ry={12} /></g> },
-    // Legs
-    { zone: "legs", el: <g className={cls("legs")} {...sw}><rect x={76} y={142} width={22} height={106} rx={10} /><rect x={102} y={142} width={22} height={106} rx={10} /></g> },
-    { zone: "knee-creases", el: <g className={cls("knee-creases")} {...sw}><circle cx={87} cy={198} r={7.5} /><circle cx={113} cy={198} r={7.5} /></g> },
-    { zone: "feet", el: <g className={cls("feet")} {...sw}><ellipse cx={84} cy={260} rx={13} ry={9} /><ellipse cx={116} cy={260} rx={13} ry={9} /></g> },
-  ];
+// ── Head & shoulders (acne / rosacea — face-centric) ─────────────────────────
+const FACE: Silhouette = {
+  viewBox: "0 0 240 330",
+  heightClass: "h-80",
+  structure: [
+    { t: "ellipse", cx: 120, cy: 112, rx: 76, ry: 96 }, // head
+    { t: "path", d: "M106,196 L134,196 L132,226 L108,226 Z" }, // neck
+    { t: "path", d: "M120,224 C68,226 38,250 32,312 L208,312 C202,250 172,226 120,224 Z" }, // shoulders/chest
+  ],
+  regions: [
+    { zone: "forehead", shapes: [{ t: "ellipse", cx: 120, cy: 58, rx: 50, ry: 22 }] },
+    { zone: "cheeks", shapes: [
+      { t: "ellipse", cx: 82, cy: 132, rx: 24, ry: 22 }, { t: "ellipse", cx: 158, cy: 132, rx: 24, ry: 22 },
+    ] },
+    { zone: "nose", shapes: [{ t: "ellipse", cx: 120, cy: 116, rx: 10, ry: 27 }] },
+    { zone: "jawline", shapes: [
+      { t: "ellipse", cx: 60, cy: 160, rx: 14, ry: 28 }, { t: "ellipse", cx: 180, cy: 160, rx: 14, ry: 28 },
+    ] },
+    { zone: "chin", shapes: [{ t: "ellipse", cx: 120, cy: 178, rx: 26, ry: 15 }] },
+    { zone: "neck", shapes: [{ t: "path", d: "M106,196 L134,196 L132,226 L108,226 Z" }] },
+    { zone: "shoulders", shapes: [
+      { t: "ellipse", cx: 58, cy: 262, rx: 30, ry: 22 }, { t: "ellipse", cx: 182, cy: 262, rx: 30, ry: 22 },
+    ] },
+    { zone: "chest", shapes: [{ t: "ellipse", cx: 120, cy: 286, rx: 46, ry: 24 }] },
+  ],
+};
+
+function renderShapes(shapes: Shape[], className: string): React.ReactNode {
+  return shapes.map((s, i) => {
+    if (s.t === "path") return <path key={i} d={s.d} className={className} />;
+    if (s.t === "circle") return <circle key={i} cx={s.cx} cy={s.cy} r={s.r} className={className} />;
+    return <ellipse key={i} cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} className={className} />;
+  });
+}
+
+/** Face-centric conditions expose facial zones the full body can't show. */
+function pickSilhouette(zoneIds: Set<string>): Silhouette {
+  const faceCentric = ["forehead", "cheeks", "nose", "jawline"].some((z) => zoneIds.has(z));
+  return faceCentric ? FACE : BODY;
 }
 
 export function BodyMap({
@@ -54,34 +116,60 @@ export function BodyMap({
   const set = new Set(selected);
   const zoneIds = new Set(zones.map((z) => z.id));
   const label = (id: string) => zones.find((z) => z.id === id)?.label ?? id;
-  const shapes = shapesFor(set).filter((s) => zoneIds.has(s.zone));
+
+  const silhouette = pickSilhouette(zoneIds);
+  const interactive = silhouette.regions.filter((r) => zoneIds.has(r.zone));
+
   return (
     <div>
       <svg
-        viewBox="0 0 200 278"
-        className="mx-auto h-72 w-auto select-none"
+        viewBox={silhouette.viewBox}
+        className={cn("mx-auto w-auto select-none", silhouette.heightClass)}
         role="group"
         aria-label="Body map — tap the areas that are affected today"
       >
-        {shapes.map(({ zone, el }) => (
-          <g
-            key={zone}
-            role="checkbox"
-            aria-checked={set.has(zone)}
-            aria-label={label(zone)}
-            tabIndex={0}
-            onClick={() => onToggle(zone)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onToggle(zone);
-              }
-            }}
-          >
-            <title>{label(zone)}</title>
-            {el}
-          </g>
-        ))}
+        {/* Backdrop: solid silhouette so the map always reads as a body/face. */}
+        <g className="fill-[#20202e]">
+          {renderShapes(silhouette.structure, "fill-[#20202e]")}
+          {silhouette.regions.map((r) => (
+            <g key={`bg-${r.zone}`}>{renderShapes(r.shapes, "fill-[#20202e]")}</g>
+          ))}
+        </g>
+
+        {/* Interactive layer */}
+        <g strokeWidth={1.75}>
+          {interactive.map((r) => {
+            const on = set.has(r.zone);
+            return (
+              <g
+                key={r.zone}
+                role="checkbox"
+                aria-checked={on}
+                aria-label={label(r.zone)}
+                tabIndex={0}
+                onClick={() => onToggle(r.zone)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onToggle(r.zone);
+                  }
+                }}
+                className="cursor-pointer outline-none"
+              >
+                <title>{label(r.zone)}</title>
+                {renderShapes(
+                  r.shapes,
+                  cn(
+                    "transition-colors",
+                    on
+                      ? "fill-brand-500/75 stroke-brand-300"
+                      : "fill-transparent stroke-transparent hover:fill-brand-500/25 focus-visible:fill-brand-500/30"
+                  )
+                )}
+              </g>
+            );
+          })}
+        </g>
       </svg>
 
       {/* Chip fallback — includes every zone the SVG can't show */}
