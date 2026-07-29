@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { anySymptomLabel, anyZoneLabel } from "@/lib/conditions";
 import { siteLabel } from "@/lib/peptides";
-import { SYMPTOMS, goalLabel, zoneLabel } from "@/lib/tsw";
+import { goalLabel } from "@/lib/tsw";
 import { listJournal, listLogs, listPeptideLogs, listTriggers, tswKey } from "@/lib/tsw-db";
-
-const symptomLabel = (id: string) => SYMPTOMS.find((s) => s.id === id)?.label ?? id;
 
 function toCsv(rows: (string | number | null | undefined)[][]): string {
   return rows
@@ -68,8 +67,8 @@ export async function GET(req: Request) {
         ...logs.map((l) => [
           l.date,
           l.severity,
-          l.areas.map(zoneLabel).join("; "),
-          l.symptoms.map(symptomLabel).join("; "),
+          l.areas.map(anyZoneLabel).join("; "),
+          l.symptoms.map(anySymptomLabel).join("; "),
           l.sleep,
           l.mood,
           l.note,

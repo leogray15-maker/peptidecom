@@ -22,7 +22,8 @@ import {
 } from "@/lib/photo-score";
 import { loadPhotoModel } from "@/lib/photo-model";
 import { getConsent } from "@/lib/consent";
-import { BODY_ZONES, dateKey, daysBetween, zoneLabel } from "@/lib/tsw";
+import { anyZoneLabel } from "@/lib/conditions";
+import { BODY_ZONES, type BodyZone, dateKey, daysBetween } from "@/lib/tsw";
 import { cn, formatDate } from "@/lib/utils";
 
 export interface PhotoItem {
@@ -69,9 +70,12 @@ async function compressImage(file: File): Promise<string> {
 export function PhotosClient({
   initialPhotos,
   manualSeverityByDate,
+  zones = BODY_ZONES,
 }: {
   initialPhotos: PhotoItem[];
   manualSeverityByDate: Record<string, number>;
+  /** The member's condition's zones — drives the "Area" picker. */
+  zones?: BodyZone[];
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -169,28 +173,33 @@ export function PhotosClient({
     if (!preview) return;
     setSaving(true);
     setError(null);
-    const res = await fetch("/api/tsw/photos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        takenAt,
-        area: area || null,
-        caption: caption.trim() || null,
-        imageData: preview,
-        estimate,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) {
-      setError(data.error ?? "Upload failed.");
-      return;
+    try {
+      const res = await fetch("/api/tsw/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          takenAt,
+          area: area || null,
+          caption: caption.trim() || null,
+          imageData: preview,
+          estimate,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Upload failed.");
+        return;
+      }
+      setPreview(null);
+      setCaption("");
+      setEstimate(null);
+      if (fileRef.current) fileRef.current.value = "";
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-    setPreview(null);
-    setCaption("");
-    setEstimate(null);
-    if (fileRef.current) fileRef.current.value = "";
-    router.refresh();
   }
 
   // How well the estimate has been tracking the member's own ratings —
@@ -205,18 +214,38 @@ export function PhotosClient({
   }, [initialPhotos, manualSeverityByDate]);
 
   async function toggleShare(p: PhotoItem) {
-    await fetch("/api/tsw/photos", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: p.id, shared: !p.shared }),
-    });
-    router.refresh();
+    setError(null);
+    try {
+      const res = await fetch("/api/tsw/photos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: p.id, shared: !p.shared }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't update the photo.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    }
   }
 
   async function remove(p: PhotoItem) {
     if (!confirm("Delete this photo? This can't be undone.")) return;
-    await fetch(`/api/tsw/photos?id=${p.id}`, { method: "DELETE" });
-    router.refresh();
+    setError(null);
+    try {
+      const res = await fetch(`/api/tsw/photos?id=${p.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't delete the photo.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    }
   }
 
   function tapPhoto(p: PhotoItem) {
@@ -324,7 +353,7 @@ export function PhotosClient({
                         {i === 0 ? "Then" : i === selected.length - 1 ? "Now" : formatDate(p.takenAt)}
                       </span>
                       {(i === 0 || i === selected.length - 1) && <> · {formatDate(p.takenAt)}</>}
-                      {p.area && <> · {zoneLabel(p.area)}</>}
+                      {p.area && <> · {anyZoneLabel(p.area)}</>}
                     </figcaption>
                   </figure>
                 ))}
@@ -453,7 +482,7 @@ export function PhotosClient({
                 <label className="label">Area (optional)</label>
                 <select className="input" value={area} onChange={(e) => setArea(e.target.value)}>
                   <option value="">Overall</option>
-                  {BODY_ZONES.map((z) => (
+                  {zones.map((z) => (
                     <option key={z.id} value={z.id}>{z.label}</option>
                   ))}
                 </select>
@@ -547,7 +576,7 @@ export function PhotosClient({
                         )}
                       </div>
                       <p className="mt-0.5 truncate text-xs text-slate-500">
-                        {p.area ? zoneLabel(p.area) : "Overall"}
+                        {p.area ? anyZoneLabel(p.area) : "Overall"}
                         {p.caption ? ` · ${p.caption}` : ""}
                       </p>
                       {!compareMode && (

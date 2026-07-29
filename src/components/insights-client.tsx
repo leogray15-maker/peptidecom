@@ -11,12 +11,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { anySymptomLabel, anyZoneLabel } from "@/lib/conditions";
 import { pearson } from "@/lib/insights";
-import { type DailyLog, SYMPTOMS, dateKey, daysBetween, zoneLabel } from "@/lib/tsw";
+import { type DailyLog, dateKey, daysBetween } from "@/lib/tsw";
 
 // Chart palette validated for the dark card surface (#0f0f15):
 // OKLCH lightness band, chroma, CVD separation and contrast all pass.
 const SEVERITY_COLOR = "#7c5cff";
+const TREND_COLOR = "#a996ff";
 const SLEEP_COLOR = "#0d9488";
 const MOOD_COLOR = "#d97706";
 const GRID = "#20202b";
@@ -40,13 +42,26 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
     [logs, today]
   );
 
-  const chartData = last30.map((l) => ({
-    date: new Date(l.date + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-    severity: l.severity,
-    sleep: l.sleep ?? undefined,
-    mood: l.mood ?? undefined,
-    itch: l.symptoms.includes("itch") ? l.severity : undefined,
-  }));
+  // Each point also carries a trailing 7-day average (calendar window over
+  // logged days) so the trend reads through the day-to-day waves.
+  const chartData = useMemo(
+    () =>
+      last30.map((l, i) => {
+        const window = last30.filter(
+          (w, j) => j <= i && daysBetween(w.date, l.date) < 7
+        );
+        const trend =
+          Math.round((window.reduce((s, w) => s + w.severity, 0) / window.length) * 10) / 10;
+        return {
+          date: new Date(l.date + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          severity: l.severity,
+          trend,
+          sleep: l.sleep ?? undefined,
+          mood: l.mood ?? undefined,
+        };
+      }),
+    [last30]
+  );
 
   // Sleep ↔ severity relationship, reflected gently — never diagnosed.
   const sleepSeverity = useMemo(() => {
@@ -101,7 +116,7 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
         <div className="card">
           <p className="text-sm text-slate-400">Most affected area (30d)</p>
           <p className="mt-1 text-2xl font-bold text-white">
-            {areaCounts.length > 0 ? zoneLabel(areaCounts[0][0]) : "—"}
+            {areaCounts.length > 0 ? anyZoneLabel(areaCounts[0][0]) : "—"}
           </p>
         </div>
       </div>
@@ -118,7 +133,9 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
                 <XAxis dataKey="date" stroke={AXIS} fontSize={11} tickLine={false} />
                 <YAxis domain={[0, 10]} stroke={AXIS} fontSize={11} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
                 <Line type="monotone" dataKey="severity" name="Severity" stroke={SEVERITY_COLOR} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                <Line type="monotone" dataKey="trend" name="7-day average" stroke={TREND_COLOR} strokeWidth={1.5} strokeDasharray="5 4" dot={false} activeDot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -171,7 +188,7 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
             <div className="mt-4 space-y-2.5">
               {areaCounts.map(([area, count]) => (
                 <div key={area} className="flex items-center gap-3 text-sm">
-                  <span className="w-28 shrink-0 text-slate-300">{zoneLabel(area)}</span>
+                  <span className="w-28 shrink-0 text-slate-300">{anyZoneLabel(area)}</span>
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-lab-bg">
                     <div
                       className="h-full rounded-full bg-brand-500"
@@ -192,7 +209,7 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
             <div className="mt-4 flex flex-wrap gap-2">
               {symptomCounts.map(([id, count]) => (
                 <span key={id} className="badge border border-lab-border bg-lab-bg px-3 py-1.5 text-slate-300">
-                  {SYMPTOMS.find((s) => s.id === id)?.label ?? id}
+                  {anySymptomLabel(id)}
                   <span className="text-slate-500">× {count}</span>
                 </span>
               ))}

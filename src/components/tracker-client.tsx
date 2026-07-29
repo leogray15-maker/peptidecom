@@ -43,6 +43,8 @@ export function TrackerClient({
   const [editing, setEditing] = useState(todayLog === null);
   const [celebrating, setCelebrating] = useState<MilestoneDef[]>([]);
   const [savedNow, setSavedNow] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const selectedLog = recentLogs.find((l) => l.date === selectedDate) ?? null;
 
@@ -66,8 +68,21 @@ export function TrackerClient({
 
   async function removeLog(date: string) {
     if (!confirm("Delete this day's entry? This can't be undone.")) return;
-    await fetch(`/api/tsw/log?date=${date}`, { method: "DELETE" });
-    router.refresh();
+    setDeleting(date);
+    setListError(null);
+    try {
+      const res = await fetch(`/api/tsw/log?date=${date}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setListError(data.error ?? "Couldn't delete the entry.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setListError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setDeleting(null);
+    }
   }
 
   function onSaved(newMilestones: MilestoneDef[]) {
@@ -147,7 +162,9 @@ export function TrackerClient({
           <p className="font-semibold text-white">Look back</p>
           <p className="mt-0.5 text-sm text-slate-500">
             Every day you&apos;ve logged — where it was, how rough it felt, and what you noted.
+            Tap the pencil to correct any entry.
           </p>
+          {listError && <p className="mt-2 text-sm text-rose-400">{listError}</p>}
           <div className="mt-3 divide-y divide-lab-border">
             {[...recentLogs]
               .sort((a, b) => b.date.localeCompare(a.date))
@@ -185,13 +202,27 @@ export function TrackerClient({
                     )}
                     {l.note && <p className="mt-1.5 text-xs text-slate-500">“{l.note}”</p>}
                   </div>
-                  <button
-                    onClick={() => removeLog(l.date)}
-                    className="shrink-0 text-slate-600 hover:text-rose-400"
-                    aria-label={`Delete entry for ${l.date}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <button
+                      onClick={() => pickDay(l.date)}
+                      className="text-slate-600 hover:text-brand-300"
+                      aria-label={`Edit entry for ${l.date}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => removeLog(l.date)}
+                      disabled={deleting === l.date}
+                      className="text-slate-600 hover:text-rose-400 disabled:opacity-50"
+                      aria-label={`Delete entry for ${l.date}`}
+                    >
+                      {deleting === l.date ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               ))}
           </div>
@@ -236,26 +267,31 @@ function LogEditor({
   async function save() {
     setSaving(true);
     setError(null);
-    const res = await fetch("/api/tsw/log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date,
-        areas,
-        severity,
-        symptoms,
-        sleep,
-        mood,
-        note: note.trim() || null,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) {
-      setError(data.error ?? "Couldn't save. Please try again.");
-      return;
+    try {
+      const res = await fetch("/api/tsw/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date,
+          areas,
+          severity,
+          symptoms,
+          sleep,
+          mood,
+          note: note.trim() || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save. Please try again.");
+        return;
+      }
+      onSaved(Array.isArray(data.newMilestones) ? data.newMilestones : []);
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-    onSaved(Array.isArray(data.newMilestones) ? data.newMilestones : []);
   }
 
   return (
