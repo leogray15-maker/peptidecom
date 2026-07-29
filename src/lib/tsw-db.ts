@@ -37,11 +37,14 @@ export async function setStage(uid: string, stage: string): Promise<void> {
   const ref = db.collection("users").doc(uid);
   const now = new Date().toISOString();
   const prev = ((await ref.get()).data() as TswProfile | undefined)?.recoveryStage ?? null;
-  await ref.set({ recoveryStage: stage, stageUpdatedAt: now }, { merge: true });
+  const writes: Promise<unknown>[] = [
+    ref.set({ recoveryStage: stage, stageUpdatedAt: now }, { merge: true }),
+  ];
   // Append-only stage history — feeds the time-to-stage cohort stats.
   if (prev !== stage) {
-    await ref.collection("stageEvents").add({ stage, at: now });
+    writes.push(ref.collection("stageEvents").add({ stage, at: now }));
   }
+  await Promise.all(writes);
 }
 
 export async function setTswStartDate(uid: string, date: string | null): Promise<void> {
@@ -134,29 +137,31 @@ export async function setPhotoShared(
   const photoRef = db.collection("users").doc(uid).collection("photos").doc(photoId);
   const snap = await photoRef.get();
   if (!snap.exists) throw new Error("Photo not found");
-  await photoRef.update({ shared });
 
   const mirrorRef = db.collection("sharedPhotos").doc(`${uid}_${photoId}`);
-  if (shared) {
-    const data = snap.data() as Omit<TswPhoto, "id">;
-    await mirrorRef.set({
-      uid,
-      authorName,
-      takenAt: data.takenAt,
-      area: data.area ?? null,
-      caption: data.caption ?? null,
-      imageData: data.imageData,
-      sharedAt: new Date().toISOString(),
-    });
-  } else {
-    await mirrorRef.delete();
-  }
+  const data = snap.data() as Omit<TswPhoto, "id">;
+  await Promise.all([
+    photoRef.update({ shared }),
+    shared
+      ? mirrorRef.set({
+          uid,
+          authorName,
+          takenAt: data.takenAt,
+          area: data.area ?? null,
+          caption: data.caption ?? null,
+          imageData: data.imageData,
+          sharedAt: new Date().toISOString(),
+        })
+      : mirrorRef.delete(),
+  ]);
 }
 
 export async function deletePhoto(uid: string, photoId: string): Promise<void> {
   const db = await adminDb();
-  await db.collection("users").doc(uid).collection("photos").doc(photoId).delete();
-  await db.collection("sharedPhotos").doc(`${uid}_${photoId}`).delete();
+  await Promise.all([
+    db.collection("users").doc(uid).collection("photos").doc(photoId).delete(),
+    db.collection("sharedPhotos").doc(`${uid}_${photoId}`).delete(),
+  ]);
 }
 
 export interface SharedPhoto {
@@ -379,14 +384,16 @@ export async function awardNewMilestones(
   const db = await adminDb();
   const col = db.collection("users").doc(uid).collection("milestones");
   const existing = new Set((await col.get()).docs.map((d) => d.id));
-  const fresh: MilestoneDef[] = [];
-  for (const key of earnedKeys) {
-    const def = MILESTONE_DEFS[key];
-    if (!def || existing.has(key)) continue;
-    await col.doc(key).set({ key, achievedAt: new Date().toISOString(), celebrated: false });
-    await logFunnel(uid, "milestone_reached", { milestone: key });
-    fresh.push(def);
-  }
+  const fresh = earnedKeys
+    .filter((key) => MILESTONE_DEFS[key] && !existing.has(key))
+    .map((key) => MILESTONE_DEFS[key]);
+  // Independent docs — write them (and their funnel events) in parallel.
+  await Promise.all(
+    fresh.flatMap((def) => [
+      col.doc(def.key).set({ key: def.key, achievedAt: new Date().toISOString(), celebrated: false }),
+      logFunnel(uid, "milestone_reached", { milestone: def.key }),
+    ])
+  );
   return fresh;
 }
 
@@ -407,9 +414,16 @@ export async function saveLogAndAward(
   uid: string,
   log: DailyLog
 ): Promise<{ newMilestones: MilestoneDef[] }> {
-  await saveLog(uid, log);
-  const [logs, profile] = await Promise.all([listLogs(uid), getProfile(uid)]);
-  const stats = computeStats(logs);
+  // The save and the reads are independent: merge the fresh log into the
+  // listed set in memory, so stats are correct regardless of read timing and
+  // the collection isn't re-read after the write.
+  const [, logs, profile] = await Promise.all([
+    saveLog(uid, log),
+    listLogs(uid),
+    getProfile(uid),
+  ]);
+  const merged = [...logs.filter((l) => l.date !== log.date), log];
+  const stats = computeStats(merged);
   const newMilestones = await awardNewMilestones(
     uid,
     earnedMilestones(stats, profile.recoveryStage)

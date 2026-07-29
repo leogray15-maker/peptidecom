@@ -20,19 +20,24 @@ function StartDateCard({ startDate, question }: { startDate: string | null; ques
     setSaving(true);
     setError(null);
     setSaved(false);
-    const res = await fetch("/api/tsw/start-date", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: value || null }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) {
-      setError(data.error ?? "Couldn't save.");
-      return;
+    try {
+      const res = await fetch("/api/tsw/start-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: value || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save.");
+        return;
+      }
+      setSaved(true);
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaved(true);
-    router.refresh();
   }
 
   const days = startDate ? daysBetween(startDate, dateKey()) : null;
@@ -87,21 +92,26 @@ export function TimelineClient({
   async function mark(stageId: string) {
     setSaving(stageId);
     setError(null);
-    const res = await fetch("/api/tsw/stage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage: stageId }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(null);
-    if (!res.ok) {
-      setError(data.error ?? "Couldn't save your stage.");
-      return;
+    try {
+      const res = await fetch("/api/tsw/stage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: stageId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save your stage.");
+        return;
+      }
+      if (Array.isArray(data.newMilestones) && data.newMilestones.length > 0) {
+        setCelebrating(data.newMilestones);
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSaving(null);
     }
-    if (Array.isArray(data.newMilestones) && data.newMilestones.length > 0) {
-      setCelebrating(data.newMilestones);
-    }
-    router.refresh();
   }
 
   return (

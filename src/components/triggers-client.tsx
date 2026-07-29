@@ -75,26 +75,41 @@ export function TriggersClient({
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await fetch("/api/tsw/triggers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, name: form.name.trim(), note: form.note.trim() || null }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) {
-      setError(data.error ?? "Couldn't save.");
-      return;
+    try {
+      const res = await fetch("/api/tsw/triggers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, name: form.name.trim(), note: form.note.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save.");
+        return;
+      }
+      setForm({ ...form, name: "", effect: 0, note: "" });
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-    setForm({ ...form, name: "", effect: 0, note: "" });
-    setOpen(false);
-    router.refresh();
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this entry? This can't be undone.")) return;
-    await fetch(`/api/tsw/triggers?id=${id}`, { method: "DELETE" });
-    router.refresh();
+    setError(null);
+    try {
+      const res = await fetch(`/api/tsw/triggers?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't delete the entry.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    }
   }
 
   return (
@@ -185,6 +200,8 @@ export function TriggersClient({
           </div>
         </form>
       )}
+
+      {!open && error && <p className="text-sm text-rose-400">{error}</p>}
 
       {/* Patterns */}
       {patterns.length > 0 && (

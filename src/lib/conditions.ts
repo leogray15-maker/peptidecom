@@ -476,21 +476,22 @@ export const ALL_SYMPTOM_IDS = [
   ...new Set(CONDITIONS.flatMap((c) => c.symptoms.map((s) => s.id))),
 ] as [string, ...string[]];
 
+// Precomputed label maps: these lookups run inside render loops (history rows,
+// chart legends, CSV export), so resolve them once at module load.
+const ZONE_LABELS = new Map<string, string>();
+const SYMPTOM_LABELS = new Map<string, string>();
+for (const c of CONDITIONS) {
+  for (const z of c.zones) if (!ZONE_LABELS.has(z.id)) ZONE_LABELS.set(z.id, z.label);
+  for (const s of c.symptoms) if (!SYMPTOM_LABELS.has(s.id)) SYMPTOM_LABELS.set(s.id, s.label);
+}
+
 /** Label lookup across every condition's zones (for history rows etc.). */
 export function anyZoneLabel(id: string): string {
-  for (const c of CONDITIONS) {
-    const z = c.zones.find((x) => x.id === id);
-    if (z) return z.label;
-  }
-  return id;
+  return ZONE_LABELS.get(id) ?? id;
 }
 
 export function anySymptomLabel(id: string): string {
-  for (const c of CONDITIONS) {
-    const s = c.symptoms.find((x) => x.id === id);
-    if (s) return s.label;
-  }
-  return id;
+  return SYMPTOM_LABELS.get(id) ?? id;
 }
 
 /** Stage name across all conditions (stage ids are per-condition journeys). */

@@ -92,32 +92,47 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await fetch("/api/journal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: form.date,
-        goal: form.goal,
-        rating: form.rating,
-        weightKg: form.weightKg.trim() === "" ? null : parseFloat(form.weightKg),
-        note: form.note.trim() || null,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) {
-      setError(data.error ?? "Couldn't save.");
-      return;
+    try {
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: form.date,
+          goal: form.goal,
+          rating: form.rating,
+          weightKg: form.weightKg.trim() === "" ? null : parseFloat(form.weightKg),
+          note: form.note.trim() || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save.");
+        return;
+      }
+      setForm({ ...form, note: "", weightKg: "" });
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-    setForm({ ...form, note: "", weightKg: "" });
-    setOpen(false);
-    router.refresh();
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this journal entry? This can't be undone.")) return;
-    await fetch(`/api/journal?id=${id}`, { method: "DELETE" });
-    router.refresh();
+    setError(null);
+    try {
+      const res = await fetch(`/api/journal?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't delete the entry.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    }
   }
 
   return (
@@ -212,6 +227,8 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
           </div>
         </form>
       )}
+
+      {!open && error && <p className="text-sm text-rose-400">{error}</p>}
 
       {/* Goal filter */}
       {goalsInUse.length > 0 && (
