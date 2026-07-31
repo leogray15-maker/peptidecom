@@ -237,10 +237,16 @@ export function analyzeIngredients(text: string): ProductAnalysis {
   }
 
   // ── Positives ──────────────────────────────────────────────────────────
+  // Only unflagged ingredients can earn credit. Beneficial terms are matched as
+  // substrings, so without this guard a flagged ingredient that *contains* a
+  // good one would be credited too — e.g. "Imidazolidinyl Urea" (a formaldehyde
+  // releaser) matching the beneficial "Urea", listing a sensitiser under
+  // Positives and pushing the score up.
   const positives: PositiveFinding[] = [];
   for (const good of BENEFICIALS) {
     const hits = new Set<string>();
     tokens.forEach((tok, i) => {
+      if (tags[i] === "flag") return;
       if (termHitsToken(tok.normalized, good.terms)) {
         hits.add(tok.raw);
         if (tags[i] === "neutral") tags[i] = "good";

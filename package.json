@@ -19,6 +19,8 @@
     "test:food-score": "tsx scripts/food-score.test.ts",
     "test:photo-score": "tsx scripts/photo-score.test.ts",
     "test:protocols": "tsx scripts/protocol-schedule.test.ts",
+    "test:scan-route": "tsx scripts/scan-route.test.ts",
+    "test": "npm run test:insights && npm run test:easi && npm run test:poem && npm run test:irritants && npm run test:product-score && npm run test:food-score && npm run test:photo-score && npm run test:protocols && npm run test:scan-route",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
