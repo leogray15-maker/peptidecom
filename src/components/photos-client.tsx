@@ -21,6 +21,7 @@ import {
   scorePhoto,
 } from "@/lib/photo-score";
 import { loadPhotoModel } from "@/lib/photo-model";
+import { compressImage } from "@/lib/image-compress";
 import { getConsent } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
 import { BODY_ZONES, type BodyZone, dateKey, daysBetween } from "@/lib/tsw";
@@ -34,37 +35,6 @@ export interface PhotoItem {
   imageData: string;
   shared: boolean;
   estimate: PhotoEstimate | null;
-}
-
-/** Downscale + re-encode a photo client-side so it fits comfortably inside a
- * Firestore document. Returns a JPEG data-URL. */
-async function compressImage(file: File): Promise<string> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("Couldn't read that image."));
-      el.src = url;
-    });
-
-    for (const [maxDim, quality] of [
-      [1000, 0.72],
-      [720, 0.6],
-      [520, 0.5],
-    ] as const) {
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const data = canvas.toDataURL("image/jpeg", quality);
-      if (data.length <= 880_000) return data;
-    }
-    throw new Error("That image couldn't be compressed enough — try a smaller one.");
-  } finally {
-    URL.revokeObjectURL(url);
-  }
 }
 
 export function PhotosClient({

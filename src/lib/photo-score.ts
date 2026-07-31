@@ -146,6 +146,26 @@ export function pickBaseline<T extends { composite: number; area?: string | null
   return usePool.reduce((min, p) => (p.composite < min.composite ? p : min), usePool[0]);
 }
 
+export interface FlareBand {
+  label: string;
+  /** Shared tone vocabulary with the scanner's score ring. */
+  tone: "emerald" | "green" | "orange" | "rose";
+  blurb: string;
+}
+
+/** Plain-English band for a 0–100 estimate. Unlike the product scores, HIGHER
+ * is worse here, so the tones run the other way. Deliberately coarse — the
+ * heuristic can't justify finer distinctions than "calm / mild / moderate". */
+export function flareBand(score: number): FlareBand {
+  if (score <= 20)
+    return { label: "Calm", tone: "emerald", blurb: "Very little visible inflammation in this photo." };
+  if (score <= 40)
+    return { label: "Mild", tone: "green", blurb: "Some redness, on the milder end." };
+  if (score <= 65)
+    return { label: "Moderate", tone: "orange", blurb: "Clear redness across much of the patch." };
+  return { label: "Marked", tone: "rose", blurb: "Strong, widespread redness in this photo." };
+}
+
 /** Agreement between the heuristic and the user's own manual ratings, so the
  * estimate can be validated before anyone treats it as authoritative.
  * Pairs each scored photo with the manual severity logged for the same date. */
