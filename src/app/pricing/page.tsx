@@ -11,9 +11,12 @@ export const dynamic = "force-dynamic";
 
 const perks = [
   "Daily skin & recovery tracker — body map, severity, symptoms, sleep and mood",
+  "AI flare grading (beta) — an on-device read on redness and severity from a photo",
+  "EASI & POEM — the clinical scores your dermatologist already uses",
+  "Product & food barcode scanner — irritants named, nutrition scored",
   "Private photo timeline — compare today against 90 days ago, side by side",
-  "“Where am I?” withdrawal stage map to see exactly where you are",
-  "Insights & trends built from your own logged data",
+  "“Where am I?” recovery stage map to see exactly where you are",
+  "Your strongest personal pattern, plus anonymised member insights",
   "Trigger tracking to catch what flares you up",
   "Flare-day support tools for the hardest days",
   "The healing protocol library — gut, skin, sleep, diet & biohacking",

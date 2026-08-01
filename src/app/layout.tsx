@@ -12,13 +12,30 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
+const description =
+  "A private membership for skin recovery and healing: a 20-second daily tracker, AI flare grading, EASI & POEM scores, a photo timeline, a product scanner, protocols and a community that gets it. For research & educational purposes only.";
+
 export const metadata: Metadata = {
   title: {
     default: `${appName} — Skin recovery & healing tracker`,
     template: `%s · ${appName}`,
   },
-  description:
-    "A private membership for skin recovery and healing: a daily tracker, photo timeline, withdrawal stage map, protocols, peptide tools and a community. For research & educational purposes only.",
+  description,
+  applicationName: appName,
+  // Installed to the home screen this becomes a standalone app, with the
+  // Arcane mark as its icon (app/apple-icon.png + app/manifest.ts).
+  appleWebApp: {
+    capable: true,
+    title: appName,
+    statusBarStyle: "black",
+  },
+  openGraph: {
+    type: "website",
+    siteName: appName,
+    title: `${appName} — skin recovery, tracked properly`,
+    description,
+  },
+  twitter: { card: "summary_large_image", title: appName, description },
 };
 
 export default function RootLayout({

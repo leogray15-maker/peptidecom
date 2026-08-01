@@ -11,8 +11,9 @@ export function SiteFooter() {
           <div className="max-w-sm">
             <Logo />
             <p className="mt-4 text-sm text-slate-400">
-              Private membership for skin recovery &amp; healing — daily tracking,
-              a photo timeline, protocols and a community that gets it.
+              Private membership for skin recovery &amp; healing — a 20-second daily
+              tracker, AI flare grading, EASI &amp; POEM scores, a photo timeline,
+              protocols and a community that gets it.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3">
@@ -20,7 +21,7 @@ export function SiteFooter() {
               <h4 className="font-semibold text-white">Product</h4>
               <ul className="mt-3 space-y-2 text-slate-400">
                 <li><Link href="/#features" className="hover:text-white">Features</Link></li>
-                <li><Link href="/#tools" className="hover:text-white">Calculator</Link></li>
+                <li><Link href="/#tools" className="hover:text-white">Tools</Link></li>
                 <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
               </ul>
             </div>
