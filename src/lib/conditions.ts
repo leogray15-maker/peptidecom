@@ -42,19 +42,25 @@ export interface ConditionConfig {
   startDateQuestion: string;
 }
 
-// Extra zones for face-centric conditions (chip-only — the body-map SVG keeps
-// its generic shapes and these appear in the chip row).
+// Facial detail zones for conditions where the face is the main event. The
+// tracker's body map renders these on a magnified head beside the figure.
 const FACE_ZONES: BodyZone[] = [
   { id: "forehead", label: "Forehead" },
   { id: "cheeks", label: "Cheeks" },
   { id: "nose", label: "Nose" },
   { id: "chin", label: "Chin" },
   { id: "jawline", label: "Jawline" },
-  { id: "shoulders", label: "Shoulders" },
 ];
 
-const zones = (ids: string[]): BodyZone[] =>
-  ids.map((id) => [...BODY_ZONES, ...FACE_ZONES].find((z) => z.id === id)!).filter(Boolean);
+/** Every zone a face-centric condition can log: the facial detail zones, then
+ * the whole body. Acne and rosacea are named for where they usually show up,
+ * not where a member's skin is allowed to play up — they still need to log a
+ * flare on their legs or hands. "face" is dropped because the five facial
+ * zones above replace it. */
+const faceAndBodyZones = (): BodyZone[] => [
+  ...FACE_ZONES,
+  ...BODY_ZONES.filter((z) => z.id !== "face"),
+];
 
 /** Generic non-withdrawal stage journeys. Tone rule matches lib/tsw.ts: warm,
  * never clinical, framed as "many people experience…". */
@@ -296,7 +302,7 @@ export const CONDITIONS: ConditionConfig[] = [
       { id: "oiliness", label: "Oiliness" },
       { id: "scarring", label: "Marks / scarring" },
     ],
-    zones: zones(["forehead", "cheeks", "nose", "chin", "jawline", "neck", "chest", "back", "shoulders"]),
+    zones: faceAndBodyZones(),
     triggerSuggestions: [
       { kind: "food", name: "Dairy" },
       { kind: "food", name: "Sugar / junk food" },
@@ -371,7 +377,7 @@ export const CONDITIONS: ConditionConfig[] = [
       { id: "dryness", label: "Dryness" },
       { id: "eye-irritation", label: "Eye irritation" },
     ],
-    zones: zones(["forehead", "cheeks", "nose", "chin", "neck", "chest"]),
+    zones: faceAndBodyZones(),
     triggerSuggestions: [
       { kind: "food", name: "Alcohol" },
       { kind: "food", name: "Spicy food" },
