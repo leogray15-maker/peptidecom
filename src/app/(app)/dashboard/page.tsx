@@ -23,6 +23,7 @@ import { FeatureCard, type FeatureCardProps } from "@/components/feature-card";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { StageSheet } from "@/components/stage-sheet";
+import { WelcomeBanner } from "@/components/welcome-banner";
 import { getCurrentUser } from "@/lib/auth";
 import { anyStageName, getCondition } from "@/lib/conditions";
 import {
@@ -154,7 +155,15 @@ const labLinks = [
   { href: "/progress", label: "Progress", icon: LineChart },
 ];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  // `welcome=1` is set by the post-checkout redirect; `checkout=success` is the
+  // older success_url, still honoured so links already out there keep working.
+  searchParams: Promise<{ welcome?: string; checkout?: string }>;
+}) {
+  const { welcome, checkout } = await searchParams;
+  const justSubscribed = welcome === "1" || checkout === "success";
   const user = await getCurrentUser();
 
   const getRecentPosts = () =>
@@ -206,6 +215,7 @@ export default async function DashboardPage() {
       {user && !profile.condition && (
         <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
       )}
+      {justSubscribed && <WelcomeBanner name={user?.name?.split(" ")[0]} />}
       <PageHeader
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."

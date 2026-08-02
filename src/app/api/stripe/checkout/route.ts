@@ -50,7 +50,10 @@ export async function POST(req: Request) {
       subscription_data: {
         metadata: { userId: user.id, plan },
       },
-      success_url: `${appUrl}/dashboard?checkout=success`,
+      // Come back through /checkout/success, which activates the membership
+      // from the session itself rather than waiting on the webhook, then hands
+      // the member on to the dashboard.
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/pricing?checkout=cancelled`,
       metadata: { userId: user.id, plan },
     });

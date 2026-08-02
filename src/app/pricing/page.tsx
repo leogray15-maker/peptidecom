@@ -6,6 +6,7 @@ import { ProofStrip } from "@/components/results-section";
 import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_SAVINGS_PCT, formatPrice } from "@/lib/membership";
 import { PricingPlans } from "@/components/pricing-plans";
+import { reconcileMembership } from "@/lib/stripe-sync";
 
 export const metadata = { title: "Pricing" };
 export const dynamic = "force-dynamic";
@@ -22,9 +23,20 @@ const perks = [
   "Members-only community, WhatsApp chat & the Won recovery-stories wall",
 ];
 
-export default async function PricingPage() {
-  const user = await getCurrentUser();
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
+  const { checkout } = await searchParams;
+  let user = await getCurrentUser();
   const authed = !!user;
+
+  // Anyone who lands here signed in but locked out may simply have paid without
+  // the webhook landing — ask Stripe before showing them the pricing table again.
+  if (user && !hasAccess(user)) {
+    user = await reconcileMembership(user);
+  }
   const member = hasAccess(user);
 
   return (
@@ -75,7 +87,15 @@ export default async function PricingPage() {
                 </Link>
               </div>
             ) : authed ? (
-              <PricingPlans />
+              <div className="space-y-4">
+                {checkout === "cancelled" && (
+                  <p className="rounded-2xl border border-lab-border bg-lab-card p-4 text-sm text-slate-400">
+                    Checkout was cancelled — you haven&apos;t been charged. Pick a plan
+                    whenever you&apos;re ready.
+                  </p>
+                )}
+                <PricingPlans />
+              </div>
             ) : (
               <div className="card text-center">
                 <p className="text-lg font-semibold text-white">Create an account first</p>
