@@ -305,11 +305,154 @@ export const TRIGGER_KINDS = [
   { id: "routine", label: "Routine change" },
 ] as const;
 
+/**
+ * The everyday suspects, as a one-tap checklist.
+ *
+ * The detailed trigger form (name + effect + note) is still there for anything
+ * specific — this list exists so "what happened today?" is five taps instead of
+ * five forms. `icon` is a lucide icon name, resolved in the client component.
+ * Condition-specific suggestions are appended to this list at render time.
+ */
+export const COMMON_TRIGGERS = [
+  { name: "Stress", kind: "stress", icon: "Brain" },
+  { name: "Poor sleep", kind: "stress", icon: "Moon" },
+  { name: "Sweating / exercise", kind: "environment", icon: "Dumbbell" },
+  { name: "Hot shower", kind: "environment", icon: "ShowerHead" },
+  { name: "Cold weather", kind: "environment", icon: "Snowflake" },
+  { name: "Dry air / heating", kind: "environment", icon: "Wind" },
+  { name: "Sun exposure", kind: "environment", icon: "Sun" },
+  { name: "Dust / pollen", kind: "environment", icon: "Droplets" },
+  { name: "Spicy / salty food", kind: "food", icon: "Utensils" },
+  { name: "Alcohol", kind: "food", icon: "Wine" },
+  { name: "New medication", kind: "routine", icon: "Pill" },
+  { name: "Illness / infection", kind: "routine", icon: "BriefcaseMedical" },
+  { name: "Skin injury", kind: "routine", icon: "Bandage" },
+  { name: "Rough fabric / wool", kind: "environment", icon: "Shirt" },
+  { name: "Skipped moisturiser", kind: "routine", icon: "Waves" },
+  { name: "Smoking", kind: "routine", icon: "Cigarette" },
+] as const;
+
 export const TRIGGER_EFFECTS = [
   { value: 1, label: "Seemed to help" },
   { value: 0, label: "No change" },
   { value: -1, label: "Seemed to flare me" },
 ] as const;
+
+// ─── Feature consents ────────────────────────────────────────────────────────
+// The keys live here (shared, dependency-free) so both the client store in
+// lib/consent.ts and the server route that persists them can use them without
+// crossing the client/server boundary.
+
+export const CONSENT_KEYS = ["photoEstimate", "toolHistory"] as const;
+export type ConsentKey = (typeof CONSENT_KEYS)[number];
+
+/** The on-device conveniences are on unless the member opts out. */
+export const CONSENT_DEFAULTS: Record<ConsentKey, boolean> = {
+  photoEstimate: true,
+  toolHistory: true,
+};
+
+// ─── Itch check-ins ──────────────────────────────────────────────────────────
+// The itch is the part people actually live with hour to hour, so it gets its
+// own one-tap log rather than waiting for the end-of-day tracker.
+
+/** What helped in the moment. Coping options only — never "just don't
+ * scratch", which is advice nobody in a flare has ever needed to hear. */
+export const ITCH_ACTIONS = [
+  { id: "cold", label: "Cold compress" },
+  { id: "moisturise", label: "Moisturised" },
+  { id: "distract", label: "Distraction" },
+  { id: "breathe", label: "Breathing" },
+  { id: "pressure", label: "Pressed / tapped instead" },
+  { id: "scratched", label: "Scratched" },
+  { id: "nothing", label: "Rode it out" },
+] as const;
+
+export const itchActionLabel = (id?: string | null) =>
+  ITCH_ACTIONS.find((a) => a.id === id)?.label ?? null;
+
+/** Bands for the 0–10 scale — used for the colour and the copy. */
+export function itchBand(level: number): { label: string; tone: string } {
+  if (level >= 8) return { label: "Unbearable", tone: "rose" };
+  if (level >= 6) return { label: "Intense", tone: "orange" };
+  if (level >= 4) return { label: "Nagging", tone: "amber" };
+  if (level >= 1) return { label: "Mild", tone: "emerald" };
+  return { label: "None", tone: "emerald" };
+}
+
+export interface ItchPoint {
+  date: string;
+  at: string;
+  level: number;
+}
+
+export interface ItchSummary {
+  /** Check-ins logged today. */
+  todayCount: number;
+  /** Mean of today's check-ins, rounded to 1dp (null when none). */
+  todayAvg: number | null;
+  /** Worst level logged today (null when none). */
+  todayPeak: number | null;
+  /** Mean over the last 7 days (null when none). */
+  weekAvg: number | null;
+  /** Hour of day (0–23) the itch has peaked most often, or null if there
+   * isn't enough history to say anything honest. */
+  worstHour: number | null;
+  /** Per-day means for the last 7 days, oldest first — drives the sparkline. */
+  week: { date: string; avg: number | null }[];
+}
+
+/** Summarise itch check-ins. Pure, so the dashboard, the itch screen and the
+ * coach all read the same numbers. */
+export function summariseItch(points: ItchPoint[], today = dateKey()): ItchSummary {
+  const todays = points.filter((p) => p.date === today);
+  const mean = (xs: number[]) =>
+    xs.length ? Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10) / 10 : null;
+
+  // Last 7 days, oldest first.
+  const week: { date: string; avg: number | null }[] = [];
+  const todayMs = Date.UTC(
+    Number(today.slice(0, 4)),
+    Number(today.slice(5, 7)) - 1,
+    Number(today.slice(8, 10))
+  );
+  for (let i = 6; i >= 0; i--) {
+    const key = dateKey(new Date(todayMs - i * DAY_MS));
+    week.push({ date: key, avg: mean(points.filter((p) => p.date === key).map((p) => p.level)) });
+  }
+
+  const weekLevels = points
+    .filter((p) => week.some((d) => d.date === p.date))
+    .map((p) => p.level);
+
+  // Worst hour: only claim a pattern once there's a fortnight-ish of signal.
+  let worstHour: number | null = null;
+  if (points.length >= 14) {
+    const byHour = new Map<number, number[]>();
+    for (const p of points) {
+      const hour = new Date(p.at).getHours();
+      byHour.set(hour, [...(byHour.get(hour) ?? []), p.level]);
+    }
+    let best = -1;
+    for (const [hour, levels] of byHour) {
+      if (levels.length < 3) continue; // one bad night isn't a pattern
+      const avg = levels.reduce((s, x) => s + x, 0) / levels.length;
+      if (avg > best) {
+        best = avg;
+        worstHour = hour;
+      }
+    }
+  }
+
+  return {
+    todayCount: todays.length,
+    todayAvg: mean(todays.map((p) => p.level)),
+    todayPeak: todays.length ? Math.max(...todays.map((p) => p.level)) : null,
+    weekAvg: mean(weekLevels),
+    worstHour,
+    week,
+  };
+}
 
 // ─── Research goals (journal + peptide tracker) ──────────────────────────────
 // People run peptides for very different reasons — the journal and tracker are
@@ -341,5 +484,9 @@ export const FUNNEL_EVENTS = [
   "archives_nav_click",
   "archives_cta_click",
   "celebration_next_chapter_click",
+  "itch_logged",
+  "forecast_checked",
+  "forecast_saved",
+  "triggers_day_saved",
 ] as const;
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];

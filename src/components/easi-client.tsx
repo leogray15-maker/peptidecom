@@ -20,6 +20,7 @@ import {
   appendHistory,
   clearHistory,
   loadHistory,
+  syncHistory,
 } from "@/lib/tool-history";
 import { cn } from "@/lib/utils";
 
@@ -73,8 +74,11 @@ export function EasiClient() {
   const [history, setHistory] = useState<HistoryEntry<EasiDetail>[]>([]);
   const [justSaved, setJustSaved] = useState(false);
 
+  // Render this device's copy immediately, then reconcile with the account's
+  // so scores saved on another phone show up here too.
   useEffect(() => {
     setHistory(loadHistory<EasiDetail>(TOOL));
+    void syncHistory<EasiDetail>(TOOL).then(setHistory);
   }, []);
 
   const score = useMemo(() => easiScore(input), [input]);
@@ -107,10 +111,10 @@ export function EasiClient() {
     setJustSaved(true);
   }
 
-  function wipeHistory() {
-    if (!confirm("Clear your saved EASI history on this device?")) return;
-    clearHistory(TOOL);
+  async function wipeHistory() {
+    if (!confirm("Clear your saved EASI history? This clears it on every device.")) return;
     setHistory([]);
+    await clearHistory(TOOL);
   }
 
   const recent = [...history].reverse().slice(0, 8);
@@ -224,7 +228,7 @@ export function EasiClient() {
             })}
           </ul>
           <p className="mt-3 text-xs text-slate-500">
-            Saved on this device only — private, never uploaded.
+            Saved to your account — private to you, and there on every device you sign in on.
           </p>
         </div>
       )}

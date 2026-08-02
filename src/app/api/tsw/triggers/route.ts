@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { TRIGGER_KINDS } from "@/lib/tsw";
-import { addTrigger, deleteTrigger, tswKey } from "@/lib/tsw-db";
+import { addTrigger, deleteTrigger, logFunnel, tswKey } from "@/lib/tsw-db";
 
-const schema = z.object({
+const entrySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   kind: z.enum(TRIGGER_KINDS.map((k) => k.id) as [string, ...string[]]),
   name: z.string().min(1).max(120),
   effect: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
   note: z.string().max(1000).optional().nullable(),
 });
+
+/** One entry (the detailed form) or a batch (today's checklist) — the
+ * checklist would otherwise fire a request per tick. */
+const schema = z.union([entrySchema, z.object({ items: z.array(entrySchema).min(1).max(40) })]);
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -21,12 +25,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
 
+  const uid = tswKey(user);
+  const items = "items" in parsed.data ? parsed.data.items : [parsed.data];
+
   try {
-    const id = await addTrigger(tswKey(user), {
-      ...parsed.data,
-      note: parsed.data.note ?? null,
-    });
-    return NextResponse.json({ ok: true, id });
+    const ids = await Promise.all(
+      items.map((item) => addTrigger(uid, { ...item, note: item.note ?? null }))
+    );
+    if (items.length > 1) await logFunnel(uid, "triggers_day_saved", { count: items.length });
+    return NextResponse.json({ ok: true, ids, id: ids[0] });
   } catch (err) {
     console.error("Failed to save trigger:", err);
     return NextResponse.json(

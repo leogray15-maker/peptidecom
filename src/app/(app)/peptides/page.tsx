@@ -23,6 +23,7 @@ export default async function PeptidesPage() {
       <PageHeader
         title="Peptide tracker"
         subtitle="Every dose on the record — what you took, how much, when, and how it's going."
+        back="/dashboard"
       />
       <div className="mb-6">
         <DoseScheduleSection

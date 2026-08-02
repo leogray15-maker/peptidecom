@@ -52,6 +52,7 @@ export default async function CommunityPage({
       <PageHeader
         title="Community"
         subtitle="Honest, moderated discussion. Find people in the same phase as you — they get it."
+        back="/dashboard"
       />
 
       <NewPostForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />

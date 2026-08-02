@@ -26,6 +26,7 @@ import {
   clearScans,
   gradingCounts,
   loadScans,
+  syncScans,
 } from "@/lib/scan-history";
 import { cn } from "@/lib/utils";
 
@@ -53,8 +54,10 @@ export function ScanClient() {
   const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
   const [history, setHistory] = useState<ScanRecord[]>([]);
 
+  // This device's scans render instantly; the account's are merged in behind.
   useEffect(() => {
     setHistory(loadScans());
+    void syncScans().then(setHistory);
   }, []);
 
   const counts = useMemo(() => gradingCounts(history), [history]);
@@ -183,10 +186,10 @@ export function ScanClient() {
     setManualBarcode("");
   }
 
-  function wipeHistory() {
-    if (!confirm("Clear your scan history on this device?")) return;
-    clearScans();
+  async function wipeHistory() {
+    if (!confirm("Clear your scan history? This clears it on every device.")) return;
     setHistory([]);
+    await clearScans();
   }
 
   // ── Result view ──────────────────────────────────────────────────────────
@@ -316,7 +319,7 @@ export function ScanClient() {
       {totalScans > 0 && (
         <div className="card !rounded-3xl">
           <h2 className="font-semibold text-white">Grading overview</h2>
-          <p className="mt-0.5 text-sm text-slate-400">{totalScans} product{totalScans === 1 ? "" : "s"} scanned on this device</p>
+          <p className="mt-0.5 text-sm text-slate-400">{totalScans} product{totalScans === 1 ? "" : "s"} scanned on your account</p>
           <div className="mt-4 space-y-2">
             {gradeMeta.map((g) => (
               <div key={g.label} className="flex items-center justify-between rounded-xl border border-lab-border bg-lab-bg px-4 py-2.5">

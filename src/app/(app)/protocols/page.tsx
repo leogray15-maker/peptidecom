@@ -13,6 +13,7 @@ export default function ProtocolsPage() {
       <PageHeader
         title="Protocols"
         subtitle="The Arcane Track healing library — step-by-step protocols, curated by the lab."
+        back="/dashboard"
       />
 
       <div className="card border-gold-500/25">

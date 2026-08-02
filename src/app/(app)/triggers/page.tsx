@@ -1,12 +1,31 @@
 import { PageHeader } from "@/components/page-header";
 import { PeerSupportNote } from "@/components/peer-support-note";
-import { TriggersClient } from "@/components/triggers-client";
+import { type ChecklistItem, TriggersClient } from "@/components/triggers-client";
 import { getCurrentUser } from "@/lib/auth";
 import { getCondition } from "@/lib/conditions";
 import { safe } from "@/lib/safe-db";
+import { COMMON_TRIGGERS } from "@/lib/tsw";
 import { type TriggerLog, type TswProfile, getProfile, listTriggers, tswKey } from "@/lib/tsw-db";
 
-export const metadata = { title: "Triggers & routine" };
+export const metadata = { title: "Triggers" };
+
+/** The everyday list, plus anything specific to the member's condition that
+ * isn't already on it. De-duped on name so a condition suggestion never
+ * appears twice. */
+function buildChecklist(suggestions: { kind: string; name: string }[]): ChecklistItem[] {
+  const items: ChecklistItem[] = COMMON_TRIGGERS.map((t) => ({
+    name: t.name,
+    kind: t.kind,
+    icon: t.icon,
+  }));
+  const seen = new Set(items.map((i) => i.name.toLowerCase()));
+  for (const s of suggestions) {
+    if (seen.has(s.name.toLowerCase())) continue;
+    seen.add(s.name.toLowerCase());
+    items.push({ name: s.name, kind: s.kind, icon: "Sparkles" });
+  }
+  return items;
+}
 
 export default async function TriggersPage() {
   const user = await getCurrentUser();
@@ -22,8 +41,9 @@ export default async function TriggersPage() {
   return (
     <div>
       <PageHeader
-        title="Triggers & routine log"
-        subtitle="Moisturisers, foods, weather, stress — log what touches your life and let your own patterns surface."
+        title="Triggers"
+        subtitle="Tick what touched your skin today. Over a few weeks your own patterns surface."
+        back="/dashboard"
       />
       <TriggersClient
         initialEntries={entries.map((e) => ({
@@ -34,7 +54,7 @@ export default async function TriggersPage() {
           effect: e.effect,
           note: e.note,
         }))}
-        suggestions={condition.triggerSuggestions}
+        checklist={buildChecklist(condition.triggerSuggestions)}
       />
       <PeerSupportNote />
     </div>

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type ConsentKey, getConsent, setConsent } from "@/lib/consent";
+import {
+  type ConsentKey,
+  CONSENT_DEFAULTS,
+  getAllConsents,
+  setConsent,
+  syncConsents,
+} from "@/lib/consent";
 import { cn } from "@/lib/utils";
 
 interface Toggle {
@@ -19,9 +25,9 @@ const TOGGLES: Toggle[] = [
   },
   {
     key: "toolHistory",
-    title: "Save tool history on this device",
+    title: "Save tool history to my account",
     description:
-      "Keeps your EASI and POEM scores in this browser so you can see the trend. Stored only on this device, never uploaded. Turn off to stop saving and keep the calculators memory-free.",
+      "Keeps your EASI, POEM and product-scan history on your profile so the trend is the same on every device you sign in on, and still readable offline on this one. Turn off to stop saving and keep the tools memory-free.",
   },
 ];
 
@@ -48,16 +54,13 @@ function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
 }
 
 export function PrivacySourcesToggles() {
-  const [state, setState] = useState<Record<ConsentKey, boolean>>({
-    photoEstimate: true,
-    toolHistory: true,
-  });
+  // Server-rendered HTML can't know the member's choice, so start from the
+  // defaults and settle once the cached + account copies are read.
+  const [state, setState] = useState<Record<ConsentKey, boolean>>(CONSENT_DEFAULTS);
 
   useEffect(() => {
-    setState({
-      photoEstimate: getConsent("photoEstimate"),
-      toolHistory: getConsent("toolHistory"),
-    });
+    setState(getAllConsents());
+    void syncConsents().then(setState);
   }, []);
 
   function toggle(key: ConsentKey) {

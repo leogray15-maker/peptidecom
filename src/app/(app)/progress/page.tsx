@@ -17,6 +17,7 @@ export default async function ProgressPage() {
       <PageHeader
         title="Research journal"
         subtitle="Weight loss, muscle, skin, focus, sleep — whatever you're running research for, track how it's actually going."
+        back="/dashboard"
       />
       <JournalClient
         initialEntries={entries.map((e) => ({

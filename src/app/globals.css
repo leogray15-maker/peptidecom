@@ -49,6 +49,41 @@ body {
     @apply btn text-slate-300 hover:bg-white/5;
   }
 
+  /* The loud one: a filled pill in the light end of the brand ramp with dark
+   * text. Reserved for the single most important action on a screen. */
+  .btn-accent {
+    @apply btn rounded-2xl bg-brand-300 px-6 py-4 text-base font-bold text-lab-bg shadow-lg shadow-brand-500/20 hover:bg-brand-200;
+  }
+
+  /* Quiet twin of .btn-accent, for the secondary action under it. */
+  .btn-accent-ghost {
+    @apply btn rounded-2xl border border-lab-border bg-lab-card px-6 py-3.5 text-sm font-semibold text-slate-300 hover:border-brand-500/40 hover:text-brand-200;
+  }
+
+  /* Full-width tappable row — the app's list primitive. One row = one choice,
+   * thumb-sized, with the state indicator pinned right. */
+  .tap-row {
+    @apply flex w-full items-center gap-3 rounded-2xl border border-transparent bg-lab-card px-4 py-3.5 text-left transition;
+  }
+
+  .tap-row-idle {
+    @apply tap-row text-slate-200 hover:border-brand-500/40 hover:bg-brand-500/5;
+  }
+
+  .tap-row-on {
+    @apply tap-row border-brand-500/60 bg-brand-500/15 text-white;
+  }
+
+  /* Circular icon button — back chevrons, close buttons. */
+  .icon-circle {
+    @apply grid h-11 w-11 shrink-0 place-items-center rounded-full border border-lab-border bg-lab-card text-slate-300 transition hover:border-brand-500/50 hover:text-brand-200;
+  }
+
+  /* Big rounded tile behind the icon at the top of a gate / empty state. */
+  .icon-tile {
+    @apply grid h-16 w-16 place-items-center rounded-3xl bg-brand-500/10 text-brand-300 ring-1 ring-inset ring-brand-500/20;
+  }
+
   .input {
     @apply w-full rounded-xl border border-lab-border bg-lab-bg px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
   }
@@ -60,6 +95,22 @@ body {
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
+}
+
+/* Ambient violet glow behind the top of every member screen. Purely
+ * decorative, so it's pointer-transparent and hidden from assistive tech. */
+.app-glow {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 60vh;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    80% 55% at 50% -10%,
+    rgba(124, 92, 255, 0.22) 0%,
+    rgba(124, 92, 255, 0.08) 45%,
+    transparent 75%
+  );
 }
 
 /* Slow breathing guide on the flare-day support page. */
