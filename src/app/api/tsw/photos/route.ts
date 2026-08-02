@@ -44,6 +44,9 @@ const createSchema = z.object({
       rednessIndex: z.number().min(0).max(1),
       version: z.number().int().min(1).max(100),
       method: z.enum(["heuristic", "tfjs", "blended"]),
+      // Whether the score was relative to the member's own calm photo.
+      // Optional: estimates saved before v2 don't carry it.
+      basis: z.enum(["baseline", "absolute"]).optional(),
     })
     .optional()
     .nullable(),
