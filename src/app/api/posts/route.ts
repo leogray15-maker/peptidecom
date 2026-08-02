@@ -4,11 +4,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_CONDITION } from "@/lib/conditions";
 import { prisma } from "@/lib/prisma";
 import { getProfile, tswKey } from "@/lib/tsw-db";
+import { clientIp, verifyTurnstile } from "@/lib/turnstile";
 
 const schema = z.object({
   title: z.string().min(3).max(160),
   content: z.string().min(1).max(20000),
   categoryId: z.string().optional().nullable(),
+  /** Cloudflare Turnstile token. Ignored when Turnstile isn't configured. */
+  turnstileToken: z.string().max(4000).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -19,6 +22,9 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
+
+  const check = await verifyTurnstile(parsed.data.turnstileToken, clientIp(req));
+  if (!check.ok) return NextResponse.json({ error: check.error }, { status: 403 });
 
   // Posts inherit the author's condition so the feed can default to
   // same-condition discussion.

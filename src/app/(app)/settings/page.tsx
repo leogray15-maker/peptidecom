@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download, ShieldCheck } from "lucide-react";
 import { ConditionSettings } from "@/components/condition-picker";
+import { DigestPrefsClient } from "@/components/digest-prefs-client";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentUser } from "@/lib/auth";
 import { getCondition } from "@/lib/conditions";
@@ -115,6 +116,8 @@ export default async function SettingsPage() {
             ))}
           </div>
         </section>
+
+        <DigestPrefsClient initial={profile.digestPrefs ?? null} />
 
         <section className="card">
           <h2 className="text-lg font-semibold text-white">Privacy &amp; sources</h2>

@@ -7,10 +7,16 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/firebase-admin";
 import { isAdminEmail, syncMembershipClaim } from "@/lib/auth";
+import { clientIp, verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 
-const schema = z.object({ idToken: z.string().min(10) });
+const schema = z.object({
+  idToken: z.string().min(10),
+  /** Cloudflare Turnstile token from the signup form. Only required when this
+   * request would CREATE an account — returning members log in without one. */
+  turnstileToken: z.string().max(4000).optional().nullable(),
+});
 
 function makeUsername(email: string) {
   return (
@@ -69,6 +75,13 @@ export async function POST(req: Request) {
           },
         });
       } else {
+        // This is a brand-new account — the only path bots care about, and so
+        // the only one gated. No-op when Turnstile isn't configured.
+        const check = await verifyTurnstile(parsed.data.turnstileToken, clientIp(req));
+        if (!check.ok) {
+          return NextResponse.json({ error: check.error }, { status: 403 });
+        }
+
         // Ensure a unique username.
         let username = makeUsername(normalizedEmail);
         for (let i = 0; i < 5; i++) {

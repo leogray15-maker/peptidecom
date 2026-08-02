@@ -19,8 +19,9 @@ import { ConditionPickerModal } from "@/components/condition-picker";
 import { FeatureCard, type FeatureCardProps } from "@/components/feature-card";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
+import { StageSheet } from "@/components/stage-sheet";
 import { getCurrentUser } from "@/lib/auth";
-import { anyStageName } from "@/lib/conditions";
+import { anyStageName, getCondition } from "@/lib/conditions";
 import {
   buildCohortStatements,
   computePersonalInsight,
@@ -43,42 +44,52 @@ import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
-// The skin toolkit — the clean feature cards that anchor the dashboard.
-// AI Flare Grading / EASI / POEM / Ingredient scanner sit up top as the
-// headline tools, then the day-to-day tracking links.
-const skinTools: FeatureCardProps[] = [
+// The skin toolkit, split by how much the numbers can be trusted.
+//
+// The split is the point: EASI and POEM are published, validated instruments a
+// clinician recognises, while flare grading and the scanner are our own
+// heuristics. Mixing them in one grid quietly borrows the credibility of the
+// first group for the second, so they get separate headings and separate
+// badges — VALIDATED vs EXPERIMENTAL.
+const clinicalTools: FeatureCardProps[] = [
+  {
+    href: "/easi",
+    title: "EASI calculator",
+    icon: Ruler,
+    badge: "VALIDATED",
+    description:
+      "Score your Eczema Area & Severity Index — the published measure dermatologists use.",
+  },
+  {
+    href: "/poem",
+    title: "POEM weekly score",
+    icon: ClipboardCheck,
+    badge: "VALIDATED",
+    description:
+      "The validated 7-question weekly measure. Track your week-on-week trend and share it with your clinician.",
+  },
+];
+
+const experimentalTools: FeatureCardProps[] = [
   {
     href: "/grade",
     title: "AI Flare Grading",
     icon: ScanEye,
     badge: "BETA",
     description:
-      "Photograph an itchy patch — an on-device estimate of redness and severity. Educational, not diagnostic.",
-  },
-  {
-    href: "/easi",
-    title: "EASI calculator",
-    icon: Ruler,
-    badge: "NEW",
-    description:
-      "Score your Eczema Area & Severity Index — the gold-standard measure dermatologists use.",
-  },
-  {
-    href: "/poem",
-    title: "POEM weekly score",
-    icon: ClipboardCheck,
-    badge: "NEW",
-    description:
-      "The validated 7-question weekly measure. Track your week-on-week trend and share it with your clinician.",
+      "Photograph an itchy patch for an on-device estimate of how inflamed it looks — to help you describe a flare to a clinician. An estimate, not a diagnosis.",
   },
   {
     href: "/scan",
     title: "Product scanner",
     icon: ScanLine,
-    badge: "NEW",
+    badge: "EXPERIMENTAL",
     description:
-      "Scan any barcode — skincare scored for sensitive skin, food & drink scored on nutrition. Like Yuka.",
+      "Scan any barcode — skincare scored for sensitive skin, food & drink scored on nutrition. Our own scoring, not a clinical measure.",
   },
+];
+
+const trackingTools: FeatureCardProps[] = [
   {
     href: "/tracker",
     title: "Daily tracker",
@@ -132,6 +143,7 @@ export default async function DashboardPage() {
   ]);
 
   const stats = computeStats(logs);
+  const condition = getCondition(profile.condition);
   const stage = anyStageName(profile.recoveryStage, profile.condition);
   const todayLogged = logs.some((l) => l.date === dateKey());
   const firstName = user?.name?.split(" ")[0] ?? "there";
@@ -164,15 +176,53 @@ export default async function DashboardPage() {
 
       {/* Recovery stats — 2×2 on phones so the overview fits one screen. */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {/* Streak. A bare "0 days" is the single most demoralising thing this
+            screen could say to someone mid-flare, so zero never renders as a
+            number — it becomes total-days-logged or a plain invitation. */}
         <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-slate-400 sm:text-sm">Tracking streak</p>
-          <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
-            {stats.streak}
-            <span className="text-sm font-normal text-slate-500 sm:text-base"> day{stats.streak === 1 ? "" : "s"}</span>
+          <p className="text-xs text-slate-400 sm:text-sm">
+            {stats.streak > 0 ? "Tracking streak" : "Your tracking"}
           </p>
-          {!todayLogged && stats.daysTracked > 0 && (
-            <Link href="/tracker" className="mt-1 inline-block text-xs text-brand-300 hover:text-brand-200">
-              Log today to keep it →
+          {stats.streak > 0 ? (
+            <>
+              <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                {stats.streak}
+                <span className="text-sm font-normal text-slate-500 sm:text-base">
+                  {" "}
+                  day{stats.streak === 1 ? "" : "s"}
+                </span>
+              </p>
+              {stats.streakUsedGrace && (
+                <p className="mt-1 text-xs text-gold-300">Flare-day pass kept it alive ✦</p>
+              )}
+              {!todayLogged && (
+                <Link
+                  href="/tracker"
+                  className="mt-1 inline-block text-xs text-brand-300 hover:text-brand-200"
+                >
+                  Log today to keep it →
+                </Link>
+              )}
+            </>
+          ) : stats.daysTracked > 0 ? (
+            <>
+              <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                {stats.daysTracked}
+                <span className="text-sm font-normal text-slate-500 sm:text-base"> day{stats.daysTracked === 1 ? "" : "s"} logged</span>
+              </p>
+              <Link
+                href="/tracker"
+                className="mt-1 inline-block text-xs text-brand-300 hover:text-brand-200"
+              >
+                {todayLogged ? "Every day counts →" : "Pick it back up today →"}
+              </Link>
+            </>
+          ) : (
+            <Link
+              href="/tracker"
+              className="mt-1 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
+            >
+              Log your first day →
             </Link>
           )}
         </div>
@@ -183,7 +233,11 @@ export default async function DashboardPage() {
         <div className="card !p-4 sm:!p-6">
           <p className="text-xs text-slate-400 sm:text-sm">Current stage</p>
           {stage ? (
-            <p className="mt-1 text-base font-bold leading-snug text-white sm:text-xl">{stage}</p>
+            <StageSheet
+              stages={condition.stages}
+              currentStageId={profile.recoveryStage ?? null}
+              currentStageName={stage}
+            />
           ) : (
             <Link href="/timeline" className="mt-1 inline-block text-sm font-medium text-brand-300 hover:text-brand-200">
               Mark where you are →
@@ -229,10 +283,32 @@ export default async function DashboardPage() {
       {/* Cohort + personal insights */}
       <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
 
-      {/* Skin toolkit — clean feature cards */}
-      <h2 className="mt-8 text-lg font-semibold text-white">Your skin toolkit</h2>
+      {/* Skin toolkit — validated instruments kept visibly apart from our own
+          experimental scoring. */}
+      <h2 className="mt-8 text-lg font-semibold text-white">Validated clinical measures</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Published instruments your clinician will recognise, used here as self-tracking tools.
+      </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
-        {skinTools.map((tool) => (
+        {clinicalTools.map((tool) => (
+          <FeatureCard key={tool.href} {...tool} />
+        ))}
+      </div>
+
+      <h2 className="mt-8 text-lg font-semibold text-white">Experimental tools</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Our own estimates, built to help you describe what you&apos;re seeing. Not validated
+        measures, and never a diagnosis.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
+        {experimentalTools.map((tool) => (
+          <FeatureCard key={tool.href} {...tool} />
+        ))}
+      </div>
+
+      <h2 className="mt-8 text-lg font-semibold text-white">Day-to-day tracking</h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
+        {trackingTools.map((tool) => (
           <FeatureCard key={tool.href} {...tool} />
         ))}
       </div>

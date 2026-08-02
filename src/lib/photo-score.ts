@@ -30,6 +30,9 @@ export interface PhotoFeatures {
   composite: number;
   /** How many sampled pixels were usable — low counts mean "don't trust it". */
   usableFraction: number;
+  /** Share of usable pixels that read as plausible skin of any tone (0–1).
+   * Gates the non-skin rejection — see isLikelySkinPhoto. */
+  skinFraction: number;
 }
 
 export interface PhotoEstimate {
@@ -39,6 +42,13 @@ export interface PhotoEstimate {
   rednessIndex: number;
   version: number;
   method: "heuristic" | "tfjs" | "blended";
+  /** Which model produced this number (lib/ai-grading.ts modelIdFor). Stored
+   * so a historical grading stays attributable after the maths or the local
+   * model changes. Absent on estimates made before this was recorded. */
+  modelId?: string;
+  /** The disclaimer version the member accepted when this was graded.
+   * Historical values are never rewritten — see RETROACTIVE_RELABEL_POLICY. */
+  consentVersion?: number;
 }
 
 /** RGB (0–255) → [hue 0–360, saturation 0–1, value 0–1]. */
@@ -69,6 +79,17 @@ const REDNESS_NORM = 0.22; // rednessIndex at/above this maps to 1.0
 /** Sampled-pixel floor below which the photo is too dark/blown to score. */
 const MIN_USABLE_FRACTION = 0.2;
 
+// Skin-plausibility band. Deliberately GENEROUS: the cost of a false negative
+// here falls hardest on members with deeper skin tones, so the rule is tuned to
+// admit every human skin tone (which all sit red-dominant in the warm hues)
+// and to exclude the things people actually mis-upload — screenshots, memes,
+// product labels, pets, walls, sky.
+const SKIN_HUE_MAX = 55; // 0–55° …
+const SKIN_HUE_MIN = 335; // … and 335–360° are the warm band skin lives in
+const SKIN_MIN_SATURATION = 0.08; // below this it's grey — paper, screens, walls
+const SKIN_MAX_SATURATION = 0.9; // above this it's a saturated non-skin colour
+const SKIN_MIN_VALUE = 0.06; // admits deep skin tones, rejects black frames
+
 /** Extract features from raw RGBA pixel data (pure — Node-testable).
  * Samples the centre 70% of the frame so background edges don't dominate. */
 export function computePhotoFeatures(
@@ -87,6 +108,7 @@ export function computePhotoFeatures(
   let sampled = 0;
   let usable = 0;
   let inflamed = 0;
+  let skin = 0;
   let rednessSum = 0;
 
   for (let y = y0; y < y1; y += stride) {
@@ -102,6 +124,7 @@ export function computePhotoFeatures(
       rednessSum += Math.max(0, r - (g + b) / 2) / 255;
       const redHue = h <= RED_HUE_MAX || h >= RED_HUE_MIN;
       if (redHue && s >= MIN_SATURATION) inflamed++;
+      if (isSkinPixel(r, g, b, h, s, v)) skin++;
     }
   }
 
@@ -113,7 +136,32 @@ export function computePhotoFeatures(
     rednessIndex,
     composite: 0.55 * inflamedFraction + 0.45 * rNorm,
     usableFraction: sampled > 0 ? usable / sampled : 0,
+    skinFraction: usable > 0 ? skin / usable : 0,
   };
+}
+
+/** Plausible-skin test for one pixel. Skin of every tone is red-dominant and
+ * sits in the warm hue band at moderate saturation; the ordering check
+ * (R ≥ G ≥ B) is what separates skin from orange packaging and autumn leaves. */
+function isSkinPixel(
+  r: number,
+  g: number,
+  b: number,
+  h: number,
+  s: number,
+  v: number
+): boolean {
+  if (v < SKIN_MIN_VALUE) return false;
+  if (s < SKIN_MIN_SATURATION || s > SKIN_MAX_SATURATION) return false;
+  if (!(h <= SKIN_HUE_MAX || h >= SKIN_HUE_MIN)) return false;
+  return r >= g && g >= b;
+}
+
+/** Whether a photo looks enough like skin to be worth grading or storing as a
+ * flare photo. Cheap gate that runs before any model does — see
+ * MIN_SKIN_FRACTION in lib/ai-grading.ts for the threshold rationale. */
+export function isLikelySkinPhoto(features: PhotoFeatures, minSkinFraction: number): boolean {
+  return features.skinFraction >= minSkinFraction;
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));

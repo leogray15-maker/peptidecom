@@ -1,11 +1,14 @@
 import "server-only";
 import { adminDb } from "@/lib/firebase-admin";
+import type { AiGradingConsent } from "@/lib/ai-grading";
+import type { DigestPrefs } from "@/lib/notifications";
 import {
   type DailyLog,
   type FunnelEvent,
   MILESTONE_DEFS,
   type MilestoneDef,
   computeStats,
+  dateKey,
   earnedMilestones,
 } from "@/lib/tsw";
 
@@ -24,6 +27,13 @@ export interface TswProfile {
   /** Condition id from lib/conditions.ts. Missing = "tsw" (every account
    * predating multi-condition support) — resolved via getCondition(). */
   condition?: string | null;
+  /** AI Flare Grading disclaimer consent. Server-side and tied to the account
+   * (NOT localStorage) so it survives device changes and can be re-prompted on
+   * a copy version bump. Missing = never consented. */
+  aiGradingConsent?: AiGradingConsent | null;
+  /** Weekly insight digest preferences (opt-in, with quiet hours). Missing =
+   * not opted in — the digest job skips the member entirely. */
+  digestPrefs?: DigestPrefs | null;
 }
 
 export async function getProfile(uid: string): Promise<TswProfile> {
@@ -57,6 +67,26 @@ export async function setCondition(uid: string, condition: string): Promise<void
   await db.collection("users").doc(uid).set({ condition }, { merge: true });
 }
 
+/** Record the member's affirmative acceptance of the AI Flare Grading
+ * disclaimer. Append-only history alongside the current value, so "what was
+ * this member told, and when" stays answerable after a copy version bump. */
+export async function setAiGradingConsent(
+  uid: string,
+  consent: AiGradingConsent
+): Promise<void> {
+  const db = await adminDb();
+  const ref = db.collection("users").doc(uid);
+  await Promise.all([
+    ref.set({ aiGradingConsent: consent }, { merge: true }),
+    ref.collection("aiGradingConsents").add(consent),
+  ]);
+}
+
+export async function setDigestPrefs(uid: string, prefs: DigestPrefs): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).set({ digestPrefs: prefs }, { merge: true });
+}
+
 // ─── Daily logs (users/{uid}/dailyLogs/{YYYY-MM-DD}) ─────────────────────────
 
 export async function listLogs(uid: string, sinceDate?: string): Promise<DailyLog[]> {
@@ -73,12 +103,18 @@ export async function listLogs(uid: string, sinceDate?: string): Promise<DailyLo
 
 export async function saveLog(uid: string, log: DailyLog): Promise<void> {
   const db = await adminDb();
-  await db
-    .collection("users")
-    .doc(uid)
-    .collection("dailyLogs")
-    .doc(log.date)
-    .set({ ...log, updatedAt: new Date().toISOString() });
+  const ref = db.collection("users").doc(uid).collection("dailyLogs").doc(log.date);
+
+  // `loggedOn` records the server date of the FIRST write and is never moved
+  // afterwards — editing yesterday's entry today must not turn a backfilled
+  // log into a same-day one, because the flare-day grace pass depends on that
+  // distinction. Everything else is a full overwrite, as before.
+  const existing = (await ref.get()).data() as DailyLog | undefined;
+  await ref.set({
+    ...log,
+    loggedOn: existing?.loggedOn ?? dateKey(),
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export async function deleteLog(uid: string, date: string): Promise<void> {
@@ -99,6 +135,10 @@ export interface TswPhoto {
   /** Free client-side severity estimate (see src/lib/photo-score.ts).
    * Absent on photos uploaded before the feature existed. */
   estimate?: import("@/lib/photo-score").PhotoEstimate | null;
+  /** Member-asserted "my dermatologist confirmed this grading". Data model
+   * only for now — nothing reports on it yet. Absent = never marked. */
+  dermConfirmed?: boolean;
+  dermConfirmedAt?: string | null;
 }
 
 export async function listPhotos(uid: string): Promise<TswPhoto[]> {
@@ -154,6 +194,42 @@ export async function setPhotoShared(
         })
       : mirrorRef.delete(),
   ]);
+}
+
+/** Flag (or un-flag) a grading as confirmed by the member's dermatologist.
+ * Stored on the photo so it travels with the estimate it refers to. */
+export async function setPhotoDermConfirmed(
+  uid: string,
+  photoId: string,
+  confirmed: boolean
+): Promise<void> {
+  const db = await adminDb();
+  await db
+    .collection("users")
+    .doc(uid)
+    .collection("photos")
+    .doc(photoId)
+    .set(
+      {
+        dermConfirmed: confirmed,
+        dermConfirmedAt: confirmed ? new Date().toISOString() : null,
+      },
+      { merge: true }
+    );
+}
+
+/** How many photos this member has saved since `sinceIso` — the counter behind
+ * the per-user submission rate limit. Counts documents, not bytes. */
+export async function countPhotosSince(uid: string, sinceIso: string): Promise<number> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("photos")
+    .where("createdAt", ">=", sinceIso)
+    .count()
+    .get();
+  return snap.data().count;
 }
 
 export async function deletePhoto(uid: string, photoId: string): Promise<void> {
@@ -422,7 +498,14 @@ export async function saveLogAndAward(
     listLogs(uid),
     getProfile(uid),
   ]);
-  const merged = [...logs.filter((l) => l.date !== log.date), log];
+  // Mirror saveLog's loggedOn rule in the in-memory copy, so streak milestones
+  // are computed against the same same-day/backfill distinction that was
+  // actually persisted.
+  const previous = logs.find((l) => l.date === log.date);
+  const merged = [
+    ...logs.filter((l) => l.date !== log.date),
+    { ...log, loggedOn: previous?.loggedOn ?? dateKey() },
+  ];
   const stats = computeStats(merged);
   const newMilestones = await awardNewMilestones(
     uid,

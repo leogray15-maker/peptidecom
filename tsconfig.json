@@ -19,5 +19,8 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // workers/ targets the Cloudflare Workers runtime, not the browser/Node libs
+  // this config describes. It has its own tsconfig and its own type packages,
+  // which aren't installed here — see workers/ai-grade-gate/README.md.
+  "exclude": ["node_modules", "workers"]
 }
