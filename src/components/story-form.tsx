@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trophy } from "lucide-react";
+import { ImagePlus, Loader2, Trophy, X } from "lucide-react";
+import { compressDataUrl, compressImage } from "@/lib/image-compress";
+import { STORY_IMAGE_MAX_CHARS } from "@/lib/story-images";
 import { cn, formatDate } from "@/lib/utils";
 
 interface PickerPhoto {
@@ -12,9 +14,142 @@ interface PickerPhoto {
   imageData: string;
 }
 
+/** One before/after slot: upload a photo, or pick one already in the member's
+ * timeline. Both routes end up as a compressed data-URL on the story itself,
+ * so the wall can render the pair without extra reads. */
+function PhotoSlot({
+  which,
+  image,
+  photos,
+  loadPhotos,
+  onPick,
+  onClear,
+}: {
+  which: "before" | "after";
+  image: string | null;
+  photos: PickerPhoto[] | null;
+  loadPhotos: () => void;
+  onPick: (image: string, photoId: string | null) => void;
+  onClear: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [picking, setPicking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(job: () => Promise<void>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await job();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't use that image.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-lab-border p-3">
+      <p className="label !mb-2 capitalize">{which}</p>
+
+      {image ? (
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image} alt={`Your ${which} photo`} className="h-32 w-full rounded-lg object-cover" />
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label={`Remove ${which} photo`}
+            className="absolute right-1.5 top-1.5 rounded-full bg-black/70 p-1 text-slate-200 hover:text-white"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="btn-secondary w-full !py-6"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            Upload
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              void run(async () => {
+                onPick(await compressImage(file, STORY_IMAGE_MAX_CHARS), null);
+              });
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setPicking((v) => !v);
+              loadPhotos();
+            }}
+            className="w-full text-xs text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+          >
+            {picking ? "Hide my timeline" : "or pick from my timeline"}
+          </button>
+        </div>
+      )}
+
+      {picking && !image && (
+        <div className="mt-2">
+          {photos === null ? (
+            <p className="flex items-center gap-2 text-xs text-slate-500">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading your photos…
+            </p>
+          ) : photos.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No photos in your timeline yet — upload one instead.
+            </p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {photos.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      onPick(await compressDataUrl(p.imageData, STORY_IMAGE_MAX_CHARS), p.id);
+                      setPicking(false);
+                    })
+                  }
+                  className="shrink-0 overflow-hidden rounded-xl border-2 border-transparent opacity-80 transition hover:opacity-100 focus-visible:border-brand-400"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.imageData} alt={formatDate(p.takenAt)} className="h-16 w-16 object-cover" />
+                  <span className="block bg-lab-bg px-1 py-0.5 text-[9px] text-slate-500">
+                    {formatDate(p.takenAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+    </div>
+  );
+}
+
 /** Structured "share your story" flow. Guided prompts keep it low-friction,
- * and marketing consent is genuinely optional: strictly opt-in, off by
- * default, with the wall working identically either way. */
+ * before/after photos make it land, and marketing consent is genuinely
+ * optional: strictly opt-in, off by default, with the wall working identically
+ * either way. */
 export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(autoOpen);
@@ -26,20 +161,27 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
   const [advice, setAdvice] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
+  const [beforeImage, setBeforeImage] = useState<string | null>(null);
+  const [afterImage, setAfterImage] = useState<string | null>(null);
   const [beforeId, setBeforeId] = useState<string | null>(null);
   const [afterId, setAfterId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<PickerPhoto[] | null>(null);
+  const [loadTimeline, setLoadTimeline] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load the member's photos only when the before/after picker is opened.
+  // The member's timeline is only fetched once, and only if they ask for it —
+  // it's a payload of full-size photos.
   useEffect(() => {
-    if (!photoConsent || photos !== null) return;
+    if (!loadTimeline || photos !== null) return;
     fetch("/api/tsw/photos")
       .then((r) => (r.ok ? r.json() : { photos: [] }))
       .then((d) => setPhotos(Array.isArray(d.photos) ? d.photos : []))
       .catch(() => setPhotos([]));
-  }, [photoConsent, photos]);
+  }, [loadTimeline, photos]);
+
+  const loadPhotos = useCallback(() => setLoadTimeline(true), []);
+  const hasPhotos = !!beforeImage || !!afterImage;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +201,8 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
         },
         marketingConsent,
         photoConsent: marketingConsent && photoConsent,
+        beforeImage,
+        afterImage,
         beforePhotoId: beforeId,
         afterPhotoId: afterId,
       }),
@@ -80,9 +224,6 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
       </button>
     );
   }
-
-  const photoPick = (id: string, current: string | null, set: (v: string | null) => void) =>
-    set(current === id ? null : id);
 
   return (
     <form onSubmit={submit} className="card space-y-4">
@@ -117,6 +258,50 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
         minLength={20}
       />
 
+      {/* Before & after — the part people scroll for. Open to everyone, not
+       * gated behind marketing consent: these show on the members-only wall. */}
+      <div className="space-y-3 rounded-xl border border-lab-border p-4">
+        <div>
+          <p className="text-sm font-medium text-slate-300">
+            Before &amp; after <span className="text-slate-500">(optional)</span>
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Two photos say what a paragraph can&apos;t. These appear on your story on the
+            members-only wall — nowhere else, unless you tick the box below.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <PhotoSlot
+            which="before"
+            image={beforeImage}
+            photos={photos}
+            loadPhotos={loadPhotos}
+            onPick={(img, id) => {
+              setBeforeImage(img);
+              setBeforeId(id);
+            }}
+            onClear={() => {
+              setBeforeImage(null);
+              setBeforeId(null);
+            }}
+          />
+          <PhotoSlot
+            which="after"
+            image={afterImage}
+            photos={photos}
+            loadPhotos={loadPhotos}
+            onPick={(img, id) => {
+              setAfterImage(img);
+              setAfterId(id);
+            }}
+            onClear={() => {
+              setAfterImage(null);
+              setAfterId(null);
+            }}
+          />
+        </div>
+      </div>
+
       {/* Guided prompts — optional, but they make stories land harder. */}
       <div className="space-y-3 rounded-xl border border-lab-border p-4">
         <p className="text-sm font-medium text-slate-300">
@@ -149,7 +334,8 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
             }}
           />
           <span className="text-sm text-slate-300">
-            Arcane may share my story (words and first name) in its social media and marketing.
+            Arcane may share my story (words and first name) on its website, social media and
+            marketing.
             <span className="mt-0.5 block text-xs text-slate-500">
               Completely optional — your story appears on the members-only wall either way, and
               you can withdraw this any time by contacting us.
@@ -157,62 +343,28 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
           </span>
         </label>
         {marketingConsent && (
-          <label className="flex cursor-pointer items-start gap-3">
+          <label
+            className={cn(
+              "flex items-start gap-3",
+              hasPhotos ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+            )}
+          >
             <input
               type="checkbox"
               className="mt-0.5 h-4 w-4 accent-brand-500"
+              disabled={!hasPhotos}
               checked={photoConsent}
               onChange={(e) => setPhotoConsent(e.target.checked)}
             />
             <span className="text-sm text-slate-300">
-              …and may include the before/after photos I pick below.
+              …and may include my before/after photos.
               <span className="mt-0.5 block text-xs text-slate-500">
-                Only the two photos you choose here — never anything else from your timeline.
+                {hasPhotos
+                  ? "Only the two photos above — never anything else from your timeline."
+                  : "Add a before and after above to enable this."}
               </span>
             </span>
           </label>
-        )}
-        {marketingConsent && photoConsent && (
-          <div className="space-y-3">
-            {photos === null ? (
-              <p className="flex items-center gap-2 text-xs text-slate-500">
-                <Loader2 className="h-3 w-3 animate-spin" /> Loading your photos…
-              </p>
-            ) : photos.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                No photos in your timeline yet — you can share the story without them.
-              </p>
-            ) : (
-              (["before", "after"] as const).map((which) => {
-                const value = which === "before" ? beforeId : afterId;
-                const set = which === "before" ? setBeforeId : setAfterId;
-                return (
-                  <div key={which}>
-                    <p className="label !mb-1.5 capitalize">{which} photo</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {photos.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => photoPick(p.id, value, set)}
-                          className={cn(
-                            "shrink-0 overflow-hidden rounded-xl border-2 transition",
-                            value === p.id ? "border-brand-400" : "border-transparent opacity-70 hover:opacity-100"
-                          )}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={p.imageData} alt={formatDate(p.takenAt)} className="h-16 w-16 object-cover" />
-                          <span className="block bg-lab-bg px-1 py-0.5 text-[9px] text-slate-500">
-                            {formatDate(p.takenAt)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
         )}
       </div>
 

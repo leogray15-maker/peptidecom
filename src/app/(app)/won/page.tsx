@@ -138,6 +138,31 @@ export default async function WonPage({
                 )}
               </div>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-300">{s.body}</p>
+              {(s.beforeImage || s.afterImage) && (
+                <div className="mt-4 grid max-w-md grid-cols-2 gap-3">
+                  {(
+                    [
+                      ["Before", s.beforeImage],
+                      ["After", s.afterImage],
+                    ] as const
+                  )
+                    .filter(([, src]) => !!src)
+                    .map(([label, src]) => (
+                      <figure key={label} className="overflow-hidden rounded-xl border border-lab-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={src!}
+                          alt={`${s.authorName ?? "A member"}'s skin — ${label.toLowerCase()}`}
+                          loading="lazy"
+                          className="aspect-square w-full object-cover"
+                        />
+                        <figcaption className="bg-lab-bg px-2 py-1 text-[11px] font-medium text-slate-400">
+                          {label}
+                        </figcaption>
+                      </figure>
+                    ))}
+                </div>
+              )}
               {s.prompts && (
                 <dl className="mt-4 space-y-2.5 border-l-2 border-lab-border pl-4">
                   {(

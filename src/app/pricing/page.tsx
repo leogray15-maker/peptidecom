@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ProofStrip } from "@/components/results-section";
 import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_SAVINGS_PCT, formatPrice } from "@/lib/membership";
 import { PricingPlans } from "@/components/pricing-plans";
@@ -90,6 +91,28 @@ export default async function PricingPage() {
           </div>
         </div>
       </section>
+
+      {/* Social proof — the same wall as /results, trimmed to three quotes. */}
+      <section className="border-t border-lab-border py-16">
+        <div className="container-lab">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold text-white">What it looks like when it works</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              Members&apos; own words, published with their permission. Individual experiences —
+              not typical results, and not medical advice.
+            </p>
+          </div>
+          <div className="mt-10">
+            <ProofStrip />
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/results" className="btn-secondary">
+              See the results wall, with photos
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <SiteFooter />
     </>
   );

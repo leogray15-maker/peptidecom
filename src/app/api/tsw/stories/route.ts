@@ -2,9 +2,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_CONDITION } from "@/lib/conditions";
+import { STORY_IMAGE_MAX_CHARS } from "@/lib/story-images";
 import { addStory, getProfile, tswKey } from "@/lib/tsw-db";
 
 const promptSchema = z.string().trim().max(1000).optional().nullable();
+
+// Before/after photos ride inside the story document, so each one is capped
+// well below Firestore's 1MB limit (the client compresses to the same budget).
+const storyImageSchema = z
+  .string()
+  .max(STORY_IMAGE_MAX_CHARS)
+  .regex(/^data:image\/(jpeg|png|webp);base64,/)
+  .optional()
+  .nullable();
 
 const schema = z.object({
   title: z.string().min(3).max(160),
@@ -18,6 +28,8 @@ const schema = z.object({
   // marketing consent (enforced below, not just in the UI).
   marketingConsent: z.boolean().optional(),
   photoConsent: z.boolean().optional(),
+  beforeImage: storyImageSchema,
+  afterImage: storyImageSchema,
   beforePhotoId: z.string().max(100).optional().nullable(),
   afterPhotoId: z.string().max(100).optional().nullable(),
 });
@@ -57,9 +69,14 @@ export async function POST(req: Request) {
       marketingConsent,
       // Consent timestamp is stamped server-side, never trusted from the client.
       marketingConsentAt: marketingConsent ? new Date().toISOString() : null,
+      // Photos attached to a story belong on the members-only wall regardless
+      // of marketing consent — that flag governs whether Arcane may reuse them
+      // publicly, which is a separate question from showing them to peers.
       photoConsent,
-      beforePhotoId: photoConsent ? (d.beforePhotoId ?? null) : null,
-      afterPhotoId: photoConsent ? (d.afterPhotoId ?? null) : null,
+      beforeImage: d.beforeImage ?? null,
+      afterImage: d.afterImage ?? null,
+      beforePhotoId: d.beforePhotoId ?? null,
+      afterPhotoId: d.afterPhotoId ?? null,
       status: "new",
     });
     return NextResponse.json({ ok: true, id });

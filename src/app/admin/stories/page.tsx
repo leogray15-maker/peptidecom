@@ -9,12 +9,18 @@ export const metadata = { title: "Stories" };
 export default async function AdminStoriesPage() {
   const stories = await safe(() => listStories(200), [] as RecoveryStory[]);
 
-  // Resolve consented before/after photos (and only those — photo ids are
-  // stored on the story solely when the member opted in).
+  // Resolve consented before/after photos, and only those. Newer stories carry
+  // their photos inline; older ones only reference the member's timeline, so
+  // those get fetched.
   const photoUrls = new Map<string, { before?: string; after?: string }>();
   await Promise.all(
     stories
-      .filter((s) => s.photoConsent && (s.beforePhotoId || s.afterPhotoId))
+      .filter(
+        (s) =>
+          s.photoConsent &&
+          (s.beforePhotoId || s.afterPhotoId) &&
+          !(s.beforeImage && s.afterImage)
+      )
       .map(async (s) => {
         const ids = [s.beforePhotoId, s.afterPhotoId].filter((x): x is string => !!x);
         const photos = await getPhotosByIds(s.uid, ids).catch(() => []);
@@ -39,8 +45,10 @@ export default async function AdminStoriesPage() {
     photoConsent: s.photoConsent === true,
     status: s.status ?? "new",
     postedAt: s.postedAt ?? null,
-    beforeUrl: photoUrls.get(s.id)?.before ?? null,
-    afterUrl: photoUrls.get(s.id)?.after ?? null,
+    featured: s.featured === true,
+    // Photos only ever leave this page for stories the member consented to.
+    beforeUrl: s.photoConsent ? (s.beforeImage ?? photoUrls.get(s.id)?.before ?? null) : null,
+    afterUrl: s.photoConsent ? (s.afterImage ?? photoUrls.get(s.id)?.after ?? null) : null,
   }));
 
   const daysSinceLast =

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ResultsSection } from "@/components/results-section";
 
 // Header reflects auth state, so render per-request.
 export const dynamic = "force-dynamic";
@@ -132,7 +133,12 @@ export default function LandingPage() {
                 Member login
               </Link>
             </div>
-            <p className="mt-5 text-xs text-slate-500">
+            <p className="mt-6 text-sm text-slate-400">
+              <Link href="/results" className="font-medium text-brand-300 hover:text-brand-200">
+                See real member results, with their photos <ArrowRight className="inline h-3.5 w-3.5" />
+              </Link>
+            </p>
+            <p className="mt-4 text-xs text-slate-500">
               Cancel anytime · For research purposes only · Not medical advice
             </p>
           </div>
@@ -188,6 +194,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Results — member stories & before/afters */}
+      <ResultsSection />
 
       {/* Trust */}
       <section id="trust" className="border-t border-lab-border py-24">
