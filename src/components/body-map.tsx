@@ -3,90 +3,104 @@
 import { BODY_ZONES, type BodyZone } from "@/lib/tsw";
 import { cn } from "@/lib/utils";
 
-/** Tappable body/face map for the daily tracker.
+/** Tappable body map for the daily tracker.
  *
- * Two silhouettes, chosen by the condition's zones:
- *  • Face-centric conditions (acne, rosacea) get a head-and-shoulders diagram
- *    with tappable facial regions (forehead, cheeks, nose, chin, jawline…).
- *  • Everything else gets a full front-facing human figure.
+ * Every condition gets the same full front-facing human figure — a face-only
+ * diagram made face-centric conditions feel like a different (smaller) app, and
+ * skin rarely stays in one place anyway.
  *
- * A solid silhouette is always drawn as the backdrop so the map never looks
- * broken or empty, with anatomically placed, tappable regions layered on top.
- * Any zone the silhouette can't show still lives in the chip row underneath,
- * which is also the accessible fallback for every zone. */
+ * Conditions that track facial regions (acne, rosacea) additionally get a
+ * magnified head inset beside the figure, because forehead/cheeks/nose/chin are
+ * far too small to tap accurately on the body itself.
+ *
+ * A solid silhouette is always drawn as the backdrop, so the map reads as a
+ * whole body even when only a few regions are tappable for this condition.
+ * Zones the drawings can't show (e.g. Back, on a front view) still live in the
+ * chip row underneath, which is also the accessible fallback for every zone. */
 
 type Shape =
   | { t: "path"; d: string }
   | { t: "circle"; cx: number; cy: number; r: number }
   | { t: "ellipse"; cx: number; cy: number; rx: number; ry: number };
 
-interface Silhouette {
+interface Diagram {
   viewBox: string;
+  /** Rendered height — the body is the hero, the head inset supports it. */
   heightClass: string;
-  /** Non-interactive structural fill (e.g. the head/neck/torso base). */
+  /** Non-interactive structural fill (drawn first, never tappable). */
   structure: Shape[];
   /** Tappable regions by zone id, painted back-to-front. */
   regions: { zone: string; shapes: Shape[] }[];
 }
 
-// ── Full body (TSW / eczema / psoriasis) ─────────────────────────────────────
-const BODY: Silhouette = {
-  viewBox: "0 0 240 440",
-  heightClass: "h-80",
+// ── Full body — shown for every condition ───────────────────────────────────
+//
+// Drawn to roughly human proportions (~7.5 heads tall) on a 240×530 canvas, so
+// the figure reads as a person rather than a diagram. Facial sub-regions are
+// deliberately NOT on this figure — at this scale they cover the whole head and
+// make it look broken; they live on the head inset instead.
+const BODY: Diagram = {
+  viewBox: "0 0 240 530",
+  heightClass: "h-72 sm:h-80",
   structure: [],
   regions: [
-    { zone: "chest", shapes: [{ t: "path", d: "M113,86 L127,86 C145,88 163,95 168,110 L164,150 L76,150 L72,110 C77,95 95,88 113,86 Z" }] },
-    { zone: "stomach", shapes: [{ t: "path", d: "M76,150 L164,150 L158,196 C156,214 144,224 120,224 C96,224 84,214 82,196 Z" }] },
+    { zone: "chest", shapes: [{ t: "path", d: "M108,90 L132,90 C148,92 162,100 165,112 L161,178 L79,178 L75,112 C78,100 92,92 108,90 Z" }] },
+    { zone: "stomach", shapes: [{ t: "path", d: "M79,178 L161,178 L156,214 C170,228 172,246 168,262 L72,262 C68,246 70,228 84,214 Z" }] },
     { zone: "arms", shapes: [
-      { t: "path", d: "M72,110 C66,142 60,182 56,232 L70,232 C74,184 80,146 84,120 Z" },
-      { t: "path", d: "M168,110 C174,142 180,182 184,232 L170,232 C166,184 160,146 156,120 Z" },
+      { t: "path", d: "M75,110 C66,120 62,150 58,190 C55,220 52,240 50,252 L64,254 C67,240 70,220 73,190 C77,150 82,124 89,116 Z" },
+      { t: "path", d: "M165,110 C174,120 178,150 182,190 C185,220 188,240 190,252 L176,254 C173,240 170,220 167,190 C163,150 158,124 151,116 Z" },
     ] },
     { zone: "legs", shapes: [
-      { t: "path", d: "M84,222 C86,270 96,300 98,316 C100,360 100,384 99,406 L113,406 C114,384 116,360 116,316 C118,300 120,262 118,222 Z" },
-      { t: "path", d: "M156,222 C154,270 144,300 142,316 C140,360 140,384 141,406 L127,406 C126,384 124,360 124,316 C122,300 120,262 122,222 Z" },
+      { t: "path", d: "M72,262 C74,320 80,360 84,410 C86,450 86,480 86,496 L110,496 C110,478 111,448 112,410 C114,360 116,320 118,262 Z" },
+      { t: "path", d: "M168,262 C166,320 160,360 156,410 C154,450 154,480 154,496 L130,496 C130,478 129,448 128,410 C126,360 124,320 122,262 Z" },
     ] },
-    { zone: "neck", shapes: [{ t: "path", d: "M112,72 L128,72 L127,88 L113,88 Z" }] },
-    { zone: "face", shapes: [{ t: "path", d: "M96,42 A26,30 0 0 0 144,42 Z" }] },
-    { zone: "scalp", shapes: [{ t: "path", d: "M96,42 A26,28 0 0 1 144,42 Z" }] },
+    { zone: "shoulders", shapes: [
+      { t: "ellipse", cx: 88, cy: 106, rx: 18, ry: 12 },
+      { t: "ellipse", cx: 152, cy: 106, rx: 18, ry: 12 },
+    ] },
+    { zone: "neck", shapes: [{ t: "path", d: "M108,70 L132,70 L132,94 L108,94 Z" }] },
+    { zone: "face", shapes: [{ t: "path", d: "M94,44 A26,32 0 0 0 146,44 Z" }] },
+    { zone: "scalp", shapes: [{ t: "path", d: "M94,44 A26,32 0 0 1 146,44 Z" }] },
     { zone: "elbow-creases", shapes: [
-      { t: "circle", cx: 66, cy: 176, r: 8 }, { t: "circle", cx: 174, cy: 176, r: 8 },
+      { t: "circle", cx: 70, cy: 186, r: 9 }, { t: "circle", cx: 170, cy: 186, r: 9 },
     ] },
     { zone: "hands", shapes: [
-      { t: "circle", cx: 62, cy: 247, r: 12 }, { t: "circle", cx: 178, cy: 247, r: 12 },
+      { t: "ellipse", cx: 57, cy: 268, rx: 11, ry: 15 },
+      { t: "ellipse", cx: 183, cy: 268, rx: 11, ry: 15 },
     ] },
     { zone: "knee-creases", shapes: [
-      { t: "circle", cx: 107, cy: 318, r: 9 }, { t: "circle", cx: 133, cy: 318, r: 9 },
+      { t: "circle", cx: 98, cy: 372, r: 10 }, { t: "circle", cx: 142, cy: 372, r: 10 },
     ] },
     { zone: "feet", shapes: [
-      { t: "circle", cx: 105, cy: 418, r: 12 }, { t: "circle", cx: 135, cy: 418, r: 12 },
+      { t: "ellipse", cx: 98, cy: 506, rx: 15, ry: 10 },
+      { t: "ellipse", cx: 142, cy: 506, rx: 15, ry: 10 },
     ] },
   ],
 };
 
-// ── Head & shoulders (acne / rosacea — face-centric) ─────────────────────────
-const FACE: Silhouette = {
-  viewBox: "0 0 240 330",
-  heightClass: "h-80",
+/** Facial zones that are too small to tap on the body figure. */
+const FACE_ZONE_IDS = ["forehead", "cheeks", "nose", "jawline", "chin"];
+
+// ── Magnified head — only for conditions that track facial zones ────────────
+const FACE_INSET: Diagram = {
+  viewBox: "0 0 200 230",
+  heightClass: "h-40 sm:h-52",
   structure: [
-    { t: "ellipse", cx: 120, cy: 112, rx: 76, ry: 96 }, // head
-    { t: "path", d: "M106,196 L134,196 L132,226 L108,226 Z" }, // neck
-    { t: "path", d: "M120,224 C68,226 38,250 32,312 L208,312 C202,250 172,226 120,224 Z" }, // shoulders/chest
+    { t: "ellipse", cx: 100, cy: 108, rx: 72, ry: 94 }, // head
+    { t: "path", d: "M84,190 L116,190 L114,220 L86,220 Z" }, // neck stub
   ],
+  // Regions are laid out so no two overlap — an overlap means one zone swallows
+  // another's taps.
   regions: [
-    { zone: "forehead", shapes: [{ t: "ellipse", cx: 120, cy: 58, rx: 50, ry: 22 }] },
+    { zone: "forehead", shapes: [{ t: "ellipse", cx: 100, cy: 52, rx: 46, ry: 20 }] },
+    { zone: "nose", shapes: [{ t: "ellipse", cx: 100, cy: 110, rx: 9, ry: 24 }] },
     { zone: "cheeks", shapes: [
-      { t: "ellipse", cx: 82, cy: 132, rx: 24, ry: 22 }, { t: "ellipse", cx: 158, cy: 132, rx: 24, ry: 22 },
+      { t: "ellipse", cx: 62, cy: 110, rx: 20, ry: 18 }, { t: "ellipse", cx: 138, cy: 110, rx: 20, ry: 18 },
     ] },
-    { zone: "nose", shapes: [{ t: "ellipse", cx: 120, cy: 116, rx: 10, ry: 27 }] },
     { zone: "jawline", shapes: [
-      { t: "ellipse", cx: 60, cy: 160, rx: 14, ry: 28 }, { t: "ellipse", cx: 180, cy: 160, rx: 14, ry: 28 },
+      { t: "ellipse", cx: 58, cy: 150, rx: 14, ry: 16 }, { t: "ellipse", cx: 142, cy: 150, rx: 14, ry: 16 },
     ] },
-    { zone: "chin", shapes: [{ t: "ellipse", cx: 120, cy: 178, rx: 26, ry: 15 }] },
-    { zone: "neck", shapes: [{ t: "path", d: "M106,196 L134,196 L132,226 L108,226 Z" }] },
-    { zone: "shoulders", shapes: [
-      { t: "ellipse", cx: 58, cy: 262, rx: 30, ry: 22 }, { t: "ellipse", cx: 182, cy: 262, rx: 30, ry: 22 },
-    ] },
-    { zone: "chest", shapes: [{ t: "ellipse", cx: 120, cy: 286, rx: 46, ry: 24 }] },
+    { zone: "chin", shapes: [{ t: "ellipse", cx: 100, cy: 174, rx: 24, ry: 14 }] },
   ],
 };
 
@@ -98,10 +112,76 @@ function renderShapes(shapes: Shape[], className: string): React.ReactNode {
   });
 }
 
-/** Face-centric conditions expose facial zones the full body can't show. */
-function pickSilhouette(zoneIds: Set<string>): Silhouette {
-  const faceCentric = ["forehead", "cheeks", "nose", "jawline"].some((z) => zoneIds.has(z));
-  return faceCentric ? FACE : BODY;
+function DiagramSvg({
+  diagram,
+  zoneIds,
+  selected,
+  onToggle,
+  label,
+  ariaLabel,
+}: {
+  diagram: Diagram;
+  zoneIds: Set<string>;
+  selected: Set<string>;
+  onToggle: (zone: string) => void;
+  label: (id: string) => string;
+  ariaLabel: string;
+}) {
+  const interactive = diagram.regions.filter((r) => zoneIds.has(r.zone));
+
+  return (
+    <svg
+      viewBox={diagram.viewBox}
+      className={cn("w-auto shrink-0 select-none", diagram.heightClass)}
+      role="group"
+      aria-label={ariaLabel}
+    >
+      {/* Backdrop: solid silhouette so the figure always reads as a whole body. */}
+      <g>
+        {renderShapes(diagram.structure, "fill-[#20202e]")}
+        {diagram.regions.map((r) => (
+          <g key={`bg-${r.zone}`}>{renderShapes(r.shapes, "fill-[#20202e]")}</g>
+        ))}
+      </g>
+
+      {/* Interactive layer */}
+      <g strokeWidth={1.75}>
+        {interactive.map((r) => {
+          const on = selected.has(r.zone);
+          return (
+            <g
+              key={r.zone}
+              role="checkbox"
+              aria-checked={on}
+              aria-label={label(r.zone)}
+              tabIndex={0}
+              onClick={() => onToggle(r.zone)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onToggle(r.zone);
+                }
+              }}
+              className="cursor-pointer outline-none"
+            >
+              <title>{label(r.zone)}</title>
+              {renderShapes(
+                r.shapes,
+                cn(
+                  "transition-colors",
+                  on
+                    ? "fill-brand-500/75 stroke-brand-300"
+                    : // Touch devices get no hover, so tappable regions carry a
+                      // faint tint of their own — otherwise they're invisible.
+                      "fill-white/[0.05] stroke-white/15 hover:fill-brand-500/25 focus-visible:fill-brand-500/30"
+                )
+              )}
+            </g>
+          );
+        })}
+      </g>
+    </svg>
+  );
 }
 
 export function BodyMap({
@@ -116,63 +196,34 @@ export function BodyMap({
   const set = new Set(selected);
   const zoneIds = new Set(zones.map((z) => z.id));
   const label = (id: string) => zones.find((z) => z.id === id)?.label ?? id;
-
-  const silhouette = pickSilhouette(zoneIds);
-  const interactive = silhouette.regions.filter((r) => zoneIds.has(r.zone));
+  const showFaceInset = FACE_ZONE_IDS.some((z) => zoneIds.has(z));
 
   return (
     <div>
-      <svg
-        viewBox={silhouette.viewBox}
-        className={cn("mx-auto w-auto select-none", silhouette.heightClass)}
-        role="group"
-        aria-label="Body map — tap the areas that are affected today"
-      >
-        {/* Backdrop: solid silhouette so the map always reads as a body/face. */}
-        <g className="fill-[#20202e]">
-          {renderShapes(silhouette.structure, "fill-[#20202e]")}
-          {silhouette.regions.map((r) => (
-            <g key={`bg-${r.zone}`}>{renderShapes(r.shapes, "fill-[#20202e]")}</g>
-          ))}
-        </g>
+      {/* Top-aligned so the magnified head sits level with the figure's own
+          head and reads as a zoom of it. */}
+      <div className="flex items-start justify-center gap-2 sm:gap-6">
+        <DiagramSvg
+          diagram={BODY}
+          zoneIds={zoneIds}
+          selected={set}
+          onToggle={onToggle}
+          label={label}
+          ariaLabel="Body map — tap the areas that are affected today"
+        />
+        {showFaceInset && (
+          <DiagramSvg
+            diagram={FACE_INSET}
+            zoneIds={zoneIds}
+            selected={set}
+            onToggle={onToggle}
+            label={label}
+            ariaLabel="Face map — tap the facial areas that are affected today"
+          />
+        )}
+      </div>
 
-        {/* Interactive layer */}
-        <g strokeWidth={1.75}>
-          {interactive.map((r) => {
-            const on = set.has(r.zone);
-            return (
-              <g
-                key={r.zone}
-                role="checkbox"
-                aria-checked={on}
-                aria-label={label(r.zone)}
-                tabIndex={0}
-                onClick={() => onToggle(r.zone)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onToggle(r.zone);
-                  }
-                }}
-                className="cursor-pointer outline-none"
-              >
-                <title>{label(r.zone)}</title>
-                {renderShapes(
-                  r.shapes,
-                  cn(
-                    "transition-colors",
-                    on
-                      ? "fill-brand-500/75 stroke-brand-300"
-                      : "fill-transparent stroke-transparent hover:fill-brand-500/25 focus-visible:fill-brand-500/30"
-                  )
-                )}
-              </g>
-            );
-          })}
-        </g>
-      </svg>
-
-      {/* Chip fallback — includes every zone the SVG can't show */}
+      {/* Chip fallback — includes every zone the drawings can't show */}
       <div className="mt-3 flex flex-wrap justify-center gap-1.5">
         {zones.map((z) => (
           <button

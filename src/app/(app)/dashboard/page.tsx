@@ -48,7 +48,7 @@ export const metadata = { title: "Dashboard" };
 // headline tools, then the day-to-day tracking links.
 const skinTools: FeatureCardProps[] = [
   {
-    href: "/photos",
+    href: "/grade",
     title: "AI Flare Grading",
     icon: ScanEye,
     badge: "BETA",

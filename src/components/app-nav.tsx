@@ -17,6 +17,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Ruler,
+  ScanEye,
   ScanLine,
   Settings,
   ShieldCheck,
@@ -53,6 +54,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: "Skin tools",
     items: [
+      { href: "/grade", label: "AI flare grading", icon: ScanEye },
       { href: "/easi", label: "EASI calculator", icon: Ruler },
       { href: "/poem", label: "POEM weekly score", icon: ClipboardCheck },
       { href: "/scan", label: "Ingredient scanner", icon: ScanLine },

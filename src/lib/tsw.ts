@@ -15,6 +15,7 @@ export const BODY_ZONES: BodyZone[] = [
   { id: "scalp", label: "Scalp" },
   { id: "face", label: "Face" },
   { id: "neck", label: "Neck" },
+  { id: "shoulders", label: "Shoulders" },
   { id: "chest", label: "Chest" },
   { id: "stomach", label: "Stomach" },
   { id: "back", label: "Back" },

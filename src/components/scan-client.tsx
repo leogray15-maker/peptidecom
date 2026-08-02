@@ -342,7 +342,13 @@ export function ScanClient() {
           </div>
           <ul className="mt-4 space-y-2">
             {[...history].reverse().slice(0, 12).map((s) => {
-              const meta = gradeMeta.find((g) => g.label === s.band)!;
+              // Fall back gracefully: a band from an older stored record must
+              // never take the whole page down.
+              const meta = gradeMeta.find((g) => g.label === s.band) ?? {
+                label: s.band,
+                dot: "bg-slate-500",
+                text: "text-slate-300",
+              };
               return (
                 <li
                   key={s.at}

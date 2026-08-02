@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import {
   computePhotoFeatures,
   estimateAgreement,
+  flareBand,
   pickBaseline,
   rgbToHsv,
   scorePhoto,
@@ -97,6 +98,25 @@ test("estimateAgreement: needs 5 pairs, detects a tracking heuristic", () => {
   const a = estimateAgreement(good)!;
   assert.equal(a.n, 6);
   assert.ok(a.r > 0.9);
+});
+
+test("flareBand: covers 0–100 and runs worse as the score rises", () => {
+  assert.equal(flareBand(0).label, "Calm");
+  assert.equal(flareBand(20).label, "Calm");
+  assert.equal(flareBand(21).label, "Mild");
+  assert.equal(flareBand(40).label, "Mild");
+  assert.equal(flareBand(41).label, "Moderate");
+  assert.equal(flareBand(65).label, "Moderate");
+  assert.equal(flareBand(66).label, "Marked");
+  assert.equal(flareBand(100).label, "Marked");
+  // Tones must darken with severity — the opposite of the product scores.
+  const order = ["emerald", "green", "orange", "rose"];
+  let last = -1;
+  for (const s of [0, 30, 50, 90]) {
+    const i = order.indexOf(flareBand(s).tone);
+    assert.ok(i > last, `tone should worsen at ${s}`);
+    last = i;
+  }
 });
 
 test("labelMidpoint: bands, single numbers, and junk labels", () => {

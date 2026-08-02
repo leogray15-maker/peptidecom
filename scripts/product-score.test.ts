@@ -98,6 +98,18 @@ test("normalises a found product", () => {
   assert.equal(p.ingredientsText, "Aqua, Glycerin, Niacinamide");
 });
 
+test("a flagged ingredient is never also credited as a positive", () => {
+  // "Imidazolidinyl Urea" is a formaldehyde releaser; it must not be matched by
+  // the beneficial "Urea" term, listed under Positives, or paid score credit.
+  const a = analyzeIngredients("Aqua, Imidazolidinyl Urea, Diazolidinyl Urea, Parfum");
+  assert.ok(!a.positives.some((p) => p.name === "Urea"));
+  assert.ok(a.negatives.some((n) => n.name === "Formaldehyde releasers"));
+  assert.ok(a.score < 75, `expected a sub-Excellent score, got ${a.score}`);
+  // Plain urea on its own is still a positive.
+  const b = analyzeIngredients("Aqua, Urea, Glycerin");
+  assert.ok(b.positives.some((p) => p.name === "Urea"));
+});
+
 test("falls back to the parsed ingredients array when text is missing", () => {
   const p = normalizeOffProduct(
     "123",

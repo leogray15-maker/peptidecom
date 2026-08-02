@@ -67,6 +67,10 @@ export interface GradingCounts {
 
 export function gradingCounts(scans: ScanRecord[]): GradingCounts {
   const counts: GradingCounts = { Excellent: 0, Good: 0, Poor: 0, Bad: 0 };
-  for (const s of scans) counts[s.band] += 1;
+  // Records come from localStorage, so a band written by an older version (or
+  // hand-edited) can be anything — ignore it rather than produce NaN counts.
+  for (const s of scans) {
+    if (s.band in counts) counts[s.band] += 1;
+  }
   return counts;
 }

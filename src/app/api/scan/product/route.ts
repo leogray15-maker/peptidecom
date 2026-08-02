@@ -112,8 +112,17 @@ export async function GET(req: Request) {
   );
   const hits = results.filter((r): r is ScannedProduct => r !== null);
 
-  // Prefer a hit that actually carries an ingredient list; otherwise any hit.
-  const best = hits.find((h) => !!h.ingredientsText) ?? hits[0] ?? null;
+  // Pick the richest hit. Nutrition data outranks an ingredient list: a food is
+  // often listed in the beauty/products databases too, with ingredients but no
+  // nutriments, and taking that one would score a chocolate bar as skincare.
+  // Ties keep the source order above (cosmetics first — this is a skin app).
+  const richness = (p: ScannedProduct) =>
+    (p.nutriments || p.nutriscoreGrade ? 2 : 0) + (p.ingredientsText ? 1 : 0);
+  const best =
+    hits.reduce<ScannedProduct | null>(
+      (top, h) => (top === null || richness(h) > richness(top) ? h : top),
+      null
+    ) ?? null;
 
   if (best) {
     // Report the barcode the user scanned, not the variant we matched on.

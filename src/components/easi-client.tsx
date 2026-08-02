@@ -82,12 +82,14 @@ export function EasiClient() {
 
   function setArea(region: keyof EasiInput, area: number) {
     setInput((cur) => ({ ...cur, [region]: { ...cur[region], area } }));
+    setJustSaved(false); // the score on screen is no longer the saved one
   }
   function setSign(region: keyof EasiInput, sign: EasiSignId, v: number) {
     setInput((cur) => ({
       ...cur,
       [region]: { ...cur[region], signs: { ...cur[region].signs, [sign]: v } },
     }));
+    setJustSaved(false);
   }
 
   function reset() {
@@ -112,7 +114,9 @@ export function EasiClient() {
   }
 
   const recent = [...history].reverse().slice(0, 8);
-  const prev = history.length >= 2 ? history[history.length - 1].score : null;
+  // The most recently saved score, shown for comparison against the live one
+  // (same as the POEM tool — available from the very first save).
+  const prev = history.length >= 1 ? history[history.length - 1].score : null;
 
   return (
     <div className="space-y-6">
