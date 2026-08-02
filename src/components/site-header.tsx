@@ -10,6 +10,7 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-300 md:flex">
           <Link href="/#features" className="hover:text-white">Features</Link>
           <Link href="/#tools" className="hover:text-white">Tools</Link>
+          <Link href="/results" className="hover:text-white">Results</Link>
           <Link href="/#trust" className="hover:text-white">Trust</Link>
           <Link href="/pricing" className="hover:text-white">Pricing</Link>
         </nav>

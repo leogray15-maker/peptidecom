@@ -461,11 +461,24 @@ export interface RecoveryStory {
   marketingConsentAt?: string | null;
   /** Separate opt-in for before/after photos in marketing content. */
   photoConsent?: boolean;
+  /** Before/after picked from the member's own photo timeline. */
   beforePhotoId?: string | null;
   afterPhotoId?: string | null;
+  /** Before/after uploaded straight into the story by members who don't keep a
+   * photo timeline. Compressed data-URLs, kept small enough that both fit
+   * inside the 1MB Firestore document alongside the text. */
+  beforeImage?: string | null;
+  afterImage?: string | null;
   status?: StoryStatus;
   statusUpdatedAt?: string | null;
   postedAt?: string | null;
+  /** Admin-controlled: show this story on the public sales pages. Only ever
+   * set on stories whose author ticked marketing consent (enforced in
+   * setStoryFeatured). */
+  featured?: boolean;
+  /** Present exactly when featured — public queries order by it, so
+   * un-featuring deletes the field rather than setting it false. */
+  featuredAt?: string | null;
 }
 
 export async function listStories(limit = 50): Promise<RecoveryStory[]> {
@@ -499,6 +512,55 @@ export async function setStoryStatus(id: string, status: StoryStatus): Promise<v
       { status, statusUpdatedAt: now, ...(status === "posted" ? { postedAt: now } : {}) },
       { merge: true }
     );
+}
+
+/** Thrown when an action would publish something the member never agreed to
+ * publish. Callers turn this into a 400 rather than a 500 — it's a refusal,
+ * not a fault. */
+export class ConsentError extends Error {}
+
+/** Feature (or un-feature) a story on the public sales pages.
+ *
+ * Refuses to feature a story whose author didn't tick marketing consent — the
+ * admin UI hides the control, and this is the backstop that means a bug or a
+ * hand-rolled request can't put an unconsented story on the public site.
+ *
+ * `featuredAt` is deleted rather than nulled on un-feature: listFeatured()
+ * orders by that field, and Firestore excludes documents missing it, which
+ * keeps the public query index-free. */
+export async function setStoryFeatured(id: string, featured: boolean): Promise<void> {
+  const db = await adminDb();
+  const { FieldValue } = await import("firebase-admin/firestore");
+  const ref = db.collection("recoveryStories").doc(id);
+
+  if (!featured) {
+    await ref.set({ featured: false, featuredAt: FieldValue.delete() }, { merge: true });
+    return;
+  }
+
+  const snap = await ref.get();
+  const story = snap.data() as RecoveryStory | undefined;
+  if (!story) throw new Error("Story not found");
+  if (story.marketingConsent !== true) {
+    throw new ConsentError(
+      "This member hasn't consented to their story being used publicly."
+    );
+  }
+  await ref.set({ featured: true, featuredAt: new Date().toISOString() }, { merge: true });
+}
+
+/** Stories an admin has featured, newest first — the member-submitted half of
+ * the public wall. Consent is re-checked here as well as at write time. */
+export async function listFeaturedStories(limit = 12): Promise<RecoveryStory[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("recoveryStories")
+    .orderBy("featuredAt", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs
+    .map((d) => ({ ...(d.data() as Omit<RecoveryStory, "id">), id: d.id }))
+    .filter((s) => s.featured !== false && s.marketingConsent === true);
 }
 
 /** Fetch specific photos of a member by id (admin quote-card generation —

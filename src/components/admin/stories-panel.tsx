@@ -6,10 +6,12 @@ import {
   Camera,
   CheckCircle2,
   Download,
+  Globe,
   ImageOff,
   Loader2,
   Megaphone,
   ShieldX,
+  Star,
   Trophy,
 } from "lucide-react";
 import { CONDITIONS, conditionLabel } from "@/lib/conditions";
@@ -30,6 +32,8 @@ export interface AdminStory {
   photoConsent: boolean;
   status: StoryStatus;
   postedAt: string | null;
+  /** Live on the public results wall (/, /pricing, /results). */
+  featured: boolean;
   beforeUrl: string | null;
   afterUrl: string | null;
 }
@@ -51,8 +55,10 @@ export function StoriesPanel({
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<StoryStatus | "all">("all");
   const [consentOnly, setConsentOnly] = useState(false);
+  const [featuredOnly, setFeaturedOnly] = useState(false);
   const [conditionFilter, setConditionFilter] = useState("all");
   const [busy, setBusy] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
   const [generatorFor, setGeneratorFor] = useState<string | null>(null);
 
   const visible = useMemo(
@@ -61,21 +67,38 @@ export function StoriesPanel({
         (s) =>
           (statusFilter === "all" || s.status === statusFilter) &&
           (!consentOnly || s.marketingConsent) &&
+          (!featuredOnly || s.featured) &&
           (conditionFilter === "all" || s.condition === conditionFilter)
       ),
-    [stories, statusFilter, consentOnly, conditionFilter]
+    [stories, statusFilter, consentOnly, featuredOnly, conditionFilter]
   );
 
-  async function setStatus(id: string, status: StoryStatus) {
+  /** Both triage and the public-feature toggle go through the same PATCH.
+   * A refusal (e.g. featuring a story without marketing consent) comes back as
+   * a message, so it gets shown rather than silently swallowed. */
+  async function patch(id: string, body: { status?: StoryStatus; featured?: boolean }) {
     setBusy(id);
-    await fetch(`/api/admin/stories/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setBusy(null);
-    router.refresh();
+    setFailure(null);
+    try {
+      const res = await fetch(`/api/admin/stories/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setFailure({ id, message: data.error ?? "Couldn't update the story." });
+        return;
+      }
+      router.refresh();
+    } catch {
+      setFailure({ id, message: "Couldn't reach the server." });
+    } finally {
+      setBusy(null);
+    }
   }
+
+  const setStatus = (id: string, status: StoryStatus) => patch(id, { status });
 
   return (
     <div>
@@ -83,7 +106,8 @@ export function StoriesPanel({
         <div>
           <h1 className="text-xl font-bold text-white">Recovery stories</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Triage submissions, check consent, generate post-ready cards.
+            Triage submissions, check consent, feature the best on the public results wall,
+            and generate post-ready cards.
           </p>
         </div>
         {/* Pipeline health: how fresh is the content well? */}
@@ -127,6 +151,17 @@ export function StoriesPanel({
           )}
         >
           <Megaphone className="h-3 w-3" /> Consented only
+        </button>
+        <button
+          onClick={() => setFeaturedOnly((v) => !v)}
+          className={cn(
+            "badge border transition",
+            featuredOnly
+              ? "border-gold-500 bg-gold-500/15 text-gold-300"
+              : "border-lab-border text-slate-400 hover:text-slate-200"
+          )}
+        >
+          <Globe className="h-3 w-3" /> On the site
         </button>
         <select
           className="input !w-auto !py-1 text-xs"
@@ -182,8 +217,32 @@ export function StoriesPanel({
                       <ImageOff className="h-3 w-3" /> no photos
                     </span>
                   ))}
+                {s.featured && (
+                  <span className="badge bg-gold-500/15 text-gold-300" title="Live on the public results wall">
+                    <Globe className="h-3 w-3" /> on the site
+                  </span>
+                )}
               </div>
               <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-slate-400">{s.body}</p>
+
+              {(s.beforeUrl || s.afterUrl) && (
+                <div className="mt-3 flex gap-2">
+                  {[
+                    ["Before", s.beforeUrl],
+                    ["After", s.afterUrl],
+                  ]
+                    .filter(([, src]) => !!src)
+                    .map(([label, src]) => (
+                      <figure key={label} className="overflow-hidden rounded-lg border border-lab-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src!} alt={`${label} photo`} className="h-20 w-20 object-cover" />
+                        <figcaption className="bg-lab-bg px-1 py-0.5 text-[9px] text-slate-500">
+                          {label}
+                        </figcaption>
+                      </figure>
+                    ))}
+                </div>
+              )}
               <p className="mt-2 text-xs text-slate-500">
                 {s.authorName ?? "A member"}
                 {s.monthsIn != null && ` · ${s.monthsIn} months in`} · {timeAgo(s.createdAt)}
@@ -214,6 +273,24 @@ export function StoriesPanel({
                 )}
                 {s.marketingConsent && (
                   <button
+                    onClick={() => patch(s.id, { featured: !s.featured })}
+                    disabled={busy === s.id}
+                    className={cn(
+                      "!py-1.5 text-xs",
+                      s.featured ? "btn-ghost text-gold-300" : "btn-secondary"
+                    )}
+                    title={
+                      s.featured
+                        ? "Remove from the public results wall"
+                        : "Show this story on the landing page, pricing page and /results"
+                    }
+                  >
+                    <Star className={cn("h-3 w-3", s.featured && "fill-current")} />
+                    {s.featured ? "Remove from site" : "Feature on site"}
+                  </button>
+                )}
+                {s.marketingConsent && (
+                  <button
                     onClick={() => setGeneratorFor(generatorFor === s.id ? null : s.id)}
                     className="btn-primary !py-1.5 text-xs"
                   >
@@ -221,6 +298,10 @@ export function StoriesPanel({
                   </button>
                 )}
               </div>
+
+              {failure?.id === s.id && (
+                <p className="mt-3 text-xs text-rose-400">{failure.message}</p>
+              )}
 
               {generatorFor === s.id && s.marketingConsent && (
                 <div className="mt-4 border-t border-lab-border pt-4">

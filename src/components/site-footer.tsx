@@ -21,6 +21,7 @@ export function SiteFooter() {
               <ul className="mt-3 space-y-2 text-slate-400">
                 <li><Link href="/#features" className="hover:text-white">Features</Link></li>
                 <li><Link href="/#tools" className="hover:text-white">Calculator</Link></li>
+                <li><Link href="/results" className="hover:text-white">Results</Link></li>
                 <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
               </ul>
             </div>
