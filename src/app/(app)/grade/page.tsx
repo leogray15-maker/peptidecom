@@ -24,7 +24,8 @@ export default async function GradePage() {
 
   // Previously graded photos give the personal baseline (so skin tone and usual
   // lighting cancel out) and let the tool report how well it has been agreeing
-  // with the member's own tracker ratings.
+  // with the member's own tracker ratings. `version` travels with them: only a
+  // photo scored by the current heuristic is a comparable baseline.
   const graded: GradedPhoto[] = photos
     .filter((p) => p.estimate)
     .map((p) => ({
@@ -32,6 +33,7 @@ export default async function GradePage() {
       area: p.area,
       composite: p.estimate!.composite,
       score: p.estimate!.score,
+      version: p.estimate!.version,
     }));
 
   const manualSeverityByDate = Object.fromEntries(logs.map((l) => [l.date, l.severity]));

@@ -62,6 +62,9 @@ const createSchema = z.object({
       method: z.enum(["heuristic", "tfjs", "blended"]),
       modelId: z.string().max(120).optional(),
       consentVersion: z.number().int().min(1).max(1000).optional(),
+      // Whether the score was relative to the member's own calm photo.
+      // Optional: estimates saved before v2 don't carry it.
+      basis: z.enum(["baseline", "absolute"]).optional(),
     })
     .optional()
     .nullable(),

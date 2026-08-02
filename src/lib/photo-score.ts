@@ -7,31 +7,48 @@
 // at inference time. If higher accuracy is ever wanted, paid options need an
 // explicitly approved budget first.
 //
-// How it works: sample the centre of the photo, convert pixels to HSV, and
-// build an "inflammation proxy" from (a) the fraction of usable pixels whose
-// hue sits in the red band with meaningful saturation, and (b) an erythema
-// index (how much red exceeds the other channels). The proxy is scored 0–100,
-// preferably relative to the user's own least-inflamed photo so skin tone and
-// typical lighting cancel out. It is an ESTIMATE and the UI must always label
-// it as one — it supplements the manual severity slider, never replaces it.
+// How it works, in order:
+//   1. Sample the centre of the photo and throw away pixels that are deep
+//      shadow or blown highlight.
+//   2. Of what's left, keep only pixels that look like SKIN (warm hue, some
+//      saturation, red above blue). Bedding, clothing, walls and worktops are
+//      dropped, so a patch photographed against a grey towel isn't diluted by
+//      the towel.
+//   3. Within the skin pixels, measure (a) the share reading as actively
+//      inflamed and (b) an erythema ratio (R−G)/(R+G), which separates flare
+//      from normal skin far better than R−(G+B)/2 does across skin tones.
+//   4. Score the resulting 0–1 composite, preferably against the member's own
+//      calm photo so their skin tone and usual lighting cancel out.
+//
+// It is an ESTIMATE and the UI must always label it as one — it supplements
+// the manual severity slider, never replaces it.
 //
 // The maths lives in pure functions over raw pixel arrays so it can be unit
 // tested in Node (scripts/photo-score.test.ts); only extractImageFeatures at
 // the bottom touches the DOM.
+//
+// VERSION 2 (2026-08): v1 scored every pixel in the centre crop, including
+// background, and used an erythema index that read normal mid- and deep-toned
+// skin as ~85–95/100. It also accepted ANY previously-saved photo as the
+// "calm" baseline, so a member whose only saved photos were flares had every
+// flare scored against a flare — the reported case where an obviously raw arm
+// came back "Calm 0/100". A v1 composite is not comparable to a v2 one, so
+// baselines are version-gated below.
 
-export const PHOTO_SCORE_VERSION = 1;
+export const PHOTO_SCORE_VERSION = 2;
 
 export interface PhotoFeatures {
-  /** Share of usable pixels in the red-hue band with real saturation (0–1). */
+  /** Weighted share of SKIN pixels reading as actively inflamed (0–1). */
   inflamedFraction: number;
-  /** Mean erythema index: how much R exceeds the G/B average (0–1). */
+  /** Mean erythema ratio (R−G)/(R+G) over skin pixels (0–1). */
   rednessIndex: number;
   /** Combined 0–1 proxy the score is derived from. */
   composite: number;
-  /** How many sampled pixels were usable — low counts mean "don't trust it". */
+  /** Sampled pixels that weren't shadow or blown highlight (0–1). */
   usableFraction: number;
-  /** Share of usable pixels that read as plausible skin of any tone (0–1).
-   * Gates the non-skin rejection — see isLikelySkinPhoto. */
+  /** Share of usable pixels that read as plausible skin of any tone (0–1); low
+   * means mostly background. Gates the non-skin rejection — see rejectPhoto
+   * (in-app) and isLikelySkinPhoto (the server/edge gate). */
   skinFraction: number;
 }
 
@@ -49,7 +66,18 @@ export interface PhotoEstimate {
   /** The disclaimer version the member accepted when this was graded.
    * Historical values are never rewritten — see RETROACTIVE_RELABEL_POLICY. */
   consentVersion?: number;
+  /** Whether the score is relative to the member's own calm photo. */
+  basis?: ScoreBasis;
 }
+
+export type ScoreBasis = "baseline" | "absolute";
+
+/** Why a photo couldn't be graded, so the UI can give specific advice. */
+export type PhotoRejection = "too-dark" | "too-little-skin";
+
+export type PhotoGrade =
+  | { ok: true; score: number; basis: ScoreBasis }
+  | { ok: false; reason: PhotoRejection };
 
 /** RGB (0–255) → [hue 0–360, saturation 0–1, value 0–1]. */
 export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
@@ -69,29 +97,72 @@ export function rgbToHsv(r: number, g: number, b: number): [number, number, numb
   return [h, max === 0 ? 0 : d / max, max];
 }
 
-// Tuning constants for the inflammation proxy.
+// ── Tuning constants ───────────────────────────────────────────────────────
+// Exposure gate: what counts as a readable pixel at all.
+const MIN_VALUE = 0.15; // ignore deep shadow
+const MAX_VALUE = 0.98; // ignore blown highlights
+
+// Skin gate: skin of every tone is a warm, R > G > B colour. Bedding, denim,
+// walls and worktops are usually grey/blue/green or near-desaturated, so this
+// removes most background without needing a model.
+const SKIN_HUE_MAX = 50; // 0–50° …
+const SKIN_HUE_MIN = 330; // … and 330–360° are the warm band
+const SKIN_MIN_SATURATION = 0.1; // greys, whites and near-neutrals are not skin
+const SKIN_MIN_RB_GAP = 10; // R must lead B by this much (0–255)
+
+// Inflammation gate, applied only to skin pixels. Hue and saturation are hard
+// gates (a pixel is in the red band or it isn't); erythema is a RAMP, because
+// a hard threshold there put a cliff in the middle of the skin-tone range —
+// 0.158 read as 0% inflamed and 0.200 as 100%, a 60-point swing between two
+// neighbouring shades of perfectly normal deep-toned skin. Ramping also stops
+// the hue boundary deciding a photo on its own: a pixel that sneaks under
+// RED_HUE_MAX still contributes nothing unless it is genuinely red.
 const RED_HUE_MAX = 25; // 0–25° …
 const RED_HUE_MIN = 345; // … and 345–360° count as the red band
 const MIN_SATURATION = 0.25; // pale pink below this isn't counted as inflamed
-const MIN_VALUE = 0.15; // ignore deep shadow
-const MAX_VALUE = 0.98; // ignore blown highlights
-const REDNESS_NORM = 0.22; // rednessIndex at/above this maps to 1.0
+const INFLAMED_REDNESS_LO = 0.16; // (R−G)/(R+G) where "inflamed" starts to count
+const INFLAMED_REDNESS_HI = 0.34; // … and where a pixel counts fully
+
+/** Erythema ratio at/above which rednessIndex maps to 1.0. Calibrated so
+ * normal skin lands ~0.19–0.45 of the scale across tones and frank erythema
+ * saturates it, without moderate redness pinning to 100 straight away. */
+const REDNESS_NORM = 0.45;
+
 /** Sampled-pixel floor below which the photo is too dark/blown to score. */
 const MIN_USABLE_FRACTION = 0.2;
+/** Skin-pixel floor below which we're mostly grading the background. */
+const MIN_SKIN_FRACTION = 0.25;
 
-// Skin-plausibility band. Deliberately GENEROUS: the cost of a false negative
-// here falls hardest on members with deeper skin tones, so the rule is tuned to
-// admit every human skin tone (which all sit red-dominant in the warm hues)
-// and to exclude the things people actually mis-upload — screenshots, memes,
-// product labels, pets, walls, sky.
-const SKIN_HUE_MAX = 55; // 0–55° …
-const SKIN_HUE_MIN = 335; // … and 335–360° are the warm band skin lives in
-const SKIN_MIN_SATURATION = 0.08; // below this it's grey — paper, screens, walls
-const SKIN_MAX_SATURATION = 0.9; // above this it's a saturated non-skin colour
-const SKIN_MIN_VALUE = 0.06; // admits deep skin tones, rejects black frames
+/** Where a member's own calm photo is anchored on the 0–100 scale — their
+ * calmest skin is "as good as it gets for them", not "zero inflammation". */
+const BASELINE_ANCHOR = 12;
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+/** Erythema ratio (R−G)/(R+G): brightness-tolerant, so it separates flare from
+ * normal skin across tones far better than R−(G+B)/2. Clamped at 0. */
+export function erythemaRatio(r: number, g: number): number {
+  const sum = r + g;
+  return sum <= 0 ? 0 : Math.max(0, (r - g) / sum);
+}
+
+/** True when a pixel plausibly belongs to skin rather than background. */
+function isSkinLike(h: number, s: number, r: number, b: number): boolean {
+  if (s < SKIN_MIN_SATURATION) return false;
+  if (r - b < SKIN_MIN_RB_GAP) return false;
+  return h <= SKIN_HUE_MAX || h >= SKIN_HUE_MIN;
+}
+
+/** How strongly a skin pixel reads as inflamed, 0–1 (see the ramp note above). */
+export function inflamedWeight(h: number, s: number, redness: number): number {
+  const redHue = h <= RED_HUE_MAX || h >= RED_HUE_MIN;
+  if (!redHue || s < MIN_SATURATION) return 0;
+  return clamp((redness - INFLAMED_REDNESS_LO) / (INFLAMED_REDNESS_HI - INFLAMED_REDNESS_LO), 0, 1);
+}
 
 /** Extract features from raw RGBA pixel data (pure — Node-testable).
- * Samples the centre 70% of the frame so background edges don't dominate. */
+ * Samples the centre 70% of the frame so background edges don't dominate,
+ * then restricts the measurement to skin-like pixels within it. */
 export function computePhotoFeatures(
   data: Uint8ClampedArray,
   width: number,
@@ -107,8 +178,8 @@ export function computePhotoFeatures(
 
   let sampled = 0;
   let usable = 0;
-  let inflamed = 0;
   let skin = 0;
+  let inflamed = 0;
   let rednessSum = 0;
 
   for (let y = y0; y < y1; y += stride) {
@@ -121,15 +192,17 @@ export function computePhotoFeatures(
       const [h, s, v] = rgbToHsv(r, g, b);
       if (v < MIN_VALUE || v > MAX_VALUE) continue;
       usable++;
-      rednessSum += Math.max(0, r - (g + b) / 2) / 255;
-      const redHue = h <= RED_HUE_MAX || h >= RED_HUE_MIN;
-      if (redHue && s >= MIN_SATURATION) inflamed++;
-      if (isSkinPixel(r, g, b, h, s, v)) skin++;
+      if (!isSkinLike(h, s, r, b)) continue;
+      skin++;
+
+      const redness = erythemaRatio(r, g);
+      rednessSum += redness;
+      inflamed += inflamedWeight(h, s, redness);
     }
   }
 
-  const inflamedFraction = usable > 0 ? inflamed / usable : 0;
-  const rednessIndex = usable > 0 ? rednessSum / usable : 0;
+  const inflamedFraction = skin > 0 ? inflamed / skin : 0;
+  const rednessIndex = skin > 0 ? rednessSum / skin : 0;
   const rNorm = Math.min(1, rednessIndex / REDNESS_NORM);
   return {
     inflamedFraction,
@@ -140,23 +213,6 @@ export function computePhotoFeatures(
   };
 }
 
-/** Plausible-skin test for one pixel. Skin of every tone is red-dominant and
- * sits in the warm hue band at moderate saturation; the ordering check
- * (R ≥ G ≥ B) is what separates skin from orange packaging and autumn leaves. */
-function isSkinPixel(
-  r: number,
-  g: number,
-  b: number,
-  h: number,
-  s: number,
-  v: number
-): boolean {
-  if (v < SKIN_MIN_VALUE) return false;
-  if (s < SKIN_MIN_SATURATION || s > SKIN_MAX_SATURATION) return false;
-  if (!(h <= SKIN_HUE_MAX || h >= SKIN_HUE_MIN)) return false;
-  return r >= g && g >= b;
-}
-
 /** Whether a photo looks enough like skin to be worth grading or storing as a
  * flare photo. Cheap gate that runs before any model does — see
  * MIN_SKIN_FRACTION in lib/ai-grading.ts for the threshold rationale. */
@@ -164,33 +220,76 @@ export function isLikelySkinPhoto(features: PhotoFeatures, minSkinFraction: numb
   return features.skinFraction >= minSkinFraction;
 }
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+/** Why the photo can't be graded, or null when it's fine. */
+export function rejectPhoto(features: PhotoFeatures): PhotoRejection | null {
+  if (features.usableFraction < MIN_USABLE_FRACTION) return "too-dark";
+  if (features.skinFraction < MIN_SKIN_FRACTION) return "too-little-skin";
+  return null;
+}
 
-/** 0–100 estimate. With a baseline (the user's own least-inflamed photo) the
- * score is relative — baseline lands near 12 so "your calmest" isn't claimed
- * to be zero inflammation. Without one, an absolute mapping is used. Returns
- * null when the photo is too dark/blown-out to judge. */
+/** 0–100 estimate.
+ *
+ * With a trusted baseline (see pickBaseline — the member's own photo from a day
+ * they rated calm) the score is relative: the baseline lands on
+ * BASELINE_ANCHOR and the remaining headroom is stretched over what's left of
+ * the composite range. Normalising by headroom means a member whose calm skin
+ * already reads warm still gets the full 0–100 range for their flares, and it
+ * keeps the relative and absolute scales roughly agreeing for pale skin, so
+ * earning a baseline doesn't lurch the number.
+ *
+ * Without a trusted baseline it falls back to the absolute mapping rather than
+ * comparing against an arbitrary earlier photo — a flare is not "calm" just
+ * because a worse flare was saved first. */
 export function scorePhoto(
   features: PhotoFeatures,
   baseline: { composite: number } | null
-): number | null {
-  if (features.usableFraction < MIN_USABLE_FRACTION) return null;
+): PhotoGrade {
+  const reason = rejectPhoto(features);
+  if (reason) return { ok: false, reason };
   if (baseline) {
-    return Math.round(clamp(12 + 140 * (features.composite - baseline.composite), 0, 100));
+    const headroom = Math.max(0.15, 1 - baseline.composite);
+    const rel = BASELINE_ANCHOR + (100 - BASELINE_ANCHOR) * ((features.composite - baseline.composite) / headroom);
+    return { ok: true, score: Math.round(clamp(rel, 0, 100)), basis: "baseline" };
   }
-  return Math.round(clamp(100 * features.composite, 0, 100));
+  return { ok: true, score: Math.round(clamp(100 * features.composite, 0, 100)), basis: "absolute" };
 }
 
-/** Pick the baseline from previously-scored photos: the least-inflamed one.
- * Prefers photos of the same body area (skin tone/lighting comparability),
- * falls back to any scored photo. */
-export function pickBaseline<T extends { composite: number; area?: string | null }>(
+/** Manual severity (1–10) at or below which a logged day counts as calm enough
+ * for its photo to serve as a baseline. */
+export const CALM_MANUAL_SEVERITY = 4;
+
+export interface BaselineCandidate {
+  composite: number;
+  area?: string | null;
+  takenAt?: string;
+  version?: number;
+}
+
+/** Pick the baseline: the least-inflamed photo the member took ON A DAY THEY
+ * THEMSELVES RATED CALM. Prefers the same body area (skin tone and lighting
+ * comparability) and falls back to any calm-day photo.
+ *
+ * The member's own rating is the gate, not the photo's own redness — that's
+ * the whole point. Using "least red photo so far" meant someone who only ever
+ * photographs flares had every flare scored against a flare, which is how an
+ * obviously raw patch came back as "Calm". Photos with no logged rating, and
+ * photos scored by an older version of the heuristic (whose composite isn't
+ * comparable), are not eligible; the caller then falls back to the absolute
+ * scale, which is honest about what it knows. */
+export function pickBaseline<T extends BaselineCandidate>(
   scored: T[],
-  area: string | null
+  area: string | null,
+  manualSeverityByDate: Record<string, number> = {}
 ): T | null {
-  if (scored.length === 0) return null;
-  const pool = area ? scored.filter((p) => p.area === area) : [];
-  const usePool = pool.length > 0 ? pool : scored;
+  const calm = scored.filter((p) => {
+    if (p.version !== PHOTO_SCORE_VERSION) return false;
+    if (!p.takenAt) return false;
+    const manual = manualSeverityByDate[p.takenAt];
+    return manual != null && manual <= CALM_MANUAL_SEVERITY;
+  });
+  if (calm.length === 0) return null;
+  const pool = area ? calm.filter((p) => p.area === area) : [];
+  const usePool = pool.length > 0 ? pool : calm;
   return usePool.reduce((min, p) => (p.composite < min.composite ? p : min), usePool[0]);
 }
 

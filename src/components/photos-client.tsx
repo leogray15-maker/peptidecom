@@ -19,21 +19,16 @@ import {
   type PhotoEstimate,
   PHOTO_SCORE_VERSION,
   estimateAgreement,
-  extractImageFeatures,
-  isLikelySkinPhoto,
-  pickBaseline,
-  scorePhoto,
 } from "@/lib/photo-score";
+import { gradePhoto } from "@/lib/photo-grade";
 import {
   AI_ESTIMATE_LABEL,
   CONSENT_VERSION,
-  MIN_SKIN_FRACTION,
   NON_SKIN_MESSAGE,
   modelIdFor,
 } from "@/lib/ai-grading";
 import { downloadWatermarked } from "@/lib/watermark";
 import { trackEvent } from "@/lib/analytics";
-import { loadPhotoModel } from "@/lib/photo-model";
 import { compressImage } from "@/lib/image-compress";
 import { getConsent } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
@@ -108,45 +103,34 @@ export function PhotosClient({
     setEstimate(null);
     setNotSkin(false);
     try {
-      const features = await extractImageFeatures(dataUrl);
-      setSkinFraction(features.skinFraction);
-      if (!isLikelySkinPhoto(features, MIN_SKIN_FRACTION)) {
-        setNotSkin(true);
-        return; // no estimate for a photo that isn't skin
-      }
-      // Baseline: the member's own least-inflamed scored photo, so skin tone
-      // and typical lighting cancel out.
+      // Baseline: the member's own photo from a day they rated calm, so skin
+      // tone and typical lighting cancel out. Same pipeline the flare grading
+      // tool uses — see lib/photo-grade.ts.
       const scored = initialPhotos
         .filter((p) => p.estimate)
-        .map((p) => ({ composite: p.estimate!.composite, area: p.area }));
-      const heuristic = scorePhoto(features, pickBaseline(scored, forArea));
-      if (heuristic == null) return; // too dark / blown out to judge
-
-      let score = heuristic;
-      let method: PhotoEstimate["method"] = "heuristic";
-      const model = await loadPhotoModel();
-      if (model) {
-        const img = new Image();
-        await new Promise<void>((res, rej) => {
-          img.onload = () => res();
-          img.onerror = () => rej(new Error("decode failed"));
-          img.src = dataUrl;
-        });
-        const modelScore = await model.predict(img);
-        if (modelScore != null) {
-          score = Math.round((heuristic + modelScore) / 2);
-          method = "blended";
-        }
+        .map((p) => ({
+          composite: p.estimate!.composite,
+          area: p.area,
+          takenAt: p.takenAt,
+          version: p.estimate!.version,
+        }));
+      const result = await gradePhoto({
+        dataUrl,
+        scored,
+        area: forArea,
+        manualSeverityByDate,
+      });
+      if (!result.ok) {
+        // "Not skin" gets its own message; too dark just stays silent here.
+        if (result.reason === "too-little-skin") setNotSkin(true);
+        return;
       }
-
+      setSkinFraction(result.features.skinFraction);
+      // Record which maths produced the number and which disclaimer the member
+      // had accepted, so a stored grading stays attributable later.
       setEstimate({
-        score,
-        composite: features.composite,
-        inflamedFraction: features.inflamedFraction,
-        rednessIndex: features.rednessIndex,
-        version: PHOTO_SCORE_VERSION,
-        method,
-        modelId: modelIdFor(method, PHOTO_SCORE_VERSION),
+        ...result.estimate,
+        modelId: modelIdFor(result.estimate.method, PHOTO_SCORE_VERSION),
         consentVersion: CONSENT_VERSION,
       });
     } catch {

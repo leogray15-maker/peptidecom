@@ -17,21 +17,18 @@ import { AiGradingConsentGate } from "@/components/ai-grading-consent";
 import {
   type PhotoEstimate,
   PHOTO_SCORE_VERSION,
+  type PhotoRejection,
+  CALM_MANUAL_SEVERITY,
   estimateAgreement,
-  extractImageFeatures,
   flareBand,
-  isLikelySkinPhoto,
-  pickBaseline,
-  scorePhoto,
 } from "@/lib/photo-score";
+import { gradePhoto } from "@/lib/photo-grade";
 import {
   CONSENT_VERSION,
-  MIN_SKIN_FRACTION,
   NON_SKIN_MESSAGE,
   methodLabel,
   modelIdFor,
 } from "@/lib/ai-grading";
-import { loadPhotoModel } from "@/lib/photo-model";
 import { compressImage } from "@/lib/image-compress";
 import { getConsent, setConsent, syncConsents } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
@@ -44,6 +41,8 @@ export interface GradedPhoto {
   area: string | null;
   composite: number;
   score: number;
+  /** Heuristic version that produced `composite` — older ones aren't comparable. */
+  version: number;
 }
 
 export function GradeClient({
@@ -66,12 +65,11 @@ export function GradeClient({
   const [preview, setPreview] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<PhotoEstimate | null>(null);
   const [skinFraction, setSkinFraction] = useState<number | null>(null);
-  const [notSkin, setNotSkin] = useState(false);
   const [usedBaseline, setUsedBaseline] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [consented, setConsented] = useState(!needsConsent);
   const [working, setWorking] = useState(false);
-  const [tooDark, setTooDark] = useState(false);
+  const [rejected, setRejected] = useState<PhotoRejection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -100,8 +98,7 @@ export function GradeClient({
 
   async function grade(file: File) {
     setError(null);
-    setTooDark(false);
-    setNotSkin(false);
+    setRejected(null);
     setEstimate(null);
     setSkinFraction(null);
     setSaved(false);
@@ -110,50 +107,25 @@ export function GradeClient({
       const data = await compressImage(file);
       setPreview(data);
 
-      const features = await extractImageFeatures(data);
-      setSkinFraction(features.skinFraction);
-
-      // Non-skin gate, before any model runs — a screenshot or a photo of the
-      // cat shouldn't get a severity number at all.
-      if (!isLikelySkinPhoto(features, MIN_SKIN_FRACTION)) {
-        setNotSkin(true);
+      const result = await gradePhoto({
+        dataUrl: data,
+        scored: graded,
+        area: area || null,
+        manualSeverityByDate,
+      });
+      if (!result.ok) {
+        // Too dark, or not enough skin in frame — say which rather than
+        // invent a number. A screenshot or a photo of the cat lands here.
+        setRejected(result.reason);
         return;
       }
-
-      const baseline = pickBaseline(graded, area || null);
-      const heuristic = scorePhoto(features, baseline);
-      if (heuristic == null) {
-        // Too dark or blown out to judge — say so rather than invent a number.
-        setTooDark(true);
-        return;
-      }
-      setUsedBaseline(!!baseline);
-
-      let score = heuristic;
-      let method: PhotoEstimate["method"] = "heuristic";
-      const model = await loadPhotoModel();
-      if (model) {
-        const img = new Image();
-        await new Promise<void>((res, rej) => {
-          img.onload = () => res();
-          img.onerror = () => rej(new Error("decode failed"));
-          img.src = data;
-        });
-        const modelScore = await model.predict(img);
-        if (modelScore != null) {
-          score = Math.round((heuristic + modelScore) / 2);
-          method = "blended";
-        }
-      }
-
+      setSkinFraction(result.features.skinFraction);
+      setUsedBaseline(!!result.baseline);
+      // Record which maths produced the number and which disclaimer version
+      // the member had accepted when it was produced.
       setEstimate({
-        score,
-        composite: features.composite,
-        inflamedFraction: features.inflamedFraction,
-        rednessIndex: features.rednessIndex,
-        version: PHOTO_SCORE_VERSION,
-        method,
-        modelId: modelIdFor(method, PHOTO_SCORE_VERSION),
+        ...result.estimate,
+        modelId: modelIdFor(result.estimate.method, PHOTO_SCORE_VERSION),
         consentVersion: CONSENT_VERSION,
       });
     } catch (e) {
@@ -198,8 +170,7 @@ export function GradeClient({
     setPreview(null);
     setEstimate(null);
     setSkinFraction(null);
-    setTooDark(false);
-    setNotSkin(false);
+    setRejected(null);
     setShowAbout(false);
     setError(null);
     setSaved(false);
@@ -273,8 +244,8 @@ export function GradeClient({
                 ))}
               </select>
               <p className="mt-1.5 text-xs text-slate-500">
-                Picking the area lets us compare against your own calmest photo of the same
-                place, so skin tone and lighting cancel out.
+                Picking the area lets us compare against your own photo of the same place from a
+                day you rated calm, so skin tone and lighting cancel out.
               </p>
             </div>
 
@@ -301,7 +272,7 @@ export function GradeClient({
                 <p className="flex items-center justify-center gap-2 text-sm text-slate-400 sm:justify-start">
                   <Loader2 className="h-4 w-4 animate-spin" /> Reading the photo on your device…
                 </p>
-              ) : tooDark ? (
+              ) : rejected === "too-dark" ? (
                 <>
                   <p className="font-semibold text-white">Too dark or too bright to grade</p>
                   <p className="mt-1 text-sm text-slate-400">
@@ -309,29 +280,27 @@ export function GradeClient({
                     natural light — daylight near a window works best.
                   </p>
                 </>
-              ) : notSkin ? (
+              ) : rejected === "too-little-skin" ? (
                 <>
-                  <p className="font-semibold text-white">That doesn&apos;t look like skin</p>
+                  <p className="font-semibold text-white">Couldn&apos;t find enough skin</p>
                   <p className="mt-1 text-sm text-slate-400">{NON_SKIN_MESSAGE}</p>
                 </>
               ) : estimate && band ? (
-                <div>
-                  <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-                    <ScoreRing score={estimate.score} tone={band.tone} />
-                    <div>
-                      {/* Non-dismissible: sits above the number, always. */}
-                      <AiEstimateLabel size="sm" />
-                      <p className={cn("mt-1.5 text-lg font-bold", TONE_TEXT[band.tone])}>
-                        {band.label}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-400">{band.blurb}</p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {usedBaseline
-                          ? "Scored against your own calmest photo."
-                          : "Absolute scale — grade a few photos and it starts comparing against your own calmest one."}
-                        {area ? ` · ${anyZoneLabel(area)}` : ""}
-                      </p>
-                    </div>
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+                  <ScoreRing score={estimate.score} tone={band.tone} />
+                  <div>
+                    {/* Non-dismissible: sits above the number, always. */}
+                    <AiEstimateLabel size="sm" />
+                    <p className={cn("mt-1.5 text-lg font-bold", TONE_TEXT[band.tone])}>
+                      {band.label}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">{band.blurb}</p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      {estimate.basis === "baseline"
+                        ? "Scored against your own photo from a day you rated calm."
+                        : `Absolute scale — save a photo on a day you rate ${CALM_MANUAL_SEVERITY}/10 or lower and it starts comparing against that instead.`}
+                      {area ? ` · ${anyZoneLabel(area)}` : ""}
+                    </p>
                   </div>
                 </div>
               ) : null}
@@ -384,7 +353,7 @@ export function GradeClient({
           <h2 className="font-semibold text-white">What the estimate looked at</h2>
           <ul className="mt-3 space-y-2">
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
-              <span className="text-slate-400">Area reading as inflamed</span>
+              <span className="text-slate-400">Skin reading as inflamed</span>
               <span className="font-semibold tabular-nums text-slate-200">
                 {Math.round(estimate.inflamedFraction * 100)}%
               </span>
@@ -395,14 +364,22 @@ export function GradeClient({
                 {Math.round(estimate.rednessIndex * 100) / 100}
               </span>
             </li>
+            <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
+              <span className="text-slate-400">Scale</span>
+              <span className="font-semibold text-slate-200">
+                {estimate.basis === "baseline" ? "Your calm baseline" : "Absolute"}
+              </span>
+            </li>
             <li className="flex items-center justify-between py-2 text-sm">
               <span className="text-slate-400">Method</span>
               <span className="font-semibold text-slate-200">{methodLabel(estimate.method)}</span>
             </li>
           </ul>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            All of this is computed in your browser from the photo&apos;s colours. Nothing is
-            uploaded unless you choose to save it to your timeline.
+            All of this is computed in your browser from the photo&apos;s colours. Only pixels
+            that look like skin are measured, so bedding and clothing in the frame don&apos;t
+            drag the number around. Nothing is uploaded unless you choose to save it to your
+            timeline.
           </p>
 
           <button
