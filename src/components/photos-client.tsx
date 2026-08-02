@@ -12,15 +12,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import {
-  type PhotoEstimate,
-  PHOTO_SCORE_VERSION,
-  estimateAgreement,
-  extractImageFeatures,
-  pickBaseline,
-  scorePhoto,
-} from "@/lib/photo-score";
-import { loadPhotoModel } from "@/lib/photo-model";
+import { type PhotoEstimate, estimateAgreement } from "@/lib/photo-score";
+import { gradePhoto } from "@/lib/photo-grade";
 import { compressImage } from "@/lib/image-compress";
 import { getConsent } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
@@ -85,40 +78,25 @@ export function PhotosClient({
     setEstimating(true);
     setEstimate(null);
     try {
-      const features = await extractImageFeatures(dataUrl);
-      // Baseline: the member's own least-inflamed scored photo, so skin tone
-      // and typical lighting cancel out.
+      // Baseline: the member's own photo from a day they rated calm, so skin
+      // tone and typical lighting cancel out. Same pipeline the flare grading
+      // tool uses — see lib/photo-grade.ts.
       const scored = initialPhotos
         .filter((p) => p.estimate)
-        .map((p) => ({ composite: p.estimate!.composite, area: p.area }));
-      const heuristic = scorePhoto(features, pickBaseline(scored, forArea));
-      if (heuristic == null) return; // too dark / blown out to judge
-
-      let score = heuristic;
-      let method: PhotoEstimate["method"] = "heuristic";
-      const model = await loadPhotoModel();
-      if (model) {
-        const img = new Image();
-        await new Promise<void>((res, rej) => {
-          img.onload = () => res();
-          img.onerror = () => rej(new Error("decode failed"));
-          img.src = dataUrl;
-        });
-        const modelScore = await model.predict(img);
-        if (modelScore != null) {
-          score = Math.round((heuristic + modelScore) / 2);
-          method = "blended";
-        }
-      }
-
-      setEstimate({
-        score,
-        composite: features.composite,
-        inflamedFraction: features.inflamedFraction,
-        rednessIndex: features.rednessIndex,
-        version: PHOTO_SCORE_VERSION,
-        method,
+        .map((p) => ({
+          composite: p.estimate!.composite,
+          area: p.area,
+          takenAt: p.takenAt,
+          version: p.estimate!.version,
+        }));
+      const result = await gradePhoto({
+        dataUrl,
+        scored,
+        area: forArea,
+        manualSeverityByDate,
       });
+      if (!result.ok) return; // too dark, or too little skin in frame, to judge
+      setEstimate(result.estimate);
     } catch {
       // Estimation is supplementary — never block the upload on it.
     } finally {
