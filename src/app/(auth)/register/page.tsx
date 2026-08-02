@@ -13,6 +13,7 @@ import { clientAuth, firebaseEnabled, googleProvider } from "@/lib/firebase-clie
 import { establishSession } from "@/lib/session-client";
 import { GoogleIcon } from "@/components/google-icon";
 import { InAppBrowserNotice, useInAppBrowser } from "@/components/in-app-browser-guard";
+import { Turnstile } from "@/components/turnstile";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,6 +23,9 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"email" | "google" | null>(null);
   const inAppBrowser = useInAppBrowser();
+  // Cloudflare Turnstile. Stays null when the widget isn't configured, which is
+  // exactly what the server expects in that case (lib/turnstile.ts fails open).
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function withEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -31,7 +35,7 @@ export default function RegisterPage() {
     try {
       const cred = await createUserWithEmailAndPassword(clientAuth, email, password);
       if (name) await updateProfile(cred.user, { displayName: name });
-      await establishSession(cred.user);
+      await establishSession(cred.user, turnstileToken);
       router.push("/pricing?welcome=1");
       router.refresh();
     } catch (err) {
@@ -46,7 +50,7 @@ export default function RegisterPage() {
     setLoading("google");
     try {
       const cred = await signInWithPopup(clientAuth, googleProvider);
-      await establishSession(cred.user);
+      await establishSession(cred.user, turnstileToken);
       router.push("/pricing?welcome=1");
       router.refresh();
     } catch (err) {
@@ -102,6 +106,7 @@ export default function RegisterPage() {
             value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
           <p className="mt-1 text-xs text-slate-500">At least 8 characters.</p>
         </div>
+        <Turnstile onToken={setTurnstileToken} />
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={loading !== null}>
           {loading === "email" && <Loader2 className="h-4 w-4 animate-spin" />}

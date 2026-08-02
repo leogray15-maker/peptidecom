@@ -50,6 +50,7 @@ export function median(values: number[]): number | null {
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // ─── Per-user feature extraction ─────────────────────────────────────────────
 
@@ -444,13 +445,56 @@ export function rotateStatements(
 
 // ─── Personal insight (the user's own data — can be specific) ────────────────
 
+/** Day-pairs required before a personal pattern may be surfaced at all. Below
+ * this the card is not shown — a "pattern" from a handful of days is noise
+ * wearing a headline, and this app should not put that in front of someone
+ * making decisions about their skin. */
+export const MIN_PERSONAL_SAMPLE = 14;
+
+/** Days of history the personal insight looks back over. */
+export const PERSONAL_WINDOW_DAYS = 60;
+
+export type CorrelationBucket = "weak" | "moderate" | "strong";
+
+/** Plain-language strength band for a correlation coefficient, by absolute
+ * value. Thresholds are the conventional social-science cutoffs and are the
+ * ONLY thing the headline is allowed to say — the coefficient itself lives
+ * behind "see the numbers". */
+export function correlationBucket(r: number): CorrelationBucket {
+  const abs = Math.abs(r);
+  if (abs < 0.3) return "weak";
+  if (abs <= 0.5) return "moderate";
+  return "strong";
+}
+
+export const BUCKET_LABEL: Record<CorrelationBucket, string> = {
+  weak: "a weak pattern",
+  moderate: "a moderate pattern",
+  strong: "a strong pattern",
+};
+
+/** The standing caveat that sits with every bucket label. */
+export const PATTERN_NOT_PROOF =
+  "Pattern, not proof — this is a link in your own logs, not a cause.";
+
 export interface PersonalInsight {
   headline: string;
   detail: string;
+  bucket: CorrelationBucket;
+  /** Raw coefficient, kept out of the headline and shown only in the detail
+   * view. Signed: negative means "more of x went with calmer days". */
+  r: number;
+  /** Day-pairs the coefficient was computed from. */
+  n: number;
+  /** Look-back window, in days. */
+  windowDays: number;
+  /** Human description of what was correlated with what. */
+  method: string;
 }
 
-/** "Your top correlated trigger this month" from the user's own logs.
- * Falls back to their sleep↔severity correlation, then to null. */
+/** The member's strongest pattern in their own logs — a trigger name if one
+ * stands out, otherwise sleep. Returns null when there isn't enough data to
+ * say anything honest (see MIN_PERSONAL_SAMPLE). */
 export function computePersonalInsight(
   logs: DailyLog[],
   triggers: TriggerLike[],
@@ -458,9 +502,22 @@ export function computePersonalInsight(
 ): PersonalInsight | null {
   const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
   const byDate = new Map(sorted.map((l) => [l.date, l]));
-  const recentTriggers = triggers.filter((t) => daysBetween(t.date, today) < 60);
+  const recentTriggers = triggers.filter((t) => daysBetween(t.date, today) < PERSONAL_WINDOW_DAYS);
 
-  // Per trigger *name*: mean next-day severity change.
+  /** Consecutive logged day-pairs inside the window — the sample every
+   * correlation below is computed over. */
+  const dayPairs: [DailyLog, DailyLog][] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (
+      daysBetween(sorted[i].date, sorted[i + 1].date) === 1 &&
+      daysBetween(sorted[i].date, today) < PERSONAL_WINDOW_DAYS
+    ) {
+      dayPairs.push([sorted[i], sorted[i + 1]]);
+    }
+  }
+  if (dayPairs.length < MIN_PERSONAL_SAMPLE) return null;
+
+  // Per trigger *name*: mean next-day severity change, to pick a candidate.
   const byName = new Map<string, { name: string; n: number; deltaSum: number }>();
   for (const t of recentTriggers) {
     const day = byDate.get(t.date);
@@ -472,35 +529,57 @@ export function computePersonalInsight(
     cur.deltaSum += next.severity - day.severity;
     byName.set(key, cur);
   }
-  const candidates = [...byName.values()]
+  const top = [...byName.values()]
     .filter((c) => c.n >= MIN_OBS_PER_USER)
     .map((c) => ({ ...c, avg: c.deltaSum / c.n }))
-    .sort((a, b) => b.avg - a.avg);
+    .sort((a, b) => b.avg - a.avg)[0];
 
-  const top = candidates[0];
   if (top && top.avg >= 0.5) {
-    return {
-      headline: `Your top correlated trigger: ${top.name}`,
-      detail: `Across ${top.n} logged days in the last two months, the day after “${top.name}” averaged +${round1(top.avg)} severity in your own data. Worth an experiment — not a verdict.`,
-    };
-  }
-
-  // Fallback: the user's own sleep ↔ next-day severity relationship.
-  const pairs: [number, number][] = [];
-  for (let i = 0; i < sorted.length - 1; i++) {
-    if (
-      daysBetween(sorted[i].date, sorted[i + 1].date) === 1 &&
-      sorted[i].sleep != null &&
-      daysBetween(sorted[i].date, today) < 60
-    ) {
-      pairs.push([sorted[i].sleep as number, sorted[i + 1].severity]);
+    // Point-biserial r over every day-pair in the window: was this trigger
+    // logged that day (0/1) against the next day's severity. Computing a real
+    // coefficient — rather than reporting the mean delta — is what lets the
+    // headline use the same weak/moderate/strong vocabulary everywhere.
+    const key = top.name.trim().toLowerCase();
+    const flagged = new Set(
+      recentTriggers.filter((t) => t.name.trim().toLowerCase() === key).map((t) => t.date)
+    );
+    const pairs: [number, number][] = dayPairs.map(([day, next]) => [
+      flagged.has(day.date) ? 1 : 0,
+      next.severity,
+    ]);
+    const r = pearson(pairs);
+    if (r != null) {
+      const bucket = correlationBucket(r);
+      return {
+        headline: `Your strongest pattern: ${top.name} — ${BUCKET_LABEL[bucket]}`,
+        detail: `Days after “${top.name}” averaged +${round1(top.avg)} severity compared with days that followed no logged trigger. Worth an experiment — not a verdict.`,
+        bucket,
+        r: round2(r),
+        n: pairs.length,
+        windowDays: PERSONAL_WINDOW_DAYS,
+        method: `“${top.name}” logged on a day vs the next day's severity rating (point-biserial correlation)`,
+      };
     }
   }
-  const r = pearson(pairs);
+
+  // Fallback: the member's own sleep ↔ next-day severity relationship.
+  const sleepPairs: [number, number][] = dayPairs
+    .filter(([day]) => day.sleep != null)
+    .map(([day, next]) => [day.sleep as number, next.severity]);
+  if (sleepPairs.length < MIN_PERSONAL_SAMPLE) return null;
+
+  const r = pearson(sleepPairs);
   if (r != null && r <= -0.3) {
+    const bucket = correlationBucket(r);
     return {
-      headline: "Your strongest pattern: sleep",
-      detail: `In your last two months of logs, better-rated nights lined up with calmer next days (r = ${round1(r)}). Protecting your evenings looks worth it in your own data.`,
+      headline: `Your strongest pattern: sleep — ${BUCKET_LABEL[bucket]}`,
+      detail:
+        "Better-rated nights lined up with calmer next days in your own logs. Protecting your evenings looks worth it.",
+      bucket,
+      r: round2(r),
+      n: sleepPairs.length,
+      windowDays: PERSONAL_WINDOW_DAYS,
+      method: "Your sleep rating vs the next day's severity rating (Pearson correlation)",
     };
   }
 

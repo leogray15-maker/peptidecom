@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -12,7 +12,13 @@ import {
   YAxis,
 } from "recharts";
 import { anySymptomLabel, anyZoneLabel } from "@/lib/conditions";
-import { pearson } from "@/lib/insights";
+import {
+  BUCKET_LABEL,
+  MIN_PERSONAL_SAMPLE,
+  PATTERN_NOT_PROOF,
+  correlationBucket,
+  pearson,
+} from "@/lib/insights";
 import { type DailyLog, dateKey, daysBetween } from "@/lib/tsw";
 
 // Chart palette validated for the dark card surface (#0f0f15):
@@ -33,6 +39,7 @@ const tooltipStyle = {
 
 export function InsightsClient({ logs }: { logs: DailyLog[] }) {
   const today = dateKey();
+  const [showSleepNumbers, setShowSleepNumbers] = useState(false);
 
   const last30 = useMemo(
     () =>
@@ -63,12 +70,16 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
     [last30]
   );
 
-  // Sleep ↔ severity relationship, reflected gently — never diagnosed.
+  // Sleep ↔ severity relationship, reflected gently. Gated on sample size for
+  // the same reason as the dashboard card: a "pattern" from a handful of days
+  // is noise wearing a headline.
   const sleepSeverity = useMemo(() => {
     const pairs = last30
       .filter((l) => l.sleep != null)
       .map((l) => [l.sleep as number, l.severity] as [number, number]);
-    return pearson(pairs);
+    if (pairs.length < MIN_PERSONAL_SAMPLE) return null;
+    const r = pearson(pairs);
+    return r == null ? null : { r, n: pairs.length };
   }, [last30]);
 
   const areaCounts = useMemo(() => {
@@ -168,13 +179,44 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
             Add sleep and mood to your daily logs to unlock this picture.
           </p>
         )}
-        {sleepSeverity != null && Math.abs(sleepSeverity) >= 0.3 && (
-          <p className="mt-4 rounded-xl bg-lab-bg px-4 py-3 text-sm text-slate-300">
-            {sleepSeverity < 0
-              ? "In your own data this month, better-sleep days tended to be calmer-skin days. Worth protecting your evenings."
-              : "In your own data this month, rougher skin and better sleep didn't line up the usual way — bodies are complicated. Keep logging and see if it settles."}
-            <span className="ml-1 text-xs text-slate-500">(Your data, reflected back — not a diagnosis.)</span>
-          </p>
+        {sleepSeverity && Math.abs(sleepSeverity.r) >= 0.3 && (
+          <div className="mt-4 rounded-xl bg-lab-bg px-4 py-3 text-sm text-slate-300">
+            <p>
+              <span className="font-semibold text-white">
+                Sleep and your skin: {BUCKET_LABEL[correlationBucket(sleepSeverity.r)]}.
+              </span>{" "}
+              {sleepSeverity.r < 0
+                ? "In your own data this month, better-sleep days tended to be calmer-skin days. Worth protecting your evenings."
+                : "In your own data this month, rougher skin and better sleep didn't line up the usual way — bodies are complicated. Keep logging and see if it settles."}
+            </p>
+            <p className="mt-1.5 text-xs text-slate-500">{PATTERN_NOT_PROOF}</p>
+            <button
+              onClick={() => setShowSleepNumbers((v) => !v)}
+              className="mt-2 text-xs font-medium text-brand-300 hover:text-brand-200"
+            >
+              {showSleepNumbers ? "Hide the numbers" : "See the numbers \u2192"}
+            </button>
+            {showSleepNumbers && (
+              <dl className="mt-2 space-y-1 border-t border-lab-border pt-2">
+                <div className="flex justify-between text-xs">
+                  <dt className="text-slate-500">Correlation (r)</dt>
+                  <dd className="font-medium tabular-nums text-slate-300">
+                    {sleepSeverity.r.toFixed(2)}
+                  </dd>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <dt className="text-slate-500">Sample size</dt>
+                  <dd className="font-medium tabular-nums text-slate-300">
+                    {sleepSeverity.n} logged days
+                  </dd>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <dt className="text-slate-500">Window</dt>
+                  <dd className="font-medium text-slate-300">last 30 days</dd>
+                </div>
+              </dl>
+            )}
+          </div>
         )}
       </div>
 

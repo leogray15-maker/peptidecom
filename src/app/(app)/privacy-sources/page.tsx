@@ -19,8 +19,8 @@ const sources = [
     cite: "American Contact Dermatitis Society core-allergen series · EU Cosmetics Regulation fragrance-allergen list · National Eczema Association ingredient guidance. Product data: Open Beauty Facts & Open Food Facts (open community databases, ODbL).",
   },
   {
-    title: "Photo severity estimate",
-    cite: "On-device colour/erythema heuristic (no external model). An experiment that supplements — never replaces — your own rating.",
+    title: "Photo severity estimate (AI Flare Grading)",
+    cite: "On-device colour/erythema heuristic, optionally blended with a local image model (model id stored with every result). An estimate to help you describe a flare to a clinician — not a diagnosis. It supplements, and never replaces, your own rating.",
   },
 ];
 

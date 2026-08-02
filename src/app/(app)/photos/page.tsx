@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { PeerSupportNote } from "@/components/peer-support-note";
 import { PhotosClient } from "@/components/photos-client";
+import { needsConsent } from "@/lib/ai-grading";
 import { getCurrentUser } from "@/lib/auth";
 import { getCondition } from "@/lib/conditions";
 import { safe } from "@/lib/safe-db";
@@ -41,9 +42,11 @@ export default async function PhotosPage() {
           imageData: p.imageData,
           shared: p.shared,
           estimate: p.estimate ?? null,
+          dermConfirmed: p.dermConfirmed ?? false,
         }))}
         manualSeverityByDate={manualSeverityByDate}
         zones={condition.zones}
+        needsConsent={needsConsent(profile.aiGradingConsent)}
       />
       <PeerSupportNote />
     </div>

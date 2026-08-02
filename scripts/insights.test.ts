@@ -3,11 +3,14 @@
 import assert from "node:assert/strict";
 import {
   MIN_COHORT,
+  MIN_PERSONAL_SAMPLE,
+  PERSONAL_WINDOW_DAYS,
   addDays,
   aggregateCohort,
   buildCohortStatements,
   computePersonalInsight,
   computeUserFeatures,
+  correlationBucket,
   median,
   pearson,
   rotateStatements,
@@ -222,31 +225,69 @@ test("rotateStatements: keeps top stat, deterministic within a day, bounded", ()
 
 // ─── personal insight ────────────────────────────────────────────────────────
 
-test("computePersonalInsight: finds the top trigger by name", () => {
-  const logs = [
-    log("2026-07-01", 4), log("2026-07-02", 7),
-    log("2026-07-05", 3), log("2026-07-06", 6),
-    log("2026-07-09", 4), log("2026-07-10", 6),
-  ];
-  const triggers = ["2026-07-01", "2026-07-05", "2026-07-09"].map((date) => ({
-    date,
-    kind: "food",
-    name: "Dairy",
-  }));
+test("correlationBucket: thresholds run on absolute value", () => {
+  assert.equal(correlationBucket(0), "weak");
+  assert.equal(correlationBucket(0.29), "weak");
+  assert.equal(correlationBucket(0.3), "moderate");
+  assert.equal(correlationBucket(0.5), "moderate");
+  assert.equal(correlationBucket(0.51), "strong");
+  assert.equal(correlationBucket(1), "strong");
+  // Sign must not change the bucket — a strong negative link is still strong.
+  assert.equal(correlationBucket(-0.29), "weak");
+  assert.equal(correlationBucket(-0.4), "moderate");
+  assert.equal(correlationBucket(-0.9), "strong");
+});
+
+/** 20 consecutive days: every third day has the trigger and is followed by a
+ * clearly worse day. Comfortably over MIN_PERSONAL_SAMPLE. */
+function dairyRun(start = "2026-06-20") {
+  const logs: DailyLog[] = [];
+  const triggers: { date: string; kind: string; name: string }[] = [];
+  for (let i = 0; i < 20; i++) {
+    const date = addDays(start, i);
+    const isTriggerDay = i % 3 === 0;
+    const followsTrigger = i % 3 === 1;
+    logs.push(log(date, followsTrigger ? 8 : 3, { sleep: 3 }));
+    if (isTriggerDay) triggers.push({ date, kind: "food", name: "Dairy" });
+  }
+  return { logs, triggers };
+}
+
+test("computePersonalInsight: names the top trigger and buckets its strength", () => {
+  const { logs, triggers } = dairyRun();
   const insight = computePersonalInsight(logs, triggers, "2026-07-13");
   assert.ok(insight);
   assert.ok(insight!.headline.includes("Dairy"));
+  // The bucket word belongs in the headline; the coefficient must not.
+  assert.ok(/weak|moderate|strong/.test(insight!.headline));
+  assert.ok(!insight!.headline.includes("r ="));
+  assert.equal(insight!.bucket, correlationBucket(insight!.r));
+  assert.ok(insight!.n >= MIN_PERSONAL_SAMPLE);
+  assert.equal(insight!.windowDays, PERSONAL_WINDOW_DAYS);
+  assert.ok(insight!.method.length > 0);
+});
+
+test("computePersonalInsight: gated below the minimum sample size", () => {
+  const { logs, triggers } = dairyRun();
+  // 14 day-pairs needs 15 consecutive logs; 14 logs is one short.
+  const tooFew = logs.slice(0, MIN_PERSONAL_SAMPLE);
+  assert.equal(computePersonalInsight(tooFew, triggers, "2026-07-13"), null);
+  // One more log clears the floor.
+  const enough = logs.slice(0, MIN_PERSONAL_SAMPLE + 1);
+  assert.ok(computePersonalInsight(enough, triggers, "2026-07-13"));
 });
 
 test("computePersonalInsight: falls back to sleep correlation, then null", () => {
-  // 8 consecutive days where worse sleep → worse next day (negative r).
-  const sleeps = [5, 5, 4, 3, 3, 2, 1, 1];
+  // 16 consecutive days where worse sleep → worse next day (negative r).
+  const sleeps = [5, 5, 4, 3, 3, 2, 1, 1, 5, 4, 4, 3, 2, 2, 1, 1];
   const logs = sleeps.map((s, i) =>
-    log(addDays("2026-07-01", i), 2 + Math.round((5 - s) * 1.2), { sleep: s })
+    log(addDays("2026-06-28", i), 2 + Math.round((5 - s) * 1.2), { sleep: s })
   );
   const insight = computePersonalInsight(logs, [], "2026-07-13");
   assert.ok(insight);
   assert.ok(insight!.headline.toLowerCase().includes("sleep"));
+  assert.ok(insight!.r < 0, "better sleep should correlate with calmer days");
+  assert.equal(insight!.bucket, correlationBucket(insight!.r));
 
   assert.equal(computePersonalInsight([log("2026-07-01", 5)], [], "2026-07-13"), null);
 });

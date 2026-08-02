@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, PenSquare } from "lucide-react";
+import { Turnstile } from "@/components/turnstile";
 
 export function NewPostForm({ categories }: { categories: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -12,6 +13,9 @@ export function NewPostForm({ categories }: { categories: { id: string; name: st
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Bot protection on the community entry point. Null (and ignored) whenever
+  // Turnstile isn't configured — see lib/turnstile.ts.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +24,12 @@ export function NewPostForm({ categories }: { categories: { id: string; name: st
     const res = await fetch("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, content, categoryId: categoryId || null }),
+      body: JSON.stringify({
+        title,
+        content,
+        categoryId: categoryId || null,
+        turnstileToken,
+      }),
     });
     const data = await res.json();
     setSaving(false);
@@ -67,6 +76,7 @@ export function NewPostForm({ categories }: { categories: { id: string; name: st
           ))}
         </select>
       )}
+      <Turnstile onToken={setTurnstileToken} />
       {error && <p className="text-sm text-red-400">{error}</p>}
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>

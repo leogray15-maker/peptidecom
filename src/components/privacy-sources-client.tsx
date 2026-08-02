@@ -21,7 +21,7 @@ const TOGGLES: Toggle[] = [
     key: "photoEstimate",
     title: "On-device photo grading",
     description:
-      "Runs a free colour analysis of your skin photos on your device to estimate a 0–100 severity. The photo never leaves your phone for this. Turn off to skip the estimate entirely.",
+      "Runs a free colour analysis of your skin photos on your device to estimate a 0–100 severity, so you have something concrete to describe to a clinician. The photo never leaves your phone for this, and the estimate is never a diagnosis. Turn off to skip it entirely.",
   },
   {
     key: "toolHistory",

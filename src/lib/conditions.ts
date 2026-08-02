@@ -65,16 +65,45 @@ const faceAndBodyZones = (): BodyZone[] => [
 /** Generic non-withdrawal stage journeys. Tone rule matches lib/tsw.ts: warm,
  * never clinical, framed as "many people experience…". */
 function stages(
-  defs: [id: string, name: string, timeframe: string, summary: string, experiences: string[]][]
+  defs: [
+    id: string,
+    name: string,
+    timeframe: string,
+    summary: string,
+    experiences: string[],
+    movesOnWhen?: string,
+  ][]
 ): TswStage[] {
-  return defs.map(([id, name, timeframe, summary, experiences]) => ({
+  return defs.map(([id, name, timeframe, summary, experiences, movesOnWhen]) => ({
     id,
     name,
     timeframe,
     summary,
     experiences,
+    movesOnWhen: movesOnWhen ?? GENERIC_MOVES_ON[id],
   }));
 }
+
+/** Fallback "what marks the move on" text, keyed by the shared stage ids every
+ * non-TSW journey uses. Keeps the taxonomy complete without repeating the same
+ * sentence in five condition definitions. */
+const GENERIC_MOVES_ON: Record<string, string> = {
+  flaring:
+    "Flares stop being the background state and start having a beginning and an end you can point at.",
+  active:
+    "New breakouts slow down and the ones you get stop arriving faster than the old ones fade.",
+  rough: "A shortlist of likely triggers emerges and bad days stop outnumbering ordinary ones.",
+  stabilising:
+    "Calm stretches start being measured in weeks, and your routine holds through a normal week without firefighting.",
+  treatment:
+    "The purge settles and progress starts showing up in photos before you notice it in the mirror.",
+  mapping: "You can name what caused most recent flares before you look it up.",
+  managing:
+    "Whole months pass where the condition doesn't change a plan you'd made — you decide when you're past managing.",
+  improving:
+    "Setbacks recover on their own and maintenance stops feeling like a project.",
+  recovered: "This one's yours to define — nobody else marks it for you.",
+};
 
 export const CONDITIONS: ConditionConfig[] = [
   {
