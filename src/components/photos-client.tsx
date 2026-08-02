@@ -336,9 +336,10 @@ export function PhotosClient({
         </div>
       )}
 
-      {/* Floating compare bar while picking */}
+      {/* Floating compare bar while picking. bottom-28 clears the tab bar on
+          phones; it sits low on desktop where there isn't one. */}
       {compareMode && !overlayOpen && (
-        <div className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 lg:bottom-6">
+        <div className="fixed inset-x-0 bottom-28 z-40 flex justify-center px-4 lg:bottom-6">
           <div className="flex items-center gap-2 rounded-2xl border border-lab-border bg-lab-card/95 p-2 shadow-xl shadow-black/40 backdrop-blur">
             <span className="px-2 text-sm font-medium text-slate-300">
               {compare.length}/{MAX_COMPARE} picked

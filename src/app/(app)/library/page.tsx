@@ -20,6 +20,7 @@ export default function LibraryPage() {
       <PageHeader
         title="Peptide library"
         subtitle="What each compound is, how long it lasts, and how research protocols typically run it — in plain English."
+        back="/dashboard"
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

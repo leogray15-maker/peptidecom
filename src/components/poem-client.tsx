@@ -17,6 +17,7 @@ import {
   appendHistory,
   clearHistory,
   loadHistory,
+  syncHistory,
 } from "@/lib/tool-history";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,10 @@ export function PoemClient() {
   const [history, setHistory] = useState<HistoryEntry<PoemDetail>[]>([]);
   const [justSaved, setJustSaved] = useState(false);
 
+  // Local copy first for an instant render, then the account's.
   useEffect(() => {
     setHistory(loadHistory<PoemDetail>(TOOL));
+    void syncHistory<PoemDetail>(TOOL).then(setHistory);
   }, []);
 
   const score = useMemo(() => poemScore(answers), [answers]);
@@ -68,10 +71,10 @@ export function PoemClient() {
     setJustSaved(true);
   }
 
-  function wipeHistory() {
-    if (!confirm("Clear your saved POEM history on this device?")) return;
-    clearHistory(TOOL);
+  async function wipeHistory() {
+    if (!confirm("Clear your saved POEM history? This clears it on every device.")) return;
     setHistory([]);
+    await clearHistory(TOOL);
   }
 
   const recent = [...history].reverse().slice(0, 8);
@@ -207,7 +210,7 @@ export function PoemClient() {
             })}
           </ul>
           <p className="mt-3 text-xs text-slate-500">
-            Saved on this device only — private, never uploaded.
+            Saved to your account — private to you, and there on every device you sign in on.
           </p>
         </div>
       )}

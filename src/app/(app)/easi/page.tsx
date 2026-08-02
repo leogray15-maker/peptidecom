@@ -10,6 +10,7 @@ export default function EasiPage() {
       <PageHeader
         title="EASI calculator"
         subtitle="The Eczema Area & Severity Index — the structured score dermatologists use. Score each region, track it over time, bring it to your appointment."
+        back="/dashboard"
       />
       <EasiClient />
       <PeerSupportNote />

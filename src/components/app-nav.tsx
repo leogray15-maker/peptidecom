@@ -8,6 +8,9 @@ import {
   Camera,
   ClipboardCheck,
   ClipboardList,
+  CloudSun,
+  Compass,
+  Hand,
   GraduationCap,
   LayoutDashboard,
   LifeBuoy,
@@ -41,8 +44,11 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "Recovery",
+    title: "Every day",
     items: [
+      { href: "/coach", label: "Coach", icon: Compass },
+      { href: "/itch", label: "Itch check-in", icon: Hand },
+      { href: "/forecast", label: "Flare forecast", icon: CloudSun },
       { href: "/tracker", label: "Daily tracker", icon: ClipboardList },
       { href: "/photos", label: "Photo timeline", icon: Camera },
       { href: "/timeline", label: "Where am I?", icon: Map },

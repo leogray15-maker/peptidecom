@@ -30,6 +30,7 @@ export default function PrivacySourcesPage() {
       <PageHeader
         title="Privacy & Sources"
         subtitle="What happens to your data, and where our numbers come from."
+        back="/dashboard"
       />
 
       <div className="space-y-6">
@@ -49,10 +50,16 @@ export default function PrivacySourcesPage() {
             between devices; nobody else can see them unless you explicitly share.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate-300">
-            The one exception is the barcode scanner: when you scan or type a barcode, that number
-            (and nothing else about you) is sent to the open Open Beauty Facts / Open Food Facts
-            databases to fetch the product&apos;s name and ingredients. The scoring of those
-            ingredients then happens on your device.
+            Two things do leave the app, and only these: when you scan or type a barcode, that
+            number (and nothing else about you) goes to the open Open Beauty Facts / Open Food
+            Facts databases to fetch the product&apos;s name and ingredients; and when you open the
+            flare forecast, your coordinates go to Open-Meteo for the local weather and pollen. No
+            account identifier travels with either. All the scoring happens here.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+            Your scores and scan history save to your own account so they follow you to a new
+            phone, with a copy kept on this device so the tools still work offline. You can switch
+            that off below, or clear the history from any of the tools.
           </p>
           <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
             <Lock className="h-3.5 w-3.5" /> No photos, logs or health scores are ever sent to an
@@ -62,9 +69,10 @@ export default function PrivacySourcesPage() {
 
         {/* Consent toggles */}
         <section className="card !rounded-3xl">
-          <h2 className="text-lg font-semibold text-white">Optional on-device features</h2>
+          <h2 className="text-lg font-semibold text-white">Optional features</h2>
           <p className="mt-1 text-sm text-slate-400">
-            All on by default. You can switch any of them off — the choice is saved on this device.
+            All on by default. Switch any of them off — the choice is saved to your account, so it
+            applies on every device you sign in on.
           </p>
           <div className="mt-5">
             <PrivacySourcesToggles />

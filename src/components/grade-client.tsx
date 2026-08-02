@@ -23,7 +23,7 @@ import {
 } from "@/lib/photo-score";
 import { loadPhotoModel } from "@/lib/photo-model";
 import { compressImage } from "@/lib/image-compress";
-import { getConsent, setConsent } from "@/lib/consent";
+import { getConsent, setConsent, syncConsents } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
 import { type BodyZone, dateKey } from "@/lib/tsw";
 import { cn } from "@/lib/utils";
@@ -58,11 +58,16 @@ export function GradeClient({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  // Consent lives in localStorage, which the server can't see — reading it
-  // during the first render would make the client's HTML disagree with the
-  // server's and break hydration. null = "not read yet".
+  // The consent switch isn't visible to the server render, so reading it during
+  // the first render would make the client's HTML disagree with the server's
+  // and break hydration. null = "not read yet". The cached value settles it
+  // immediately; the account copy (which may have been changed on another
+  // device) lands a moment later.
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  useEffect(() => setAllowed(getConsent("photoEstimate")), []);
+  useEffect(() => {
+    setAllowed(getConsent("photoEstimate"));
+    void syncConsents().then((c) => setAllowed(c.photoEstimate));
+  }, []);
 
   const band = estimate ? flareBand(estimate.score) : null;
 

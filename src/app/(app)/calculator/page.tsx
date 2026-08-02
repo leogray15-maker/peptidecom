@@ -14,6 +14,7 @@ export default async function CalculatorPage({
       <PageHeader
         title="Reconstitution calculator"
         subtitle="Work out exactly how much to draw into an insulin syringe."
+        back="/dashboard"
       />
       <CalculatorClient initialSlug={p} />
       <p className="mt-6 text-xs text-slate-500">

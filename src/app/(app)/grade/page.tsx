@@ -40,6 +40,7 @@ export default async function GradePage() {
       <PageHeader
         title="AI flare grading"
         subtitle="Photograph an itchy patch and get a 0–100 estimate of how inflamed it looks — worked out on your device, never uploaded. Educational, not diagnostic."
+        back="/dashboard"
       />
       <GradeClient
         graded={graded}

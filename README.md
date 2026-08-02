@@ -35,6 +35,9 @@ user's Stripe subscription status is mirrored onto a Firebase **custom claim
 | **Paywall** | £11.99/mo or £70/yr (over 50% off) Stripe subscription. Gated member area, self-serve billing portal. |
 | **Auth** | Firebase email/password + Google sign-in; roles (member / moderator / admin), verified-member badges. |
 | **Live chat** | Real-time Firestore chat with multiple channels, members-only via custom claim. |
+| **Coach** | Today's plan and the patterns in your own data — computed from your logs on our servers, no third-party AI. |
+| **Flare forecast** | Local temperature, humidity, wind, UV and pollen (Open-Meteo, no key needed) scored against your condition, with the day's tips. Snapshots save to your history. |
+| **Itch check-in** | One-tap 0–10 itch log, as often as it bites, with a 7-day chart and the hour your itch actually peaks. |
 | **Calculator** | Reconstitution maths → exact syringe units, with presets for common peptides and a live syringe fill visual. |
 | **Progress** | Log weight, waist, body-fat, mood, side-effects & notes; trend charts; private to each user. |
 | **Community** | Categorised forum with posts, comments and up/down votes. |
@@ -42,6 +45,24 @@ user's Stripe subscription status is mirrored onto a Firebase **custom claim
 | **Lab tests** | Purity / COA library tied to vendors and batches. |
 | **Group buys** | Coordinate buys, track progress to a unit target, join/leave. |
 | **Legal** | Research disclaimer, placeholder ToS & privacy policy, persistent disclaimer bar. |
+
+### Where member data lives
+
+Everything a member enters is keyed to their account, so signing in on another
+device brings it all with them:
+
+| Data | Where |
+| --- | --- |
+| Daily logs, photos, triggers, itch check-ins, saved forecasts, milestones | Firestore, under `users/{uid}/…` |
+| EASI, POEM and product-scan history | Firestore `users/{uid}/history/{key}`, **plus** a localStorage cache |
+| Privacy switches, forecast location | The `users/{uid}` profile document |
+| Account, billing, forum content | Postgres via Prisma |
+
+The tool histories are **local-first**: the device copy renders instantly and
+keeps working offline, then reconciles against the account copy. Entries are
+identified by their ISO timestamp, so merging two devices is a union — the same
+save syncing twice can never duplicate, and a write that failed offline is
+carried up on the next load (`src/lib/synced-store.ts`).
 
 ## Getting started
 
@@ -144,7 +165,7 @@ src/
     (auth)/            # login + register (Firebase client auth)
     (app)/             # gated member area (paywall enforced in layout) incl. /chat
     legal/             # disclaimer, terms, privacy
-    api/               # auth/session, stripe, posts, comments, vote, progress, group-buys
+    api/               # auth/session, stripe, posts, comments, vote, forecast, tsw/* (logs, triggers, itch, history, prefs)
     page.tsx           # public landing / marketing page
     pricing/           # plans + checkout
   components/          # UI + client components (incl. chat-client)
@@ -156,6 +177,9 @@ src/
     stripe.ts          # Stripe client
     prisma.ts          # Prisma client singleton
     peptides.ts        # calculator maths + peptide presets
+    forecast.ts        # flare-risk scoring from weather + the member's own logs
+    coach.ts           # today's plan + observations, from logged data only
+    synced-store.ts    # local-first, account-synced lists (EASI/POEM/scans)
     chat.ts            # chat channel definitions
     utils.ts
 firestore.rules        # members-only chat security rules

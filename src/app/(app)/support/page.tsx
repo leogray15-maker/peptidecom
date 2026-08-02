@@ -43,6 +43,7 @@ export default function SupportPage() {
       <PageHeader
         title="Today is bad. We've got you."
         subtitle="This page has one job: get you through the next few hours feeling less alone."
+        back="/dashboard"
       />
 
       {/* Grounding */}

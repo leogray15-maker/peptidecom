@@ -5,6 +5,9 @@ import {
   Calculator,
   ClipboardCheck,
   ClipboardList,
+  CloudSun,
+  Compass,
+  Hand,
   LifeBuoy,
   LineChart,
   ListChecks,
@@ -30,16 +33,20 @@ import {
 import { getLatestAggregates } from "@/lib/insights-db";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
-import { type DailyLog, computeStats, dateKey } from "@/lib/tsw";
+import { type DailyLog, computeStats, dateKey, summariseItch } from "@/lib/tsw";
 import {
+  type ItchLog,
+  type SavedForecast,
   type TriggerLog,
   type TswProfile,
+  getForecast,
   getProfile,
+  listItchLogs,
   listLogs,
   listTriggers,
   tswKey,
 } from "@/lib/tsw-db";
-import { timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
@@ -47,6 +54,30 @@ export const metadata = { title: "Dashboard" };
 // AI Flare Grading / EASI / POEM / Ingredient scanner sit up top as the
 // headline tools, then the day-to-day tracking links.
 const skinTools: FeatureCardProps[] = [
+  {
+    href: "/coach",
+    title: "Coach",
+    icon: Compass,
+    badge: "NEW",
+    description:
+      "Today's plan, built from your own logs — what's worth doing now and what your data is saying.",
+  },
+  {
+    href: "/forecast",
+    title: "Flare forecast",
+    icon: CloudSun,
+    badge: "NEW",
+    description:
+      "Local humidity, cold, wind and pollen scored against your condition, with today's tips.",
+  },
+  {
+    href: "/itch",
+    title: "Itch check-in",
+    icon: Hand,
+    badge: "NEW",
+    description:
+      "One tap whenever it bites. Over a week it shows you the hour your itch actually peaks.",
+  },
   {
     href: "/grade",
     title: "AI Flare Grading",
@@ -123,17 +154,23 @@ export default async function DashboardPage() {
     });
 
   const uid = user ? tswKey(user) : null;
-  const [recentPosts, logs, profile, triggers, aggregates] = await Promise.all([
+  const today = dateKey();
+  const [recentPosts, logs, profile, triggers, aggregates, itchLogs, forecast] = await Promise.all([
     safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
     uid ? safe(() => listLogs(uid), [] as DailyLog[]) : Promise.resolve([] as DailyLog[]),
     uid ? safe(() => getProfile(uid), {} as TswProfile) : Promise.resolve({} as TswProfile),
     uid ? safe(() => listTriggers(uid), [] as TriggerLog[]) : Promise.resolve([] as TriggerLog[]),
     safe(getLatestAggregates, null),
+    uid ? safe(() => listItchLogs(uid, 60), [] as ItchLog[]) : Promise.resolve([] as ItchLog[]),
+    uid
+      ? safe(() => getForecast(uid, today), null as SavedForecast | null)
+      : Promise.resolve(null as SavedForecast | null),
   ]);
 
   const stats = computeStats(logs);
   const stage = anyStageName(profile.recoveryStage, profile.condition);
-  const todayLogged = logs.some((l) => l.date === dateKey());
+  const todayLogged = logs.some((l) => l.date === today);
+  const itch = summariseItch(itchLogs, today);
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
   // Insights: the member's own strongest pattern + rotating cohort stats
@@ -161,6 +198,43 @@ export default async function DashboardPage() {
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."
       />
+
+      {/* Today at a glance — the three things that change hour to hour, each a
+          shortcut to the screen that owns them. */}
+      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
+        {[
+          {
+            href: "/tracker",
+            label: "Today",
+            value: todayLogged ? "Logged ✓" : "Log it",
+            hot: !todayLogged,
+          },
+          {
+            href: "/itch",
+            label: "Itch peak",
+            value: itch.todayPeak != null ? `${itch.todayPeak}/10` : "Check in",
+            hot: (itch.todayPeak ?? 0) >= 7,
+          },
+          {
+            href: "/forecast",
+            label: "Flare risk",
+            value: forecast ? `${forecast.score} ${forecast.band}` : "Check",
+            hot: (forecast?.score ?? 0) >= 50,
+          },
+        ].map((chip) => (
+          <Link
+            key={chip.href}
+            href={chip.href}
+            className={cn(
+              "card !rounded-2xl !p-3 text-center transition hover:border-brand-500/60",
+              chip.hot && "border-brand-500/50 bg-brand-500/10"
+            )}
+          >
+            <p className="text-[11px] text-slate-400">{chip.label}</p>
+            <p className="mt-0.5 truncate text-sm font-bold text-white">{chip.value}</p>
+          </Link>
+        ))}
+      </div>
 
       {/* Recovery stats — 2×2 on phones so the overview fits one screen. */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

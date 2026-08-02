@@ -1,10 +1,22 @@
 "use client";
 
-// On-device history of scanned products, for the "History" list and the
-// grading Overview. Stored in localStorage only — nothing is uploaded. Honours
-// the same "save tool history" consent as the EASI/POEM tools.
+// History of scanned products, for the "History" list and the grading Overview.
+//
+// Like the EASI/POEM history this is local-first and account-synced: the device
+// copy renders instantly and works offline, and the account copy means your
+// scans are there when you sign in on another phone. Honours the same "save
+// tool history" consent.
 
 import { getConsent } from "@/lib/consent";
+import {
+  type SyncedEntry,
+  appendEntry,
+  clearList,
+  mergeEntries,
+  readLocal,
+  syncList,
+  writeLocal,
+} from "@/lib/synced-store";
 import type { ScoreBand } from "@/lib/product-score";
 
 export interface ScanRecord {
@@ -18,44 +30,75 @@ export interface ScanRecord {
   tone: ScoreBand["tone"];
 }
 
-const KEY = "arcane.scan.history";
-const MAX = 100;
+/** What a scan looks like inside the synced store: the record minus the fields
+ * the store owns (`at`, `score`). */
+type ScanDetail = Omit<ScanRecord, "at" | "score">;
 
-export function loadScans(): ScanRecord[] {
-  if (typeof window === "undefined") return [];
+const KEY = "scans";
+const MAX = 100;
+/** Pre-sync localStorage key, kept so existing members' scans carry over. */
+const LEGACY_KEY = "arcane.scan.history";
+
+const toEntry = (r: ScanRecord): SyncedEntry<ScanDetail> => ({
+  at: r.at,
+  score: r.score,
+  detail: { code: r.code, name: r.name, brand: r.brand, imageUrl: r.imageUrl, band: r.band, tone: r.tone },
+});
+
+const toRecord = (e: SyncedEntry<ScanDetail>): ScanRecord => ({
+  at: e.at,
+  score: e.score,
+  ...e.detail,
+});
+
+function migrateLegacy(): void {
+  if (typeof window === "undefined") return;
   try {
-    const raw = window.localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as ScanRecord[]) : [];
+    const raw = window.localStorage.getItem(LEGACY_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const merged = [...readLocal<ScanDetail>(KEY), ...(parsed as ScanRecord[]).map(toEntry)]
+        .filter((e) => e && typeof e.at === "string")
+        .sort((a, b) => a.at.localeCompare(b.at))
+        .slice(-MAX);
+      writeLocal(KEY, merged);
+    }
+    window.localStorage.removeItem(LEGACY_KEY);
   } catch {
-    return [];
+    // Malformed legacy blob — not worth breaking the scanner over.
   }
+}
+
+/** Instant read of this device's copy, newest last. */
+export function loadScans(): ScanRecord[] {
+  migrateLegacy();
+  return readLocal<ScanDetail>(KEY).map(toRecord);
+}
+
+/** Reconcile with the account copy (falls back to local when offline). */
+export async function syncScans(): Promise<ScanRecord[]> {
+  migrateLegacy();
+  if (!getConsent("toolHistory")) return loadScans();
+  return (await syncList<ScanDetail>(KEY, MAX)).map(toRecord);
 }
 
 export function addScan(record: ScanRecord): ScanRecord[] {
-  const existing = loadScans();
-  // De-dupe consecutive scans of the same barcode.
-  const deduped = record.code
-    ? existing.filter((r) => r.code !== record.code)
-    : existing;
-  const next = [...deduped, record].slice(-MAX);
-  if (getConsent("toolHistory")) {
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      // storage blocked — history just won't persist
-    }
-  }
-  return next;
+  const persist = getConsent("toolHistory");
+  const existing = readLocal<ScanDetail>(KEY);
+  // De-dupe repeat scans of the same barcode — keep only the newest.
+  const kept = record.code ? existing.filter((e) => e.detail.code !== record.code) : existing;
+
+  // With history off, nothing is written anywhere — the list is just what this
+  // session has scanned so far.
+  if (!persist) return mergeEntries(kept, [toEntry(record)], MAX).map(toRecord);
+
+  writeLocal(KEY, kept);
+  return appendEntry<ScanDetail>(KEY, toEntry(record), MAX).map(toRecord);
 }
 
-export function clearScans(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(KEY);
-  } catch {
-    // no-op
-  }
+export async function clearScans(): Promise<void> {
+  await clearList(KEY);
 }
 
 export interface GradingCounts {
@@ -67,7 +110,7 @@ export interface GradingCounts {
 
 export function gradingCounts(scans: ScanRecord[]): GradingCounts {
   const counts: GradingCounts = { Excellent: 0, Good: 0, Poor: 0, Bad: 0 };
-  // Records come from localStorage, so a band written by an older version (or
+  // Records come from storage, so a band written by an older version (or
   // hand-edited) can be anything — ignore it rather than produce NaN counts.
   for (const s of scans) {
     if (s.band in counts) counts[s.band] += 1;

@@ -47,6 +47,7 @@ export default async function WonPage({
         title="Won"
         subtitle="Recovery stories from members further down the road. On your worst day, this page is the proof."
         action={<StoryForm autoOpen={share === "1"} />}
+        back="/dashboard"
       />
 
       {/* Condition filter */}

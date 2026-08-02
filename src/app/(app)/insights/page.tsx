@@ -21,6 +21,7 @@ export default async function InsightsPage() {
       <PageHeader
         title="Your trends"
         subtitle="Your own data, reflected gently back. Trends beat snapshots — especially on the hard days."
+        back="/dashboard"
       />
       <InsightsClient logs={logs} />
       <PeerSupportNote />

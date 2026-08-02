@@ -12,6 +12,7 @@ export default function ChatPage() {
       <PageHeader
         title="Community chat"
         subtitle="The live conversation happens on WhatsApp — members only, moderated, real people."
+        back="/dashboard"
       />
 
       <div className="card flex flex-col items-center py-14 text-center">

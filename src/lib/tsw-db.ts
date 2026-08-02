@@ -1,5 +1,6 @@
 import "server-only";
 import { adminDb } from "@/lib/firebase-admin";
+import type { FlareRisk, ForecastLocation, WeatherSnapshot } from "@/lib/forecast";
 import {
   type DailyLog,
   type FunnelEvent,
@@ -24,6 +25,14 @@ export interface TswProfile {
   /** Condition id from lib/conditions.ts. Missing = "tsw" (every account
    * predating multi-condition support) — resolved via getCondition(). */
   condition?: string | null;
+  /** Feature switches that used to live in localStorage. Kept on the profile so
+   * the choice follows the member to every device they sign in on. Missing =
+   * the defaults in lib/consent.ts. */
+  consents?: Partial<Record<string, boolean>> | null;
+  consentsUpdatedAt?: string | null;
+  /** Last place the flare forecast was run for, so a new device opens on the
+   * member's location instead of asking again. */
+  location?: ForecastLocation | null;
 }
 
 export async function getProfile(uid: string): Promise<TswProfile> {
@@ -55,6 +64,27 @@ export async function setTswStartDate(uid: string, date: string | null): Promise
 export async function setCondition(uid: string, condition: string): Promise<void> {
   const db = await adminDb();
   await db.collection("users").doc(uid).set({ condition }, { merge: true });
+}
+
+/** Merge feature-consent switches onto the profile. Partial by design: a device
+ * only ever sends the switch the member just flipped. */
+export async function setConsents(
+  uid: string,
+  consents: Record<string, boolean>
+): Promise<void> {
+  const db = await adminDb();
+  await db
+    .collection("users")
+    .doc(uid)
+    .set(
+      { consents, consentsUpdatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+}
+
+export async function setLocation(uid: string, location: ForecastLocation): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).set({ location }, { merge: true });
 }
 
 // ─── Daily logs (users/{uid}/dailyLogs/{YYYY-MM-DD}) ─────────────────────────
@@ -110,6 +140,23 @@ export async function listPhotos(uid: string): Promise<TswPhoto[]> {
     .orderBy("takenAt", "asc")
     .get();
   return snap.docs.map((d) => ({ ...(d.data() as Omit<TswPhoto, "id">), id: d.id }));
+}
+
+/** Just the date of the most recent photo. Photos carry their image data
+ * inline, so anything that only needs "when was the last one?" must not list
+ * the collection — this projects a single field off a single doc. */
+export async function lastPhotoDate(uid: string): Promise<string | null> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("photos")
+    .orderBy("takenAt", "desc")
+    .limit(1)
+    .select("takenAt")
+    .get();
+  const takenAt = snap.docs[0]?.get("takenAt");
+  return typeof takenAt === "string" ? takenAt : null;
 }
 
 export async function addPhoto(
@@ -573,6 +620,180 @@ export async function getPhotosByIds(uid: string, ids: string[]): Promise<TswPho
   return snaps
     .filter((s) => s.exists)
     .map((s) => ({ ...(s.data() as Omit<TswPhoto, "id">), id: s.id }));
+}
+
+// ─── Tool history (users/{uid}/history/{key}) ────────────────────────────────
+// EASI / POEM scores and the product-scanner history. These used to live in
+// localStorage only, which meant a member's own numbers vanished when they
+// switched phone. They now live on the account; the client keeps a local copy
+// as an offline cache and reconciles on load (see lib/synced-store.ts).
+//
+// Every entry carries an ISO `at` timestamp, which doubles as its identity —
+// merging two devices' lists is a union keyed on `at`, so the same save
+// arriving twice can never duplicate.
+
+export interface StoredHistoryEntry {
+  at: string;
+  score: number;
+  detail: unknown;
+}
+
+/** How many entries each history key keeps. Oldest are dropped first. */
+export const HISTORY_LIMITS: Record<string, number> = {
+  easi: 60,
+  poem: 60,
+  scans: 100,
+};
+
+export const HISTORY_KEYS = Object.keys(HISTORY_LIMITS);
+
+export async function getHistory(uid: string, key: string): Promise<StoredHistoryEntry[]> {
+  const db = await adminDb();
+  const snap = await db.collection("users").doc(uid).collection("history").doc(key).get();
+  const entries = (snap.data() as { entries?: StoredHistoryEntry[] } | undefined)?.entries;
+  return Array.isArray(entries) ? entries : [];
+}
+
+/** Merge incoming entries into the stored list (union by `at`, oldest dropped
+ * past the key's limit) and return the reconciled list the client should adopt.
+ * Idempotent, so a retry after a flaky connection is always safe. */
+export async function mergeHistory(
+  uid: string,
+  key: string,
+  incoming: StoredHistoryEntry[]
+): Promise<StoredHistoryEntry[]> {
+  const db = await adminDb();
+  const ref = db.collection("users").doc(uid).collection("history").doc(key);
+  const existing = await getHistory(uid, key);
+
+  const byAt = new Map<string, StoredHistoryEntry>();
+  for (const entry of [...existing, ...incoming]) {
+    if (entry && typeof entry.at === "string") byAt.set(entry.at, entry);
+  }
+  const merged = [...byAt.values()]
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(-(HISTORY_LIMITS[key] ?? 60));
+
+  await ref.set({ entries: merged, updatedAt: new Date().toISOString() });
+  return merged;
+}
+
+export async function clearHistoryKey(uid: string, key: string): Promise<void> {
+  const db = await adminDb();
+  await db
+    .collection("users")
+    .doc(uid)
+    .collection("history")
+    .doc(key)
+    .set({ entries: [], updatedAt: new Date().toISOString() });
+}
+
+/** Every history key at once — one round trip for the first paint. */
+export async function getAllHistory(
+  uid: string
+): Promise<Record<string, StoredHistoryEntry[]>> {
+  const lists = await Promise.all(HISTORY_KEYS.map((key) => getHistory(uid, key)));
+  return Object.fromEntries(HISTORY_KEYS.map((key, i) => [key, lists[i]]));
+}
+
+// ─── Itch check-ins (users/{uid}/itchLogs/{id}) ──────────────────────────────
+// Deliberately lighter than the daily tracker: one tap on a 0–10 scale, as
+// many times a day as the itch demands. The daily log stays the considered
+// record; these are the in-the-moment ones that show when itch actually peaks.
+
+export interface ItchLog {
+  id: string;
+  date: string; // YYYY-MM-DD (local to the member's device)
+  at: string; // ISO timestamp
+  level: number; // 0–10
+  /** What they were doing / what set it off — free text, optional. */
+  note: string | null;
+  /** What helped, from lib/tsw.ts ITCH_ACTIONS. Optional. */
+  action: string | null;
+}
+
+export async function listItchLogs(uid: string, limit = 300): Promise<ItchLog[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("itchLogs")
+    .orderBy("at", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<ItchLog, "id">), id: d.id }));
+}
+
+export async function addItchLog(
+  uid: string,
+  entry: Omit<ItchLog, "id">
+): Promise<string> {
+  const db = await adminDb();
+  const ref = await db.collection("users").doc(uid).collection("itchLogs").add(entry);
+  return ref.id;
+}
+
+export async function deleteItchLog(uid: string, id: string): Promise<void> {
+  const db = await adminDb();
+  await db.collection("users").doc(uid).collection("itchLogs").doc(id).delete();
+}
+
+// ─── Saved forecasts (users/{uid}/forecasts/{YYYY-MM-DD}) ────────────────────
+// One snapshot per day, so "what was the weather doing the week my skin went
+// sideways?" is answerable later from the member's own history.
+
+export interface SavedForecast {
+  date: string; // YYYY-MM-DD (doc id)
+  score: number;
+  band: string;
+  tone: string;
+  factors: string[];
+  weather: WeatherSnapshot;
+  place: string | null;
+  savedAt: string;
+}
+
+export async function listForecasts(uid: string, limit = 30): Promise<SavedForecast[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("forecasts")
+    .orderBy("date", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs.map((d) => d.data() as SavedForecast);
+}
+
+export async function getForecast(uid: string, date: string): Promise<SavedForecast | null> {
+  const db = await adminDb();
+  const snap = await db.collection("users").doc(uid).collection("forecasts").doc(date).get();
+  return snap.exists ? (snap.data() as SavedForecast) : null;
+}
+
+export async function saveForecast(
+  uid: string,
+  date: string,
+  risk: FlareRisk,
+  weather: WeatherSnapshot,
+  place: string | null
+): Promise<void> {
+  const db = await adminDb();
+  await db
+    .collection("users")
+    .doc(uid)
+    .collection("forecasts")
+    .doc(date)
+    .set({
+      date,
+      score: risk.score,
+      band: risk.band,
+      tone: risk.tone,
+      factors: risk.factors.map((f) => f.label),
+      weather,
+      place,
+      savedAt: new Date().toISOString(),
+    } satisfies SavedForecast);
 }
 
 // ─── Funnel instrumentation (funnelEvents/{id}) ──────────────────────────────

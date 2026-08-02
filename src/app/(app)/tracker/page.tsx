@@ -27,6 +27,7 @@ export default async function TrackerPage() {
       <PageHeader
         title="How is your skin today?"
         subtitle="Twenty seconds, once a day. That's all this asks — and it adds up to a map of your recovery."
+        back="/dashboard"
       />
       <TrackerClient
         recentLogs={recentLogs}

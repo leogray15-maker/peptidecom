@@ -30,6 +30,7 @@ export default async function PhotosPage() {
       <PageHeader
         title="Photo progress timeline"
         subtitle="Your skin heals slower than memory fades. These photos remember for you — privately, unless you choose otherwise."
+        back="/dashboard"
       />
       <PhotosClient
         initialPhotos={photos.map((p) => ({
