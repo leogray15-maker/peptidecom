@@ -6,12 +6,12 @@ import { clientAuth } from "@/lib/firebase-client";
 /** After a Firebase sign-in, exchange the ID token for a server session cookie
  * and refresh the local token so custom claims (member/role) are available for
  * Firestore. Throws on failure. */
-export async function establishSession(user: User) {
+export async function establishSession(user: User, turnstileToken?: string | null) {
   const idToken = await user.getIdToken();
   const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, turnstileToken: turnstileToken ?? null }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

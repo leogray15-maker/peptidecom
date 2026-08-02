@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type FeatureBadge = "PRO" | "NEW" | "BETA" | null;
+export type FeatureBadge = "PRO" | "NEW" | "BETA" | "VALIDATED" | "EXPERIMENTAL" | null;
 
 export interface FeatureCardProps {
   href: string;
@@ -15,10 +15,15 @@ export interface FeatureCardProps {
   className?: string;
 }
 
+// VALIDATED and EXPERIMENTAL are deliberately different families of colour,
+// not two shades of the same one — the whole job of the pair is to be
+// distinguishable at a glance.
 const badgeClass: Record<NonNullable<FeatureBadge>, string> = {
   PRO: "border border-brand-400/40 bg-brand-400/15 text-brand-200",
   NEW: "border border-brand-500/40 bg-brand-500/15 text-brand-200",
   BETA: "border border-gold-500/40 bg-gold-500/10 text-gold-200",
+  VALIDATED: "border border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+  EXPERIMENTAL: "border border-gold-500/40 bg-gold-500/10 text-gold-200",
 };
 
 /**

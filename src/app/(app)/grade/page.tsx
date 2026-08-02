@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { PeerSupportNote } from "@/components/peer-support-note";
 import { GradeClient, type GradedPhoto } from "@/components/grade-client";
+import { needsConsent } from "@/lib/ai-grading";
 import { getCurrentUser } from "@/lib/auth";
 import { getCondition } from "@/lib/conditions";
 import { safe } from "@/lib/safe-db";
@@ -41,13 +42,14 @@ export default async function GradePage() {
     <div>
       <PageHeader
         title="AI flare grading"
-        subtitle="Photograph an itchy patch and get a 0–100 estimate of how inflamed it looks — worked out on your device, never uploaded. Educational, not diagnostic."
+        subtitle="Photograph an itchy patch for a 0–100 estimate of how inflamed it looks — worked out on your device, never uploaded. An estimate to help you describe your flare to a clinician; not a diagnosis."
         back="/dashboard"
       />
       <GradeClient
         graded={graded}
         manualSeverityByDate={manualSeverityByDate}
         zones={condition.zones}
+        needsConsent={needsConsent(profile.aiGradingConsent)}
       />
       <PeerSupportNote />
     </div>

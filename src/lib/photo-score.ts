@@ -46,7 +46,9 @@ export interface PhotoFeatures {
   composite: number;
   /** Sampled pixels that weren't shadow or blown highlight (0–1). */
   usableFraction: number;
-  /** Usable pixels that looked like skin (0–1) — low means mostly background. */
+  /** Share of usable pixels that read as plausible skin of any tone (0–1); low
+   * means mostly background. Gates the non-skin rejection — see rejectPhoto
+   * (in-app) and isLikelySkinPhoto (the server/edge gate). */
   skinFraction: number;
 }
 
@@ -57,6 +59,13 @@ export interface PhotoEstimate {
   rednessIndex: number;
   version: number;
   method: "heuristic" | "tfjs" | "blended";
+  /** Which model produced this number (lib/ai-grading.ts modelIdFor). Stored
+   * so a historical grading stays attributable after the maths or the local
+   * model changes. Absent on estimates made before this was recorded. */
+  modelId?: string;
+  /** The disclaimer version the member accepted when this was graded.
+   * Historical values are never rewritten — see RETROACTIVE_RELABEL_POLICY. */
+  consentVersion?: number;
   /** Whether the score is relative to the member's own calm photo. */
   basis?: ScoreBasis;
 }
@@ -202,6 +211,13 @@ export function computePhotoFeatures(
     usableFraction: sampled > 0 ? usable / sampled : 0,
     skinFraction: usable > 0 ? skin / usable : 0,
   };
+}
+
+/** Whether a photo looks enough like skin to be worth grading or storing as a
+ * flare photo. Cheap gate that runs before any model does — see
+ * MIN_SKIN_FRACTION in lib/ai-grading.ts for the threshold rationale. */
+export function isLikelySkinPhoto(features: PhotoFeatures, minSkinFraction: number): boolean {
+  return features.skinFraction >= minSkinFraction;
 }
 
 /** Why the photo can't be graded, or null when it's fine. */

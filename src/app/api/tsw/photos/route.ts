@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { addPhoto, deletePhoto, listPhotos, setPhotoShared, tswKey } from "@/lib/tsw-db";
+import {
+  CONSENT_VERSION,
+  MIN_SKIN_FRACTION,
+  NON_SKIN_MESSAGE,
+  PHOTO_RATE_LIMIT,
+  needsConsent,
+} from "@/lib/ai-grading";
+import {
+  addPhoto,
+  countPhotosSince,
+  deletePhoto,
+  getProfile,
+  listPhotos,
+  setPhotoDermConfirmed,
+  setPhotoShared,
+  tswKey,
+} from "@/lib/tsw-db";
 
 /** The member's own photos — used by the story form's before/after picker. */
 export async function GET() {
@@ -44,18 +60,25 @@ const createSchema = z.object({
       rednessIndex: z.number().min(0).max(1),
       version: z.number().int().min(1).max(100),
       method: z.enum(["heuristic", "tfjs", "blended"]),
+      modelId: z.string().max(120).optional(),
+      consentVersion: z.number().int().min(1).max(1000).optional(),
       // Whether the score was relative to the member's own calm photo.
       // Optional: estimates saved before v2 don't carry it.
       basis: z.enum(["baseline", "absolute"]).optional(),
     })
     .optional()
     .nullable(),
+  /** Skin-plausibility share the client measured (photo-score skinFraction).
+   * Advisory: the server rejects a value that fails the gate, but a client
+   * that simply omits it is still bounded by the rate limit. The tamper-proof
+   * version of this check belongs at the edge — see workers/ai-grade-gate. */
+  skinFraction: z.number().min(0).max(1).optional(),
 });
 
-const patchSchema = z.object({
-  id: z.string().min(1),
-  shared: z.boolean(),
-});
+const patchSchema = z.union([
+  z.object({ id: z.string().min(1), shared: z.boolean() }),
+  z.object({ id: z.string().min(1), dermConfirmed: z.boolean() }),
+]);
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -69,14 +92,52 @@ export async function POST(req: Request) {
     );
   }
 
+  // Non-skin gate. Cheap, and it runs before anything else touches the image.
+  if (
+    parsed.data.skinFraction !== undefined &&
+    parsed.data.skinFraction < MIN_SKIN_FRACTION
+  ) {
+    return NextResponse.json({ error: NON_SKIN_MESSAGE }, { status: 422 });
+  }
+
+  const uid = tswKey(user);
+
   try {
-    const id = await addPhoto(tswKey(user), {
+    // An estimate may only be stored against a current, recorded consent.
+    // Saving the photo itself is always allowed — the gate is on the grading.
+    let estimate = parsed.data.estimate ?? null;
+    if (estimate) {
+      const profile = await getProfile(uid);
+      if (needsConsent(profile.aiGradingConsent)) {
+        return NextResponse.json(
+          { error: "Please read and accept the AI Flare Grading disclaimer first.", needsConsent: true },
+          { status: 403 }
+        );
+      }
+      estimate = { ...estimate, consentVersion: CONSENT_VERSION };
+    }
+
+    // Per-user rate limit on submissions. Counted from the member's own photo
+    // documents, so it survives serverless cold starts and multiple regions —
+    // an in-memory counter would not.
+    const since = new Date(Date.now() - PHOTO_RATE_LIMIT.windowMs).toISOString();
+    const recent = await countPhotosSince(uid, since);
+    if (recent >= PHOTO_RATE_LIMIT.max) {
+      return NextResponse.json(
+        {
+          error: `That's ${PHOTO_RATE_LIMIT.max} photos in an hour — take a break and try again later.`,
+        },
+        { status: 429, headers: { "Retry-After": String(PHOTO_RATE_LIMIT.windowMs / 1000) } }
+      );
+    }
+
+    const id = await addPhoto(uid, {
       takenAt: parsed.data.takenAt,
       area: parsed.data.area ?? null,
       caption: parsed.data.caption ?? null,
       imageData: parsed.data.imageData,
       shared: false, // always private by default
-      estimate: parsed.data.estimate ?? null,
+      estimate,
     });
     return NextResponse.json({ ok: true, id });
   } catch (err) {
@@ -98,7 +159,11 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    await setPhotoShared(tswKey(user), parsed.data.id, parsed.data.shared, user.name);
+    if ("shared" in parsed.data) {
+      await setPhotoShared(tswKey(user), parsed.data.id, parsed.data.shared, user.name);
+    } else {
+      await setPhotoDermConfirmed(tswKey(user), parsed.data.id, parsed.data.dermConfirmed);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Failed to update photo:", err);

@@ -1,0 +1,31 @@
+name = "arcane-ai-grade-gate"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# NOT DEPLOYED. Deploying this needs, in order:
+#   1. The apex domain proxied through Cloudflare (orange cloud) — see
+#      docs/cloudflare-scope.md, "DNS and proxy status", which is currently
+#      unconfirmed.
+#   2. `wrangler secret put GATE_SECRET`, with the same value set as the
+#      ARCANE_GATE_SECRET env var on Vercel.
+#   3. Cloudflare Images enabled on the zone (the non-skin check decodes
+#      through the image resizing pipeline).
+#
+# Until then the app-layer checks in src/app/api/tsw/photos/route.ts are the
+# only ones running, which is a working configuration — just a more expensive
+# place to say no.
+
+[vars]
+ORIGIN = "https://REPLACE-ME.vercel.app"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
+
+# [[routes]]
+# pattern = "REPLACE-ME/api/tsw/photos*"
+# zone_name = "REPLACE-ME"

@@ -4,16 +4,31 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
+  Download,
   GitCompareArrows,
   Loader2,
   Lock,
   ScanEye,
+  Stethoscope,
   Trash2,
   Users,
   X,
 } from "lucide-react";
-import { type PhotoEstimate, estimateAgreement } from "@/lib/photo-score";
+import { AiEstimateLabel } from "@/components/ai-estimate-label";
+import {
+  type PhotoEstimate,
+  PHOTO_SCORE_VERSION,
+  estimateAgreement,
+} from "@/lib/photo-score";
 import { gradePhoto } from "@/lib/photo-grade";
+import {
+  AI_ESTIMATE_LABEL,
+  CONSENT_VERSION,
+  NON_SKIN_MESSAGE,
+  modelIdFor,
+} from "@/lib/ai-grading";
+import { downloadWatermarked } from "@/lib/watermark";
+import { trackEvent } from "@/lib/analytics";
 import { compressImage } from "@/lib/image-compress";
 import { getConsent } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
@@ -28,17 +43,24 @@ export interface PhotoItem {
   imageData: string;
   shared: boolean;
   estimate: PhotoEstimate | null;
+  /** Member-asserted "my dermatologist confirmed this grading". */
+  dermConfirmed: boolean;
 }
 
 export function PhotosClient({
   initialPhotos,
   manualSeverityByDate,
   zones = BODY_ZONES,
+  needsConsent = false,
 }: {
   initialPhotos: PhotoItem[];
   manualSeverityByDate: Record<string, number>;
   /** The member's condition's zones — drives the "Area" picker. */
   zones?: BodyZone[];
+  /** When true the account hasn't accepted the current AI grading disclaimer,
+   * so uploads here are saved WITHOUT an estimate. The explainer lives on
+   * /grade — this screen just doesn't quietly grade behind it. */
+  needsConsent?: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -50,6 +72,8 @@ export function PhotosClient({
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<PhotoEstimate | null>(null);
   const [estimating, setEstimating] = useState(false);
+  const [skinFraction, setSkinFraction] = useState<number | null>(null);
+  const [notSkin, setNotSkin] = useState(false);
 
   const MAX_COMPARE = 4;
   const [compareMode, setCompareMode] = useState(false);
@@ -77,6 +101,7 @@ export function PhotosClient({
   async function estimateSeverity(dataUrl: string, forArea: string | null) {
     setEstimating(true);
     setEstimate(null);
+    setNotSkin(false);
     try {
       // Baseline: the member's own photo from a day they rated calm, so skin
       // tone and typical lighting cancel out. Same pipeline the flare grading
@@ -95,8 +120,19 @@ export function PhotosClient({
         area: forArea,
         manualSeverityByDate,
       });
-      if (!result.ok) return; // too dark, or too little skin in frame, to judge
-      setEstimate(result.estimate);
+      if (!result.ok) {
+        // "Not skin" gets its own message; too dark just stays silent here.
+        if (result.reason === "too-little-skin") setNotSkin(true);
+        return;
+      }
+      setSkinFraction(result.features.skinFraction);
+      // Record which maths produced the number and which disclaimer the member
+      // had accepted, so a stored grading stays attributable later.
+      setEstimate({
+        ...result.estimate,
+        modelId: modelIdFor(result.estimate.method, PHOTO_SCORE_VERSION),
+        consentVersion: CONSENT_VERSION,
+      });
     } catch {
       // Estimation is supplementary — never block the upload on it.
     } finally {
@@ -109,9 +145,13 @@ export function PhotosClient({
     try {
       const data = await compressImage(file);
       setPreview(data);
-      // Only run the on-device severity estimate if the member hasn't opted out
-      // in Privacy & Sources.
-      if (getConsent("photoEstimate")) void estimateSeverity(data, area || null);
+      setSkinFraction(null);
+      setNotSkin(false);
+      // Only run the on-device severity estimate if the member has accepted the
+      // AI grading disclaimer AND hasn't opted out in Privacy & Sources.
+      if (!needsConsent && getConsent("photoEstimate")) {
+        void estimateSeverity(data, area || null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't read that image.");
     }
@@ -131,6 +171,7 @@ export function PhotosClient({
           caption: caption.trim() || null,
           imageData: preview,
           estimate,
+          skinFraction,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -141,6 +182,8 @@ export function PhotosClient({
       setPreview(null);
       setCaption("");
       setEstimate(null);
+      setSkinFraction(null);
+      setNotSkin(false);
       if (fileRef.current) fileRef.current.value = "";
       router.refresh();
     } catch {
@@ -177,6 +220,44 @@ export function PhotosClient({
       router.refresh();
     } catch {
       setError("Couldn't reach the server — check your connection and try again.");
+    }
+  }
+
+  /** "My dermatologist confirmed this grading." Data model + affordance only —
+   * nothing reports on it yet, by design. */
+  async function toggleDermConfirmed(p: PhotoItem) {
+    setError(null);
+    try {
+      const res = await fetch("/api/tsw/photos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: p.id, dermConfirmed: !p.dermConfirmed }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't update the photo.");
+        return;
+      }
+      trackEvent("derm_confirm_toggled", { on: !p.dermConfirmed });
+      router.refresh();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    }
+  }
+
+  /** Export a photo with the disclaimer burned in beneath it, so the label
+   * can't be cropped off without cropping the picture too. */
+  async function exportPhoto(p: PhotoItem) {
+    setError(null);
+    try {
+      await downloadWatermarked(p.imageData, `arcane-${p.takenAt}.jpg`, {
+        caption: p.estimate
+          ? `Estimate ${p.estimate.score}/100 · ${formatDate(p.takenAt)}${p.area ? ` · ${anyZoneLabel(p.area)}` : ""}`
+          : `${formatDate(p.takenAt)}${p.area ? ` · ${anyZoneLabel(p.area)}` : ""}`,
+        modelId: p.estimate?.modelId ?? null,
+      });
+    } catch {
+      setError("Couldn't prepare that image for download.");
     }
   }
 
@@ -396,11 +477,16 @@ export function PhotosClient({
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
                   <Loader2 className="h-3 w-3 animate-spin" /> Estimating…
                 </p>
+              ) : notSkin ? (
+                <p className="mt-2 text-[11px] leading-snug text-slate-500">
+                  {NON_SKIN_MESSAGE} You can still save it to your timeline — it just won&apos;t
+                  get an estimate.
+                </p>
               ) : estimate ? (
                 <div className="mt-2 flex items-center gap-1.5">
                   <span
                     className="badge border border-brand-500/40 bg-brand-500/10 text-brand-200"
-                    title="A free, on-device colour analysis of this photo — an experiment, not a diagnosis. Your own rating in the daily tracker is what counts."
+                    title="A free, on-device colour analysis of this photo. Your own rating in the daily tracker is what counts."
                   >
                     <ScanEye className="h-3 w-3" /> est. {estimate.score}/100
                   </span>
@@ -416,10 +502,13 @@ export function PhotosClient({
                 </div>
               ) : null}
               {estimate && (
-                <p className="mt-1 text-[11px] leading-snug text-slate-500">
-                  Experimental estimate, computed on your device. Your tracker rating stays the
-                  real record.
-                </p>
+                <>
+                  <AiEstimateLabel size="sm" className="mt-1.5" />
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Computed on your device to help you describe this flare. Your tracker rating
+                    stays the real record.
+                  </p>
+                </>
               )}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -524,10 +613,31 @@ export function PhotosClient({
                           </span>
                         )}
                       </div>
+                      {/* Persistent, non-dismissible on every graded photo. */}
+                      {p.estimate && <AiEstimateLabel size="sm" className="mt-1" />}
                       <p className="mt-0.5 truncate text-xs text-slate-500">
                         {p.area ? anyZoneLabel(p.area) : "Overall"}
                         {p.caption ? ` · ${p.caption}` : ""}
                       </p>
+                      {p.estimate && !compareMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleDermConfirmed(p); }}
+                          className={cn(
+                            "mt-2 flex w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition",
+                            p.dermConfirmed
+                              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                              : "border-lab-border text-slate-500 hover:text-slate-300"
+                          )}
+                          title={
+                            p.dermConfirmed
+                              ? "You marked this estimate as confirmed by your dermatologist — tap to unmark"
+                              : "Mark this estimate as confirmed by your dermatologist"
+                          }
+                        >
+                          <Stethoscope className="h-3 w-3 shrink-0" />
+                          {p.dermConfirmed ? "Derm confirmed" : "Confirmed by my derm?"}
+                        </button>
+                      )}
                       {!compareMode && (
                         <div className="mt-2 flex items-center justify-between">
                           <button
@@ -543,13 +653,23 @@ export function PhotosClient({
                             {p.shared ? <Users className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
                             {p.shared ? "Shared" : "Private"}
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); remove(p); }}
-                            className="text-slate-600 hover:text-rose-400"
-                            aria-label="Delete photo"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); exportPhoto(p); }}
+                              className="text-slate-600 hover:text-brand-300"
+                              aria-label="Download this photo"
+                              title={`Download — the “${AI_ESTIMATE_LABEL}” label is burned into the file`}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); remove(p); }}
+                              className="text-slate-600 hover:text-rose-400"
+                              aria-label="Delete photo"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>

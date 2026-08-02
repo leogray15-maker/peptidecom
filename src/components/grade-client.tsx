@@ -12,14 +12,23 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { ScoreRing, TONE_TEXT } from "@/components/score-ring";
+import { AboutThisEstimate, AiEstimateLabel } from "@/components/ai-estimate-label";
+import { AiGradingConsentGate } from "@/components/ai-grading-consent";
 import {
   type PhotoEstimate,
+  PHOTO_SCORE_VERSION,
   type PhotoRejection,
   CALM_MANUAL_SEVERITY,
   estimateAgreement,
   flareBand,
 } from "@/lib/photo-score";
 import { gradePhoto } from "@/lib/photo-grade";
+import {
+  CONSENT_VERSION,
+  NON_SKIN_MESSAGE,
+  methodLabel,
+  modelIdFor,
+} from "@/lib/ai-grading";
 import { compressImage } from "@/lib/image-compress";
 import { getConsent, setConsent, syncConsents } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
@@ -40,10 +49,13 @@ export function GradeClient({
   graded,
   manualSeverityByDate,
   zones,
+  needsConsent,
 }: {
   graded: GradedPhoto[];
   manualSeverityByDate: Record<string, number>;
   zones: BodyZone[];
+  /** Server-resolved: has this account accepted the current disclaimer version? */
+  needsConsent: boolean;
 }) {
   const router = useRouter();
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -52,6 +64,10 @@ export function GradeClient({
   const [area, setArea] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<PhotoEstimate | null>(null);
+  const [skinFraction, setSkinFraction] = useState<number | null>(null);
+  const [usedBaseline, setUsedBaseline] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [consented, setConsented] = useState(!needsConsent);
   const [working, setWorking] = useState(false);
   const [rejected, setRejected] = useState<PhotoRejection | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +100,7 @@ export function GradeClient({
     setError(null);
     setRejected(null);
     setEstimate(null);
+    setSkinFraction(null);
     setSaved(false);
     setWorking(true);
     try {
@@ -97,11 +114,20 @@ export function GradeClient({
         manualSeverityByDate,
       });
       if (!result.ok) {
-        // Unreadable photo — say why rather than invent a number.
+        // Too dark, or not enough skin in frame — say which rather than
+        // invent a number. A screenshot or a photo of the cat lands here.
         setRejected(result.reason);
         return;
       }
-      setEstimate(result.estimate);
+      setSkinFraction(result.features.skinFraction);
+      setUsedBaseline(!!result.baseline);
+      // Record which maths produced the number and which disclaimer version
+      // the member had accepted when it was produced.
+      setEstimate({
+        ...result.estimate,
+        modelId: modelIdFor(result.estimate.method, PHOTO_SCORE_VERSION),
+        consentVersion: CONSENT_VERSION,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't read that image.");
     } finally {
@@ -123,6 +149,7 @@ export function GradeClient({
           caption: null,
           imageData: preview,
           estimate,
+          skinFraction,
         }),
       });
       if (!res.ok) {
@@ -142,16 +169,25 @@ export function GradeClient({
   function reset() {
     setPreview(null);
     setEstimate(null);
+    setSkinFraction(null);
     setRejected(null);
+    setShowAbout(false);
     setError(null);
     setSaved(false);
     if (cameraRef.current) cameraRef.current.value = "";
     if (libraryRef.current) libraryRef.current.value = "";
   }
 
-  // ── Before consent is known (server render + first paint) ────────────────
+  // ── Before the device-level switch is known (server render + first paint) ─
   if (allowed === null) {
     return <div className="card !rounded-3xl h-64 animate-pulse" aria-hidden />;
+  }
+
+  // ── One-time disclaimer, blocking, explicit affirmative action ───────────
+  // Sits ahead of the device switch on purpose: the compliance gate is the
+  // thing a first-time member must pass, not a privacy preference.
+  if (!consented) {
+    return <AiGradingConsentGate onAccepted={() => setConsented(true)} />;
   }
 
   // ── Opted out ────────────────────────────────────────────────────────────
@@ -194,8 +230,10 @@ export function GradeClient({
             <p className="mt-4 text-lg font-semibold text-white">Photograph an itchy patch</p>
             <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">
               Fill the frame with the patch in even, natural light. You&apos;ll get a 0–100
-              estimate of how inflamed it looks — worked out on your device.
+              estimate of how inflamed it looks — worked out on your device — to help you
+              describe the flare to a clinician.
             </p>
+            <AiEstimateLabel className="mt-3" />
 
             <div className="mt-5 w-full max-w-xs">
               <label className="label">Which area? (optional)</label>
@@ -245,17 +283,17 @@ export function GradeClient({
               ) : rejected === "too-little-skin" ? (
                 <>
                   <p className="font-semibold text-white">Couldn&apos;t find enough skin</p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Most of this frame looks like background — bedding, clothing or a surface.
-                    Move in closer so the patch fills the frame, otherwise the estimate is
-                    grading the backdrop rather than your skin.
-                  </p>
+                  <p className="mt-1 text-sm text-slate-400">{NON_SKIN_MESSAGE}</p>
                 </>
               ) : estimate && band ? (
                 <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
                   <ScoreRing score={estimate.score} tone={band.tone} />
                   <div>
-                    <p className={cn("text-lg font-bold", TONE_TEXT[band.tone])}>{band.label}</p>
+                    {/* Non-dismissible: sits above the number, always. */}
+                    <AiEstimateLabel size="sm" />
+                    <p className={cn("mt-1.5 text-lg font-bold", TONE_TEXT[band.tone])}>
+                      {band.label}
+                    </p>
                     <p className="mt-1 text-sm text-slate-400">{band.blurb}</p>
                     <p className="mt-2 text-xs text-slate-500">
                       {estimate.basis === "baseline"
@@ -334,9 +372,7 @@ export function GradeClient({
             </li>
             <li className="flex items-center justify-between py-2 text-sm">
               <span className="text-slate-400">Method</span>
-              <span className="font-semibold text-slate-200">
-                {estimate.method === "heuristic" ? "Colour analysis" : "Colour analysis + local model"}
-              </span>
+              <span className="font-semibold text-slate-200">{methodLabel(estimate.method)}</span>
             </li>
           </ul>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
@@ -345,6 +381,22 @@ export function GradeClient({
             drag the number around. Nothing is uploaded unless you choose to save it to your
             timeline.
           </p>
+
+          <button
+            onClick={() => setShowAbout((v) => !v)}
+            className="mt-3 text-xs font-medium text-brand-300 hover:text-brand-200"
+          >
+            {showAbout ? "Hide details" : "About this estimate →"}
+          </button>
+          {showAbout && (
+            <div className="mt-3">
+              <AboutThisEstimate
+                modelId={estimate.modelId ?? null}
+                method={methodLabel(estimate.method)}
+                consentVersion={estimate.consentVersion ?? null}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -376,11 +428,11 @@ export function GradeClient({
       )}
 
       <p className="text-xs leading-relaxed text-slate-500">
-        Educational estimate only — not a diagnosis, and no substitute for a clinician. It reads
-        colour, so it can be thrown off by lighting, makeup, moisturiser shine and camera
-        white balance, and it is far less reliable on deeper skin tones, where inflammation shows
-        as violet or grey-brown rather than red. Your own rating in the daily tracker stays the
-        real record.
+        An estimate to help you describe your flare to a clinician — not a diagnosis, and no
+        substitute for one. It reads colour, so it can be thrown off by lighting, makeup,
+        moisturiser shine and camera white balance, and it is far less reliable on deeper skin
+        tones, where inflammation shows as violet or grey-brown rather than red. Your own rating
+        in the daily tracker stays the real record.
       </p>
     </div>
   );
