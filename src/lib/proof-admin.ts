@@ -3,10 +3,12 @@ import { safe } from "@/lib/safe-db";
 import {
   type ProofRecord,
   type ProofSource,
+  compareProofEntries,
   proofRecordId,
   publishBlocker,
 } from "@/lib/proof";
 import { listProofRecords, withProofImages } from "@/lib/proof-db";
+import { publicAssetExists } from "@/lib/public-assets";
 import { TESTIMONIALS, storyToPublicTestimonial } from "@/lib/testimonials";
 import { type RecoveryStory, getPhotosByIds, listStories } from "@/lib/tsw-db";
 
@@ -47,9 +49,10 @@ export interface ProofRow {
    * context; they can't be removed from here, only overridden by uploading
    * CRM photos. */
   fileImages: { src: string; alt: string; caption: string | null }[];
-  /** True when the only photos on a live entry are /public file paths, which
-   * render as placeholders if the files were never added to the repo. This is
-   * the CRM's answer to "is the photo proof section actually working?". */
+  /** True when this entry's only photos are /public file paths that aren't
+   * actually there — so the public wall skips them and the entry goes out as
+   * words alone. This is the CRM's answer to "is the photo proof section
+   * actually working?". */
   filePhotosUnverified: boolean;
   /** Why this can't go live yet, or null when it's ready. */
   blocker: string | null;
@@ -66,8 +69,9 @@ export interface ProofWall {
   /** Everything the CRM knows about that isn't on the site: drafts, hidden
    * entries, and member stories waiting for approval. */
   offSite: ProofRow[];
-  /** Live entries whose photos are all unverified /public file paths. Anything
-   * above zero means the landing page may be showing photo placeholders. */
+  /** Live entries whose only photos are /public files that were never added.
+   * Anything above zero means the landing page is showing those entries as
+   * words alone. */
   liveNeedingPhotos: number;
   storiesAwaitingApproval: number;
 }
@@ -126,13 +130,22 @@ export async function getProofWall(): Promise<ProofWall> {
   const records = await safe(() => withProofImages(bare), bare);
   const byId = new Map(records.map((r) => [r.id, r]));
 
-  const rows: { row: ProofRow; order: number }[] = [];
+  /** The row plus the inputs `compareProofEntries` needs, so this screen lists
+   * entries in exactly the order the public wall renders them. */
+  const rows: {
+    row: ProofRow;
+    order: number | null;
+    hasPhotos: boolean;
+    fallbackOrder: number;
+  }[] = [];
 
   // ── Entries written straight into the CRM ──
   for (const record of records.filter((r) => r.source === "custom")) {
     const blocker = publishBlocker(record);
     rows.push({
       order: record.order,
+      hasPhotos: record.images.length > 0,
+      fallbackOrder: record.order,
       row: {
         id: record.id,
         source: "custom",
@@ -166,8 +179,11 @@ export async function getProofWall(): Promise<ProofWall> {
   TESTIMONIALS.forEach((t, i) => {
     const id = proofRecordId("curated", t.id);
     const record = byId.get(id);
+    const presentFiles = t.images.filter((img) => publicAssetExists(img.src));
     rows.push({
-      order: record?.order ?? i,
+      order: record?.order ?? null,
+      hasPhotos: (record?.images.length ?? 0) > 0 || presentFiles.length > 0,
+      fallbackOrder: i,
       row: {
         id,
         source: "curated",
@@ -192,7 +208,8 @@ export async function getProofWall(): Promise<ProofWall> {
           alt: img.alt,
           caption: img.caption ?? null,
         })),
-        filePhotosUnverified: (record?.images.length ?? 0) === 0 && t.images.length > 0,
+        filePhotosUnverified:
+          (record?.images.length ?? 0) === 0 && presentFiles.length < t.images.length,
         blocker: null,
         hasRecord: !!record,
         note: "Committed in the codebase — upload photos here to replace the image files.",
@@ -210,7 +227,11 @@ export async function getProofWall(): Promise<ProofWall> {
       const testimonial = storyToPublicTestimonial(story);
       const images = await storyPhotos(story);
       return {
-        order: record?.order ?? 1000 + i,
+        order: record?.order ?? null,
+        // The public wall only publishes a complete pair, so a half-resolved
+        // before/after doesn't count as photos here either.
+        hasPhotos: images.length >= 2,
+        fallbackOrder: 1000 + i,
         row: {
           id,
           source: "story" as const,
@@ -248,9 +269,9 @@ export async function getProofWall(): Promise<ProofWall> {
   );
   rows.push(...storyRows);
 
-  // Position is the only ordering concept: whatever sits at the top of `live`
-  // is the landing page's big lead card.
-  rows.sort((a, b) => a.order - b.order);
+  // Same comparator the public wall uses, so whatever sits at the top of
+  // `live` really is the landing page's big lead card.
+  rows.sort(compareProofEntries);
 
   const live = rows.filter((r) => r.row.live).map((r) => r.row);
   const offSite = rows.filter((r) => !r.row.live).map((r) => r.row);

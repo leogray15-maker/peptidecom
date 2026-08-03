@@ -101,6 +101,44 @@ export function defaultPublished(source: ProofSource): boolean {
   return source !== "custom";
 }
 
+// ─── Wall order ──────────────────────────────────────────────────────────────
+
+/** One entry's position inputs. `order` is the CRM's manual position and is
+ * absolute once set; the other two only decide where an entry the CRM has
+ * never touched lands. */
+export interface ProofSortable {
+  /** Manual position, or null for an entry with no CRM document. */
+  order: number | null;
+  /** Photos this entry can actually render right now — CRM uploads, a member's
+   * consented before/after, or image files that are really in /public. */
+  hasPhotos: boolean;
+  /** Tie-break among untouched entries: file order for curated entries, and
+   * featured-newest-first for member stories. */
+  fallbackOrder: number;
+}
+
+/** How the wall sorts itself, everywhere it's rendered.
+ *
+ * Two rules, in this order:
+ *
+ *  1. **Positioned entries lead.** The moment an admin drags something on
+ *     /admin/proof it gets a position, and that position is the answer — the
+ *     wall never second-guesses it.
+ *  2. **Otherwise, proof with pictures leads.** Position 0 is the landing
+ *     page's big card, which is a quote *and a photo grid*; the entries below
+ *     it are quote-only pull quotes. Leading with an entry that has no photos
+ *     to show spends the one slot that can display them and makes the section
+ *     read as broken. This is what puts a freshly featured member story — the
+ *     one with the member's own before/after — in front of a hand-committed
+ *     entry whose image files were never added to the repo. */
+export function compareProofEntries(a: ProofSortable, b: ProofSortable): number {
+  const unpositioned = (e: ProofSortable) => (e.order === null ? 1 : 0);
+  if (unpositioned(a) !== unpositioned(b)) return unpositioned(a) - unpositioned(b);
+  if (a.order !== null && b.order !== null) return a.order - b.order;
+  if (a.hasPhotos !== b.hasPhotos) return a.hasPhotos ? -1 : 1;
+  return a.fallbackOrder - b.fallbackOrder;
+}
+
 /** Why a custom entry can't be published yet, or null when it's ready.
  * Mirrored by the API so a hand-rolled request can't skip it. */
 export function publishBlocker(record: {
