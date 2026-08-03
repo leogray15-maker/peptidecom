@@ -42,10 +42,12 @@ record rather than a memory.
 | `daniel-message.jpg` | Screenshot of Daniel's message |
 
 These files are **not** in the repo. Until they're added — or the photos are
-uploaded on the Proof wall — that testimonial renders as words alone: a tile
-whose image 404s degrades to a labelled placeholder, and a gallery where every
-image failed removes itself rather than showing a grid of grey boxes. The Proof
-wall flags this under "Missing photos".
+uploaded on the Proof wall — the site checks for each file before pointing at
+it, drops the ones that aren't there, and publishes that testimonial as words
+alone. An entry with no photos also stops taking the landing page's lead card,
+which is the slot that shows a photo grid, so a member story with a real
+before/after leads instead. The Proof wall flags all of this under
+"Missing photos".
 
 ## Conventions
 

@@ -170,10 +170,11 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
             <span className="font-semibold">
               {wall.liveNeedingPhotos} live {wall.liveNeedingPhotos === 1 ? "entry" : "entries"}
             </span>{" "}
-            {wall.liveNeedingPhotos === 1 ? "has" : "have"} no photos in the CRM. They point at
-            image files under <code className="text-amber-200">/public</code>, which render as grey
-            placeholders on the site if those files were never added to the repo. Upload the photos
-            on the entry below and the wall uses those instead — no deploy needed.
+            {wall.liveNeedingPhotos === 1 ? "has" : "have"} no photos to show. They point at image
+            files under <code className="text-amber-200">/public</code> that were never added to the
+            repo, so the site skips those pictures and publishes the words alone — and an entry with
+            no photos doesn&apos;t take the landing page&apos;s lead card. Upload the photos on the
+            entry below and the wall uses those instead — no deploy needed.
           </p>
         </div>
       )}
@@ -207,9 +208,11 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
                         <p className="mt-1 text-[11px] text-slate-500">
                           {row.images.length > 0
                             ? `${row.images.length} photo${row.images.length === 1 ? "" : "s"} from the CRM`
-                            : row.fileImages.length > 0
-                              ? `${row.fileImages.length} image file${row.fileImages.length === 1 ? "" : "s"} — unverified`
-                              : "No photos"}
+                            : row.filePhotosUnverified
+                              ? `${row.fileImages.length} image file${row.fileImages.length === 1 ? "" : "s"} — missing from /public`
+                              : row.fileImages.length > 0
+                                ? `${row.fileImages.length} photo${row.fileImages.length === 1 ? "" : "s"}`
+                                : "No photos"}
                         </p>
                       )}
                     </>
@@ -407,9 +410,9 @@ function ProofCard({
         {row.filePhotosUnverified && row.live && (
           <span
             className="badge bg-amber-500/15 text-amber-300"
-            title="This entry's photos are image files under /public — upload them here to be certain they render."
+            title="This entry's image files aren't in /public, so the site publishes it without photos. Upload them here instead."
           >
-            <AlertTriangle className="h-3 w-3" /> photos unverified
+            <AlertTriangle className="h-3 w-3" /> photos missing
           </span>
         )}
       </div>
