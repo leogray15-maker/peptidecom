@@ -9,16 +9,19 @@ import { cn } from "@/lib/utils";
  *
  * Curated testimonials point at files under /public, which may not have been
  * dropped in yet — a 404 must never render as a broken-image icon on the sales
- * page, so the tile degrades to a labelled placeholder instead. Member photos
- * are data-URLs and always resolve. */
+ * page, so the tile degrades to a labelled placeholder instead. Photos uploaded
+ * through the admin proof wall are data-URLs and always resolve. */
 function Tile({
   image,
+  failed,
+  onFail,
   onOpen,
 }: {
   image: TestimonialImage;
+  failed: boolean;
+  onFail: () => void;
   onOpen: () => void;
 }) {
-  const [failed, setFailed] = useState(false);
   const screenshot = image.kind === "screenshot";
 
   if (failed) {
@@ -47,7 +50,7 @@ function Tile({
           src={image.src}
           alt={image.alt}
           loading="lazy"
-          onError={() => setFailed(true)}
+          onError={onFail}
           className={cn(
             "w-full",
             screenshot ? "object-contain" : "aspect-square object-cover"
@@ -107,7 +110,13 @@ function Lightbox({ image, onClose }: { image: TestimonialImage; onClose: () => 
   );
 }
 
-/** Grid of a testimonial's photos, click-to-zoom. */
+/** Grid of a testimonial's photos, click-to-zoom.
+ *
+ * A grid where *every* image failed is worse than no grid at all — it reads as
+ * a broken page rather than as proof. So when nothing resolved, the gallery
+ * removes itself and the quote carries the card on its own. A partial failure
+ * still shows its labelled placeholders, because the photos that did load are
+ * worth keeping in context. */
 export function TestimonialGallery({
   images,
   className,
@@ -118,9 +127,14 @@ export function TestimonialGallery({
   columns?: 2 | 3;
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [failed, setFailed] = useState<ReadonlySet<number>>(() => new Set());
   const close = useCallback(() => setOpenIndex(null), []);
 
-  if (images.length === 0) return null;
+  const markFailed = useCallback((index: number) => {
+    setFailed((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
+  }, []);
+
+  if (images.length === 0 || failed.size === images.length) return null;
 
   return (
     <>
@@ -132,10 +146,16 @@ export function TestimonialGallery({
         )}
       >
         {images.map((image, i) => (
-          <Tile key={image.src.slice(0, 64) + i} image={image} onOpen={() => setOpenIndex(i)} />
+          <Tile
+            key={image.src.slice(0, 64) + i}
+            image={image}
+            failed={failed.has(i)}
+            onFail={() => markFailed(i)}
+            onOpen={() => setOpenIndex(i)}
+          />
         ))}
       </div>
-      {openIndex !== null && images[openIndex] && (
+      {openIndex !== null && images[openIndex] && !failed.has(openIndex) && (
         <Lightbox image={images[openIndex]} onClose={close} />
       )}
     </>
