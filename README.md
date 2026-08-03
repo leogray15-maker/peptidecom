@@ -117,6 +117,12 @@ cp .env.example .env
 ```
 
 - `DATABASE_URL` — a Postgres connection string (Vercel Postgres, Neon, Supabase, Railway…).
+- `DIRECT_URL` — *optional, recommended when `DATABASE_URL` points at a connection
+  pooler* (Supabase's `…pooler.supabase.com`, PgBouncer). The build pushes the Prisma
+  schema, and the schema engine needs a session of its own — through a pooler that
+  push competes for a small fixed number of them and fails with
+  "max clients reached in session mode". Set this to the same database's **non-pooled**
+  connection string and the push uses it instead. `POSTGRES_URL_NON_POOLING` works too.
 - **Firebase** — create a project at [console.firebase.google.com](https://console.firebase.google.com):
   - Add a **Web app** and copy its config into the `NEXT_PUBLIC_FIREBASE_*` vars.
   - **Authentication → Sign-in method**: enable **Email/Password** and **Google**.
