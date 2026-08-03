@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { requireMember } from "@/lib/api-auth";
 import { getCondition } from "@/lib/conditions";
 import {
   type WeatherSnapshot,
@@ -113,8 +113,9 @@ async function readWeather(
 
 /** GET /api/forecast?lat=&lon= — today's risk for a location. */
 export async function GET(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const url = new URL(req.url);
   const uid = tswKey(user);
@@ -184,8 +185,9 @@ const saveSchema = z.object({
 /** POST — pin today's forecast to the member's history, so a bad week can be
  * read back against the weather that came with it. */
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = saveSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });

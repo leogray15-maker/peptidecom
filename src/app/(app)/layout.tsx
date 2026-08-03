@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { getCurrentUser, hasAccess, isAdminEmail } from "@/lib/auth";
+import { reconcileMembership } from "@/lib/stripe-sync";
 import { Logo } from "@/components/logo";
 import { AppNav, ArchivesNavLink } from "@/components/app-nav";
 import { Avatar } from "@/components/avatar";
@@ -17,10 +18,16 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  let user = await getCurrentUser();
 
   if (!user) {
     redirect("/login?callbackUrl=/dashboard");
+  }
+  if (!hasAccess(user)) {
+    // Before turning anyone away, check with Stripe: someone who has genuinely
+    // just paid but whose webhook hasn't landed would otherwise be bounced
+    // straight back to /pricing, with the Dashboard button looking dead.
+    user = await reconcileMembership(user);
   }
   if (!hasAccess(user)) {
     redirect("/pricing");

@@ -7,6 +7,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/firebase-admin";
 import { isAdminEmail, syncMembershipClaim } from "@/lib/auth";
+import { reconcileMembership } from "@/lib/stripe-sync";
 import { clientIp, verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
@@ -117,8 +118,13 @@ export async function POST(req: Request) {
     );
   }
 
+  // Sign-in is the natural moment to re-check billing: it settles anyone whose
+  // renewal or cancellation never reached us before their claim is written.
+  // Costs nothing for users who have never subscribed.
+  user = await reconcileMembership(user);
+
   // Keep the Firebase custom claim in sync with membership for Firestore rules.
-  await syncMembershipClaim(uid, user.subscriptionStatus, user.role);
+  await syncMembershipClaim(uid, user);
 
   // Create the session cookie from the ID token.
   const expiresIn = SESSION_COOKIE_MAX_AGE * 1000;
