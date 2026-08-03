@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { requestAppUrl } from "@/lib/app-url";
 
 export async function POST(req: Request) {
@@ -12,7 +12,9 @@ export async function POST(req: Request) {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
-    return_url: `${appUrl}/settings`,
+    // A lapsed member can't reach /settings — send them back to the page that
+    // explains where they stand instead of into a redirect.
+    return_url: `${appUrl}${hasAccess(user) ? "/settings" : "/pricing"}`,
   });
 
   return NextResponse.json({ url: session.url });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { requireMember } from "@/lib/api-auth";
 import { CONDITIONS } from "@/lib/conditions";
 import { computeStats, earnedMilestones } from "@/lib/tsw";
 import { awardNewMilestones, listLogs, setStage, tswKey } from "@/lib/tsw-db";
@@ -14,8 +14,9 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {

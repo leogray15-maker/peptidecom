@@ -5,7 +5,11 @@
 // charges come from the Stripe price IDs (STRIPE_PRICE_MONTHLY /
 // STRIPE_PRICE_YEARLY). Keep them in sync with Stripe.
 //
-// Pure constants — safe to import from both server and client code.
+// Pure constants and rules — safe to import from both server and client code.
+// The access rules live here (rather than in lib/auth) so they can be unit
+// tested without pulling in Firebase, Prisma or `server-only`.
+
+import type { Role, SubscriptionStatus } from "@prisma/client";
 
 export type PlanId = "monthly" | "yearly";
 
@@ -64,4 +68,76 @@ export function isPlanId(v: unknown): v is PlanId {
 /** Format a £ amount without trailing ".00" (so £70, but £11.99). */
 export function formatPrice(amount: number): string {
   return Number.isInteger(amount) ? `£${amount}` : `£${amount.toFixed(2)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Access rules
+//
+// One question, asked the same way everywhere: is this account entitled to the
+// member area right now? Page layouts, API routes and the Firestore claim all
+// go through hasAccess(), so access can never be granted in one place and
+// denied in another.
+// ---------------------------------------------------------------------------
+
+/** Subscription statuses that grant access. */
+const ACTIVE_STATUSES: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
+
+/**
+ * How long past the paid-up-to date access survives.
+ *
+ * Stripe bills at the period boundary and the renewal (invoice paid →
+ * subscription updated) takes a moment to reach us, so a short grace window
+ * stops a genuinely paying member being locked out mid-renewal. Past the
+ * window, membership is treated as lapsed until Stripe confirms otherwise —
+ * see reconcileMembership() in lib/stripe-sync.
+ */
+export const RENEWAL_GRACE_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+/** The billing fields any membership decision is made from. */
+export interface MembershipRecord {
+  subscriptionStatus: SubscriptionStatus;
+  stripeCurrentPeriodEnd?: Date | null;
+}
+
+/** True when the status alone grants access, ignoring how old it is. */
+export function isActiveStatus(status?: SubscriptionStatus | null) {
+  return !!status && ACTIVE_STATUSES.includes(status);
+}
+
+/**
+ * True when the period this member paid for has run out (beyond the grace
+ * window). A record with no period end is never lapsed — that's an account
+ * whose access doesn't come from Stripe at all (preview mode, comped staff).
+ */
+export function isLapsed(user: MembershipRecord, now: number = Date.now()) {
+  const end = user.stripeCurrentPeriodEnd;
+  if (!end) return false;
+  return now > end.getTime() + RENEWAL_GRACE_MS;
+}
+
+/**
+ * True when this record is a paid-up member right now.
+ *
+ * Deliberately stricter than the stored status: a cancellation or a failed
+ * renewal that never reached us leaves the row saying ACTIVE forever, so the
+ * paid-up-to date has to agree as well. Callers gating access should use
+ * hasAccess(), which also lets staff through.
+ */
+export function isMember(user?: MembershipRecord | null, now?: number) {
+  if (!user) return false;
+  return isActiveStatus(user.subscriptionStatus) && !isLapsed(user, now);
+}
+
+/** Whether a role is elevated (staff), which bypasses the paywall. */
+export function isStaff(role?: Role | null) {
+  return role === "ADMIN" || role === "MODERATOR";
+}
+
+/** Full access = a paid-up subscription OR staff (admin/moderator). */
+export function hasAccess(
+  user?: (MembershipRecord & { role: Role }) | null,
+  now?: number
+) {
+  if (!user) return false;
+  return isStaff(user.role) || isMember(user, now);
 }
