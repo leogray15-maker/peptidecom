@@ -11,7 +11,8 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
-import { safe } from "@/lib/safe-db";
+import { dbReachable, safe } from "@/lib/safe-db";
+import { DbWarning } from "@/components/admin/db-warning";
 import { ACTION_LABEL, lifecycleStage } from "@/lib/admin";
 import { MONTHLY_PRICE } from "@/lib/membership";
 import { StageBadge, SubscriptionBadge, PriorityBadge } from "@/components/admin/badges";
@@ -35,6 +36,7 @@ export default async function AdminOverviewPage() {
   const chartFrom = weekStart(new Date(Date.now() - (WEEKS - 1) * 7 * 24 * 60 * 60 * 1000));
 
   const [
+    dbUp,
     totalUsers,
     activeSubs,
     foundingActive,
@@ -46,6 +48,7 @@ export default async function AdminOverviewPage() {
     dueTasks,
     recentActivity,
   ] = await Promise.all([
+    dbReachable(),
     safe(() => prisma.user.count(), 0),
     safe(() => prisma.user.count({ where: { subscriptionStatus: { in: ["ACTIVE", "TRIALING"] } } }), 0),
     safe(
@@ -145,6 +148,8 @@ export default async function AdminOverviewPage() {
           </Link>
         }
       />
+
+      {!dbUp && <DbWarning />}
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">

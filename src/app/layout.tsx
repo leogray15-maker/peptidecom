@@ -19,6 +19,16 @@ export const metadata: Metadata = {
   },
   description:
     "A private membership for skin recovery and healing: a daily tracker, photo timeline, withdrawal stage map, protocols, peptide tools and a community. For research & educational purposes only.",
+  // icon.png / apple-icon.png live next to this file; Next emits the <link>
+  // tags from those file conventions. Declared here too so the manifest is
+  // linked and iOS treats an added-to-home-screen install as a standalone app
+  // (without appleWebApp, iOS shows a screenshot of the page as the icon).
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: appName,
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
