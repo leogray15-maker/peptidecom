@@ -19,6 +19,10 @@ const sources = [
     cite: "American Contact Dermatitis Society core-allergen series · EU Cosmetics Regulation fragrance-allergen list · National Eczema Association ingredient guidance. Product data: Open Beauty Facts & Open Food Facts (open community databases, ODbL).",
   },
   {
+    title: "Healthy places to eat — restaurant scoring",
+    cite: "Venue data: OpenStreetMap contributors (ODbL) via the Overpass API; place names via Nominatim; map tiles © CARTO. Scores are our own heuristic over the venue's category, its listed cuisines and its diet/organic tags — not an analysis of the actual menu, and not a nutritional assessment.",
+  },
+  {
     title: "Photo severity estimate (AI Flare Grading)",
     cite: "On-device colour/erythema heuristic, optionally blended with a local image model (model id stored with every result). An estimate to help you describe a flare to a clinician — not a diagnosis. It supplements, and never replaces, your own rating.",
   },
@@ -50,11 +54,13 @@ export default function PrivacySourcesPage() {
             between devices; nobody else can see them unless you explicitly share.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate-300">
-            Two things do leave the app, and only these: when you scan or type a barcode, that
+            Three things do leave the app, and only these: when you scan or type a barcode, that
             number (and nothing else about you) goes to the open Open Beauty Facts / Open Food
-            Facts databases to fetch the product&apos;s name and ingredients; and when you open the
-            flare forecast, your coordinates go to Open-Meteo for the local weather and pollen. No
-            account identifier travels with either. All the scoring happens here.
+            Facts databases to fetch the product&apos;s name and ingredients; when you open the
+            flare forecast, your coordinates go to Open-Meteo for the local weather and pollen;
+            and when you open the healthy-restaurant map, the point you searched goes to
+            OpenStreetMap (and its map-tile provider, CARTO) to fetch the venues around it. No
+            account identifier travels with any of them. All the scoring happens here.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate-300">
             Your scores and scan history save to your own account so they follow you to a new

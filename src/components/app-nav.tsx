@@ -28,6 +28,7 @@ import {
   Syringe,
   TrendingUp,
   Trophy,
+  UtensilsCrossed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/easi", label: "EASI calculator", icon: Ruler },
       { href: "/poem", label: "POEM weekly score", icon: ClipboardCheck },
       { href: "/scan", label: "Ingredient scanner", icon: ScanLine },
+      { href: "/restaurants", label: "Healthy places to eat", icon: UtensilsCrossed },
     ],
   },
   {

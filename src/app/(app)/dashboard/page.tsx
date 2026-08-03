@@ -17,6 +17,7 @@ import {
   ScanLine,
   Syringe,
   TrendingUp,
+  UtensilsCrossed,
 } from "lucide-react";
 import { ConditionPickerModal } from "@/components/condition-picker";
 import { FeatureCard, type FeatureCardProps } from "@/components/feature-card";
@@ -109,6 +110,14 @@ const experimentalTools: FeatureCardProps[] = [
     badge: "BETA",
     description:
       "Photograph an itchy patch for an on-device estimate of how inflamed it looks — to help you describe a flare to a clinician. An estimate, not a diagnosis.",
+  },
+  {
+    href: "/restaurants",
+    title: "Healthy places to eat",
+    icon: UtensilsCrossed,
+    badge: "NEW",
+    description:
+      "Every restaurant, café and takeaway near you on a map, scored 0–100 for how healthy eating there is likely to be.",
   },
   {
     href: "/scan",

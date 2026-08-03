@@ -38,6 +38,7 @@ user's Stripe subscription status is mirrored onto a Firebase **custom claim
 | **Coach** | Today's plan and the patterns in your own data — computed from your logs on our servers, no third-party AI. |
 | **Flare forecast** | Local temperature, humidity, wind, UV and pollen (Open-Meteo, no key needed) scored against your condition, with the day's tips. Snapshots save to your history. |
 | **Itch check-in** | One-tap 0–10 itch log, as often as it bites, with a 7-day chart and the hour your itch actually peaks. |
+| **Healthy places to eat** | Every restaurant, café and takeaway around you on a dark map, each scored 0–100 for how healthy eating there is likely to be. OpenStreetMap data via Overpass — no key needed, works worldwide. |
 | **Calculator** | Reconstitution maths → exact syringe units, with presets for common peptides and a live syringe fill visual. |
 | **Progress** | Log weight, waist, body-fat, mood, side-effects & notes; trend charts; private to each user. |
 | **Community** | Categorised forum with posts, comments and up/down votes. |
@@ -178,6 +179,8 @@ src/
     prisma.ts          # Prisma client singleton
     peptides.ts        # calculator maths + peptide presets
     forecast.ts        # flare-risk scoring from weather + the member's own logs
+    restaurants.ts     # Overpass query, venue normalisation, distance maths
+    restaurant-score.ts# 0–100 "how healthy is eating here" heuristic
     coach.ts           # today's plan + observations, from logged data only
     synced-store.ts    # local-first, account-synced lists (EASI/POEM/scans)
     chat.ts            # chat channel definitions
