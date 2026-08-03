@@ -45,6 +45,39 @@ user's Stripe subscription status is mirrored onto a Firebase **custom claim
 | **Lab tests** | Purity / COA library tied to vendors and batches. |
 | **Group buys** | Coordinate buys, track progress to a unit target, join/leave. |
 | **Legal** | Research disclaimer, placeholder ToS & privacy policy, persistent disclaimer bar. |
+| **Admin CRM** | `/admin` — customers with a full per-member journey view, notes, tasks, an audit log, story triage and the public **proof wall**. |
+
+### The admin CRM
+
+`/admin` is gated on the `ADMIN` role (or an allow-listed email) and holds the
+whole back office:
+
+| Screen | What it's for |
+| --- | --- |
+| **Overview** | Members, revenue, signups per week, next follow-ups, recent admin activity. |
+| **Customers** | Search/filter/export, and a per-customer page that joins their billing record to their **actual journey** — tracking streaks and severity trend, peptide doses and protocols, photo timeline metadata, itch check-ins, triggers, tool scores, milestones and stories. Photos stay private: the CRM shows the record, and renders only the pictures a member chose to share publicly. |
+| **Proof wall** | The one screen that controls what the public pages show as proof. Approve entries onto the site, set the running order (position 0 is the landing page's lead card) and upload the photos — see below. |
+| **Stories** | Triage member story submissions, check consent, generate post-ready quote cards. |
+| **Tasks / Activity** | Follow-ups and the audit trail of every admin action. |
+
+### The public proof wall
+
+The landing page, `/pricing` and `/results` all render the same ordered list,
+assembled in `src/lib/public-testimonials.ts` from three sources the CRM
+controls together (`src/lib/proof.ts`):
+
+1. **Entries you collected** — a DM, a WhatsApp message, a review. Written and
+   photographed straight into `/admin/proof`; nothing is committed or deployed.
+   They start as drafts and refuse to publish without a recorded consent date.
+2. **Committed entries** — the hand-written ones in `src/lib/testimonials.ts`.
+   The CRM can hide them, reorder them, and upload photos that stand in for
+   image files that were never added to `/public`.
+3. **Member stories** — publishing one is the existing "feature on site"
+   toggle, which stays gated on the member's own marketing consent.
+
+Photos live in Firestore (`proofItems/{id}/images/{imageId}`, a document each)
+rather than in the repo, so adding proof never needs a deploy. The wall flags
+any live entry whose photos are unverified `/public` paths.
 
 ### Where member data lives
 
@@ -57,6 +90,8 @@ device brings it all with them:
 | EASI, POEM and product-scan history | Firestore `users/{uid}/history/{key}`, **plus** a localStorage cache |
 | Privacy switches, forecast location | The `users/{uid}` profile document |
 | Account, billing, forum content | Postgres via Prisma |
+| Admin notes, tasks and the audit log | Postgres (`CrmNote`, `CrmTask`, `CrmActivity`) |
+| The public proof wall and its photos | Firestore `proofItems/{id}` + `proofItems/{id}/images/{imageId}` |
 
 The tool histories are **local-first**: the device copy renders instantly and
 keeps working offline, then reconciles against the account copy. Entries are
@@ -164,13 +199,22 @@ src/
   app/
     (auth)/            # login + register (Firebase client auth)
     (app)/             # gated member area (paywall enforced in layout) incl. /chat
+    admin/             # admin CRM: overview, customers, proof wall, stories, tasks, activity
     legal/             # disclaimer, terms, privacy
-    api/               # auth/session, stripe, posts, comments, vote, forecast, tsw/* (logs, triggers, itch, history, prefs)
+    api/               # auth/session, stripe, posts, comments, vote, forecast, tsw/* (logs, triggers, itch, history, prefs), admin/*
     page.tsx           # public landing / marketing page
     pricing/           # plans + checkout
+    results/           # the public proof wall
   components/          # UI + client components (incl. chat-client)
+    admin/             # CRM panels: customer editor, journey, proof wall, stories, notes, tasks
   lib/
     auth.ts            # session cookie verification + membership/claim helpers
+    admin.ts           # admin gating, audit logging, lifecycle stages
+    admin-journey.ts   # one member's whole tracker journey, for the CRM
+    proof.ts           # the public proof wall's shared shapes + consent rules
+    proof-db.ts        # Firestore layer for proof entries and their photos
+    proof-admin.ts     # the CRM's view of the wall (every source, in render order)
+    public-testimonials.ts # what the public pages actually render
     firebase-client.ts # Firebase web SDK (auth + firestore)
     firebase-admin.ts  # Firebase Admin SDK (server)
     session-client.ts  # client helpers to create/clear the session cookie

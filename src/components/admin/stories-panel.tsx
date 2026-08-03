@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Camera,
@@ -107,7 +108,12 @@ export function StoriesPanel({
           <h1 className="text-xl font-bold text-white">Recovery stories</h1>
           <p className="mt-1 text-sm text-slate-400">
             Triage submissions, check consent, feature the best on the public results wall,
-            and generate post-ready cards.
+            and generate post-ready cards. Where a featured story lands on the site — and what
+            it sits next to — is set on the{" "}
+            <Link href="/admin/proof" className="text-brand-300 hover:text-brand-200">
+              proof wall
+            </Link>
+            .
           </p>
         </div>
         {/* Pipeline health: how fresh is the content well? */}

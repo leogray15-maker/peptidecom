@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, ExternalLink, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Crown, ExternalLink, BadgeCheck, Mail } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
 import { ACTION_LABEL, lifecycleStage } from "@/lib/admin";
+import { getCustomerJourney } from "@/lib/admin-journey";
 import { RoleBadge, StageBadge, SubscriptionBadge, TagBadge } from "@/components/admin/badges";
 import { CustomerEditor } from "@/components/admin/customer-editor";
+import { JourneyPanel } from "@/components/admin/journey-panel";
 import { NotesPanel } from "@/components/admin/notes-panel";
 import { TasksPanel, type TaskItem } from "@/components/admin/tasks-panel";
 import { formatDate, timeAgo } from "@/lib/utils";
@@ -25,15 +27,9 @@ export default async function CustomerDetailPage({
       prisma.user.findUnique({
         where: { id },
         include: {
-          _count: {
-            select: {
-              posts: true,
-              comments: true,
-              progressLogs: true,
-              protocols: true,
-              vendorReviews: true,
-            },
-          },
+          // Only the forum counts come from Postgres — everything about how
+          // this member is actually tracking comes from getCustomerJourney().
+          _count: { select: { posts: true, comments: true } },
           crmNotes: { orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 50 },
           crmTasks: {
             orderBy: [{ status: "asc" }, { dueAt: { sort: "asc", nulls: "last" } }],
@@ -48,14 +44,25 @@ export default async function CustomerDetailPage({
 
   if (!user) notFound();
 
+  // The billing/community half of a customer lives in Postgres; the recovery
+  // half lives in Firestore under their tracker key. Reading it here is what
+  // turns this page from an account record into their actual journey.
+  const journey = await getCustomerJourney(user);
+
   const stage = lifecycleStage(user);
+  // Tracking numbers come from the tracker (Firestore), not the Postgres
+  // relation counts — those only ever held the legacy progress log.
   const stats = [
     { label: "Joined", value: formatDate(user.createdAt) },
-    { label: "Reputation", value: String(user.reputation) },
+    {
+      label: "Last active",
+      value: journey.lastActiveAt ? formatDate(journey.lastActiveAt) : "Never",
+    },
+    { label: "Days tracked", value: String(journey.daysTracked) },
+    { label: "Doses logged", value: String(journey.doseCount) },
     { label: "Posts", value: String(user._count.posts) },
     { label: "Comments", value: String(user._count.comments) },
-    { label: "Journal entries", value: String(user._count.progressLogs) },
-    { label: "Protocols", value: String(user._count.protocols) },
+    { label: "Reputation", value: String(user.reputation) },
   ];
 
   const tasks: TaskItem[] = user.crmTasks.map((t) => ({
@@ -104,16 +111,21 @@ export default async function CustomerDetailPage({
               </div>
             </div>
           </div>
-          {user.stripeCustomerId && (
-            <a
-              href={`https://dashboard.stripe.com/customers/${user.stripeCustomerId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary"
-            >
-              Stripe customer <ExternalLink className="h-4 w-4" />
+          <div className="flex flex-wrap gap-2">
+            <a href={`mailto:${user.email}`} className="btn-secondary">
+              <Mail className="h-4 w-4" /> Email
             </a>
-          )}
+            {user.stripeCustomerId && (
+              <a
+                href={`https://dashboard.stripe.com/customers/${user.stripeCustomerId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+              >
+                Stripe customer <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Billing summary */}
@@ -141,13 +153,18 @@ export default async function CustomerDetailPage({
       </div>
 
       {/* Engagement stats */}
-      <div className="mb-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
+      <div className="mb-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {stats.map((s) => (
           <div key={s.label} className="card !p-3 text-center">
             <p className="text-xs text-slate-500">{s.label}</p>
-            <p className="mt-0.5 text-sm font-semibold text-white">{s.value}</p>
+            <p className="mt-0.5 truncate text-sm font-semibold text-white">{s.value}</p>
           </div>
         ))}
+      </div>
+
+      {/* Their journey — the tracker record behind the account */}
+      <div className="mb-4">
+        <JourneyPanel journey={journey} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

@@ -199,6 +199,27 @@ export async function lastPhotoDate(uid: string): Promise<string | null> {
   return typeof takenAt === "string" ? takenAt : null;
 }
 
+/** Everything about a member's photos except the pictures themselves.
+ *
+ * The admin CRM reports on how a member is tracking, which needs dates, areas
+ * and gradings — not their private pictures. Projecting the fields keeps the
+ * images out of the response entirely rather than relying on the caller to
+ * drop them, so a member's private photos never leave Firestore for a screen
+ * that has no business rendering them. */
+export type TswPhotoMeta = Omit<TswPhoto, "imageData">;
+
+export async function listPhotoMeta(uid: string): Promise<TswPhotoMeta[]> {
+  const db = await adminDb();
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("photos")
+    .orderBy("takenAt", "asc")
+    .select("takenAt", "area", "caption", "shared", "createdAt", "estimate", "dermConfirmed")
+    .get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<TswPhotoMeta, "id">), id: d.id }));
+}
+
 export async function addPhoto(
   uid: string,
   photo: Omit<TswPhoto, "id" | "createdAt">
@@ -295,6 +316,18 @@ export interface SharedPhoto {
   caption: string | null;
   imageData: string;
   sharedAt: string;
+}
+
+/** One member's shared photos — the ones they chose to put on the community
+ * wall. The only pictures of theirs the admin CRM ever renders. */
+export async function listSharedPhotosByUid(uid: string, limit = 8): Promise<SharedPhoto[]> {
+  const db = await adminDb();
+  // Equality on a single field needs no composite index; ordering happens in
+  // memory so this stays index-free.
+  const snap = await db.collection("sharedPhotos").where("uid", "==", uid).limit(limit).get();
+  return snap.docs
+    .map((d) => ({ ...(d.data() as Omit<SharedPhoto, "id">), id: d.id }))
+    .sort((a, b) => b.takenAt.localeCompare(a.takenAt));
 }
 
 export async function listSharedPhotos(limit = 12): Promise<SharedPhoto[]> {
@@ -619,6 +652,16 @@ export async function listStories(limit = 50): Promise<RecoveryStory[]> {
     .limit(limit)
     .get();
   return snap.docs.map((d) => ({ ...(d.data() as Omit<RecoveryStory, "id">), id: d.id }));
+}
+
+/** One member's stories, newest first. Sorted in memory so a single equality
+ * filter is all Firestore needs — no composite index to maintain. */
+export async function listStoriesByUid(uid: string): Promise<RecoveryStory[]> {
+  const db = await adminDb();
+  const snap = await db.collection("recoveryStories").where("uid", "==", uid).limit(50).get();
+  return snap.docs
+    .map((d) => ({ ...(d.data() as Omit<RecoveryStory, "id">), id: d.id }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function addStory(

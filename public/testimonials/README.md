@@ -1,9 +1,26 @@
 # Curated testimonial images
 
+> **You probably don't need this folder any more.** The admin CRM's
+> **Proof wall** (`/admin/proof`) lets you upload a testimonial's photos
+> straight into the app, and those take precedence over anything here. Use it
+> unless you specifically want the images committed to the repo.
+
 Files in this folder are served publicly at `/testimonials/<filename>` and are
 referenced by hand from [`src/lib/testimonials.ts`](../../src/lib/testimonials.ts).
 
-## Adding a testimonial
+## The two routes in
+
+| Route | Where the photo lives | When to use it |
+| --- | --- | --- |
+| **Proof wall** (`/admin/proof`) | Firestore, as a compressed data-URL | Almost always — no deploy, and the CRM records who approved it |
+| **This folder** | The repo, under `/public` | When you want the image version-controlled alongside the quote |
+
+If an entry in `TESTIMONIALS` has photos uploaded through the Proof wall, those
+replace the file paths below entirely. That is also the fix when the paths
+listed here point at files that were never added: upload the pictures in the
+CRM instead of committing them.
+
+## Adding a testimonial the file way
 
 1. Save the image files here using the filenames listed in `src/lib/testimonials.ts`
    for that person.
@@ -24,8 +41,11 @@ record rather than a memory.
 | `daniel-torso.jpg` | Chest & torso — day 1 vs. day 4 |
 | `daniel-message.jpg` | Screenshot of Daniel's message |
 
-Any file that is missing renders as a labelled placeholder rather than a broken
-image, so the page stays presentable until the picture is dropped in.
+These files are **not** in the repo. Until they're added — or the photos are
+uploaded on the Proof wall — that testimonial renders as words alone: a tile
+whose image 404s degrades to a labelled placeholder, and a gallery where every
+image failed removes itself rather than showing a grid of grey boxes. The Proof
+wall flags this under "Missing photos".
 
 ## Conventions
 
