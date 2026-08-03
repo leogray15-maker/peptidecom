@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { requireMember } from "@/lib/api-auth";
 import {
   HISTORY_KEYS,
   HISTORY_LIMITS,
@@ -34,8 +34,9 @@ const postSchema = z.object({
 
 /** GET /api/tsw/history?key=easi — the account's copy of one list. */
 export async function GET(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = keySchema.safeParse(new URL(req.url).searchParams.get("key"));
   if (!parsed.success) return NextResponse.json({ error: "Unknown history key." }, { status: 400 });
@@ -50,8 +51,9 @@ export async function GET(req: Request) {
 
 /** POST — upload this device's entries and get the reconciled list back. */
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = postSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
@@ -82,8 +84,9 @@ export async function POST(req: Request) {
 
 /** DELETE /api/tsw/history?key=easi — clear the account copy. */
 export async function DELETE(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = keySchema.safeParse(new URL(req.url).searchParams.get("key"));
   if (!parsed.success) return NextResponse.json({ error: "Unknown history key." }, { status: 400 });

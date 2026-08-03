@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { requireMember } from "@/lib/api-auth";
 import { TRIGGER_KINDS } from "@/lib/tsw";
 import { addTrigger, deleteTrigger, logFunnel, tswKey } from "@/lib/tsw-db";
 
@@ -17,8 +17,9 @@ const entrySchema = z.object({
 const schema = z.union([entrySchema, z.object({ items: z.array(entrySchema).min(1).max(40) })]);
 
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
@@ -44,8 +45,9 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });

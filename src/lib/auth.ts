@@ -3,7 +3,20 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { adminAuth, isAdminConfigured, SESSION_COOKIE_NAME } from "@/lib/firebase-admin";
 import { ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin-session";
-import type { Role, SubscriptionStatus, User } from "@prisma/client";
+import { hasAccess, type MembershipRecord } from "@/lib/membership";
+import type { Role, User } from "@prisma/client";
+
+// The access rules themselves live in lib/membership (pure, unit tested).
+// Re-exported here so every server module keeps importing them from one place.
+export {
+  hasAccess,
+  isActiveStatus,
+  isLapsed,
+  isMember,
+  isStaff,
+  RENEWAL_GRACE_MS,
+  type MembershipRecord,
+} from "@/lib/membership";
 
 /** Setup/preview mode: lets an admin into the member area with no login/DB so
  * the UI can be reviewed before auth is wired. Active when PREVIEW_MODE=true
@@ -44,14 +57,6 @@ const PREVIEW_USER: User = {
   updatedAt: new Date(),
 };
 
-/** Statuses that grant access to gated content. */
-const ACTIVE: SubscriptionStatus[] = ["ACTIVE", "TRIALING"];
-
-/** True when the given subscription status currently grants access. */
-export function isMember(status?: SubscriptionStatus | null) {
-  return !!status && ACTIVE.includes(status);
-}
-
 /** Emails that are always granted ADMIN + full access, regardless of billing.
  * Configurable via ADMIN_EMAILS (comma-separated); defaults to the owner. */
 export function adminEmails(): string[] {
@@ -63,19 +68,6 @@ export function adminEmails(): string[] {
 
 export function isAdminEmail(email?: string | null) {
   return !!email && adminEmails().includes(email.toLowerCase());
-}
-
-/** Whether a role is elevated (staff), which bypasses the paywall. */
-export function isStaff(role?: Role | null) {
-  return role === "ADMIN" || role === "MODERATOR";
-}
-
-/** Full access = an active subscription OR staff (admin/moderator). */
-export function hasAccess(
-  user?: { subscriptionStatus: SubscriptionStatus; role: Role } | null
-) {
-  if (!user) return false;
-  return isStaff(user.role) || isMember(user.subscriptionStatus);
 }
 
 /** Next.js uses thrown errors for control flow (redirect, notFound, dynamic
@@ -151,12 +143,20 @@ export async function safeAuth() {
 /**
  * Set the `member` and `role` custom claims on a Firebase user so Firestore
  * security rules can gate real-time features by membership. Best-effort.
+ *
+ * Takes the whole billing record rather than a bare status so a lapsed
+ * subscription loses the chat claim on the same rule the page gate uses. The
+ * client picks the change up on its next token refresh (about an hour), so
+ * anything that must revoke immediately is gated server-side as well.
  */
-export async function syncMembershipClaim(firebaseUid: string, status: SubscriptionStatus, role: Role) {
+export async function syncMembershipClaim(
+  firebaseUid: string,
+  user: MembershipRecord & { role: Role }
+) {
   try {
     await (await adminAuth()).setCustomUserClaims(firebaseUid, {
-      member: isMember(status) || isStaff(role),
-      role,
+      member: hasAccess(user),
+      role: user.role,
     });
   } catch (err) {
     console.error("Failed to set membership claim:", err);

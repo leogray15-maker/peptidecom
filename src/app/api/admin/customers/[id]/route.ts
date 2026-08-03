@@ -48,7 +48,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   // Keep Firestore security-rule claims in step with role changes.
   if (input.role !== undefined && user.firebaseUid) {
-    await syncMembershipClaim(user.firebaseUid, user.subscriptionStatus, user.role);
+    await syncMembershipClaim(user.firebaseUid, user);
   }
 
   const changes: { action: string; detail: string }[] = [];

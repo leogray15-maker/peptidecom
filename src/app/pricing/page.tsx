@@ -7,6 +7,7 @@ import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_SAVINGS_PCT, formatPrice } from "@/lib/membership";
 import { PricingPlans } from "@/components/pricing-plans";
 import { reconcileMembership } from "@/lib/stripe-sync";
+import { ManageBillingButton } from "@/components/manage-billing-button";
 
 export const metadata = { title: "Pricing" };
 export const dynamic = "force-dynamic";
@@ -38,6 +39,23 @@ export default async function PricingPage({
     user = await reconcileMembership(user);
   }
   const member = hasAccess(user);
+
+  // Someone who used to be paying and isn't any more deserves a reason, not the
+  // sales page they saw before they joined. Read from their own record, so it
+  // can't be faked with a query parameter.
+  const lapsed = !member && user
+    ? user.subscriptionStatus === "PAST_DUE"
+      ? {
+          title: "Your last payment didn't go through",
+          body: "Your membership is paused until it clears. Update your card and everything unlocks again straight away — your logs, photos and history are all still here.",
+        }
+      : user.stripeCustomerId
+        ? {
+            title: "Your membership has ended",
+            body: "Access to the tools and community is paused, but nothing has been deleted — your logs, photos and history are waiting. Resubscribe below and they come straight back.",
+          }
+        : null
+    : null;
 
   return (
     <>
@@ -88,6 +106,17 @@ export default async function PricingPage({
               </div>
             ) : authed ? (
               <div className="space-y-4">
+                {lapsed && (
+                  <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+                    <p className="font-semibold text-white">{lapsed.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-amber-100/80">
+                      {lapsed.body}
+                    </p>
+                    <div className="mt-4">
+                      <ManageBillingButton />
+                    </div>
+                  </div>
+                )}
                 {checkout === "cancelled" && (
                   <p className="rounded-2xl border border-lab-border bg-lab-card p-4 text-sm text-slate-400">
                     Checkout was cancelled — you haven&apos;t been charged. Pick a plan

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { requireMember } from "@/lib/api-auth";
 import { CONSENT_KEYS } from "@/lib/tsw";
 import { type TswProfile, getProfile, setConsents, setLocation, tswKey } from "@/lib/tsw-db";
 
@@ -20,8 +20,9 @@ const schema = z.object({
 });
 
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   try {
     const profile: TswProfile = await getProfile(tswKey(user));
@@ -36,8 +37,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireMember();
+  if (gate.error) return gate.error;
+  const user = gate.user;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input." }, { status: 400 });

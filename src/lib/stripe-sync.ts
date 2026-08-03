@@ -2,7 +2,13 @@ import "server-only";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { syncMembershipClaim, isMember, isStaff } from "@/lib/auth";
+import {
+  syncMembershipClaim,
+  isMember,
+  isStaff,
+  isActiveStatus,
+  RENEWAL_GRACE_MS,
+} from "@/lib/auth";
 import type { SubscriptionStatus, User } from "@prisma/client";
 
 /** Stripe's subscription status → the status we store on the user row. */
@@ -72,9 +78,28 @@ export async function syncSubscription(
   // Update the Firebase custom claim so real-time features unlock/lock in step
   // with membership (the client token picks it up on next refresh).
   if (updated.firebaseUid) {
-    await syncMembershipClaim(updated.firebaseUid, status, updated.role);
+    await syncMembershipClaim(updated.firebaseUid, updated);
   }
 
+  return updated;
+}
+
+/**
+ * Take a member's access away locally, for the case where Stripe has no
+ * subscription for them at all (never completed, or deleted outright) but the
+ * row still claims they're paying. Idempotent — a row that already reads as
+ * unpaid is left alone.
+ */
+export async function revokeMembership(user: User): Promise<User> {
+  if (!isActiveStatus(user.subscriptionStatus)) return user;
+
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { subscriptionStatus: "CANCELED" },
+  });
+  if (updated.firebaseUid) {
+    await syncMembershipClaim(updated.firebaseUid, updated);
+  }
   return updated;
 }
 
@@ -87,37 +112,113 @@ function bestSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | nu
   );
 }
 
+/** The subscription Stripe holds for this user, by id where we have one. */
+async function fetchSubscription(user: User): Promise<Stripe.Subscription | null> {
+  if (user.stripeSubscriptionId) {
+    const sub = await stripe.subscriptions
+      .retrieve(user.stripeSubscriptionId)
+      .catch(() => null);
+    if (sub) return sub;
+  }
+  if (!user.stripeCustomerId) return null;
+
+  const subs = await stripe.subscriptions.list({
+    customer: user.stripeCustomerId,
+    status: "all",
+    limit: 10,
+  });
+  return bestSubscription(subs.data);
+}
+
 /**
- * Self-healing membership check for a user our database thinks isn't paying.
+ * Bring a user's stored membership back in line with Stripe — in both
+ * directions.
  *
  * The webhook is the normal path, but it can be missing (no
  * `STRIPE_WEBHOOK_SECRET`), misconfigured, or simply slower than Stripe's
- * redirect back to the site. Without this, someone who has genuinely just paid
- * gets bounced from /dashboard to /pricing with no way through. So before we
- * turn a paying member away, we ask Stripe directly.
+ * redirect back to the site, and a webhook that never lands leaves the row
+ * frozen at whatever it last said. That cuts both ways: someone who has just
+ * paid gets bounced off /dashboard, and someone who cancelled or whose card
+ * failed keeps their access forever. So whenever the stored record isn't a
+ * clean, current membership we ask Stripe and write down the answer — granting
+ * access if they're paid up, taking it away if they aren't.
  *
- * Only ever called for users who are already failing the access check and have
- * a Stripe customer on file, so it costs one API call on the failure path and
- * nothing at all in the common case. Never throws — on any error the caller
- * just carries on with the user it already had.
+ * Only runs for users who are already failing the access check (which now
+ * includes anyone past their paid-up-to date), so the common case costs
+ * nothing. Never throws: on an API error the user keeps whatever the stored
+ * record says, which for a lapsed member is still "no access".
  */
 export async function reconcileMembership(user: User): Promise<User> {
-  if (isStaff(user.role) || isMember(user.subscriptionStatus)) return user;
-  if (!user.stripeCustomerId) return user;
+  if (isStaff(user.role) || isMember(user)) return user;
 
   try {
-    const subs = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
-      status: "all",
-      limit: 10,
-    });
-    const subscription = bestSubscription(subs.data);
-    if (!subscription) return user;
+    const subscription = await fetchSubscription(user);
 
-    const updated = await syncSubscription(subscription, user.id);
-    return updated ?? user;
+    // Stripe has no subscription for them at all — never started one, or it was
+    // deleted. Anything the row still claims is stale.
+    if (!subscription) return await revokeMembership(user);
+
+    return (await syncSubscription(subscription, user.id)) ?? user;
   } catch (err) {
     console.error("Membership reconcile failed:", err);
     return user;
   }
+}
+
+export interface SweepSummary {
+  checked: number;
+  /** Confirmed still paying — the stored period end moved forward. */
+  renewed: number;
+  /** Access taken away: cancelled, unpaid, or gone from Stripe entirely. */
+  revoked: number;
+}
+
+/**
+ * Backstop sweep: re-check everyone whose stored membership has gone stale.
+ *
+ * Access is re-checked on every gated page load, so most lapses are caught the
+ * next time the member shows up. This covers the ones who don't — someone who
+ * cancels and never returns to the site would otherwise keep their Firestore
+ * chat claim, since nothing would ever prompt a re-check.
+ *
+ * Picks up two groups: members whose paid-up-to date has passed, and anyone
+ * sitting in PAST_DUE (whose payment may since have gone through, in which
+ * case this restores them). Staff are skipped — their access isn't billing-based.
+ */
+export async function sweepLapsedMemberships(limit = 200): Promise<SweepSummary> {
+  const cutoff = new Date(Date.now() - RENEWAL_GRACE_MS);
+
+  const candidates = await prisma.user.findMany({
+    where: {
+      role: "MEMBER",
+      OR: [
+        {
+          subscriptionStatus: { in: ["ACTIVE", "TRIALING"] },
+          stripeCurrentPeriodEnd: { lt: cutoff },
+        },
+        { subscriptionStatus: "PAST_DUE" },
+      ],
+    },
+    orderBy: { stripeCurrentPeriodEnd: "asc" },
+    take: limit,
+  });
+
+  const summary: SweepSummary = { checked: 0, renewed: 0, revoked: 0 };
+  for (const user of candidates) {
+    const after = await reconcileMembership(user);
+    summary.checked += 1;
+
+    // Renewed = they're a current member again (period end moved forward, or a
+    // past-due payment went through). Revoked = the row no longer claims to be
+    // a paying one.
+    if (isMember(after)) {
+      summary.renewed += 1;
+    } else if (
+      isActiveStatus(user.subscriptionStatus) &&
+      !isActiveStatus(after.subscriptionStatus)
+    ) {
+      summary.revoked += 1;
+    }
+  }
+  return summary;
 }
