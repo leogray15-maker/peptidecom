@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
-import { safe } from "@/lib/safe-db";
+import { dbReachable, safe } from "@/lib/safe-db";
+import { DbWarning } from "@/components/admin/db-warning";
 import { lifecycleStage } from "@/lib/admin";
 import { customerOrderBy, customerWhere, firstParam } from "@/lib/admin-customers";
 import { CustomersFilters } from "@/components/admin/customers-filters";
@@ -30,7 +31,8 @@ export default async function CustomersPage({
   const page = Math.max(1, Number(firstParam(sp.page)) || 1);
 
   const where = customerWhere(params);
-  const [total, users] = await Promise.all([
+  const [dbUp, total, users] = await Promise.all([
+    dbReachable(),
     safe(() => prisma.user.count({ where }), 0),
     safe(
       () =>
@@ -60,6 +62,8 @@ export default async function CustomersPage({
         title="Customers"
         subtitle={`${total.toLocaleString("en-GB")} ${total === 1 ? "person" : "people"} in this view.`}
       />
+
+      {!dbUp && <DbWarning />}
 
       <CustomersFilters />
 
