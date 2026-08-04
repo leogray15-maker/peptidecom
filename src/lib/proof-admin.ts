@@ -47,8 +47,13 @@ export interface ProofRow {
   /** Photos this entry brings with it: image files under /public for curated
    * entries, the member's consented before/after for stories. Shown for
    * context; they can't be removed from here, only overridden by uploading
-   * CRM photos. */
-  fileImages: { src: string; alt: string; caption: string | null }[];
+   * CRM photos.
+   *
+   * `exists` is false for a file path that was never committed. The screen
+   * needs to know per photo, not per entry: pointing an `<img>` at a missing
+   * file gets a broken tile and a 404 in the console — the CRM reporting a
+   * problem it already knows about, in the least useful way available. */
+  fileImages: { src: string; alt: string; caption: string | null; exists: boolean }[];
   /** True when this entry's only photos are /public file paths that aren't
    * actually there — so the public wall skips them and the entry goes out as
    * words alone. This is the CRM's answer to "is the photo proof section
@@ -207,6 +212,7 @@ export async function getProofWall(): Promise<ProofWall> {
           src: img.src,
           alt: img.alt,
           caption: img.caption ?? null,
+          exists: publicAssetExists(img.src),
         })),
         filePhotosUnverified:
           (record?.images.length ?? 0) === 0 && presentFiles.length < t.images.length,
@@ -251,10 +257,13 @@ export async function getProofWall(): Promise<ProofWall> {
             caption: img.caption,
             kind: img.kind,
           })),
+          // The member's own before/after, carried inline as data-URLs — always
+          // there when there's anything to show.
           fileImages: images.map((img) => ({
             src: img.src,
             alt: img.alt,
             caption: img.caption,
+            exists: true,
           })),
           filePhotosUnverified: false,
           blocker: null,

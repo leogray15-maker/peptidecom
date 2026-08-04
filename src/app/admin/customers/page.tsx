@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
-import { dbReachable, safe } from "@/lib/safe-db";
+import { dbTrouble, safe } from "@/lib/safe-db";
 import { DbWarning } from "@/components/admin/db-warning";
 import { lifecycleStage } from "@/lib/admin";
 import { customerOrderBy, customerWhere, firstParam } from "@/lib/admin-customers";
@@ -31,8 +31,7 @@ export default async function CustomersPage({
   const page = Math.max(1, Number(firstParam(sp.page)) || 1);
 
   const where = customerWhere(params);
-  const [dbUp, total, users] = await Promise.all([
-    dbReachable(),
+  const [total, users] = await Promise.all([
     safe(() => prisma.user.count({ where }), 0),
     safe(
       () =>
@@ -46,6 +45,7 @@ export default async function CustomersPage({
       []
     ),
   ]);
+  const trouble = dbTrouble();
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const pageLink = (p: number) => {
@@ -60,10 +60,14 @@ export default async function CustomersPage({
     <div>
       <PageHeader
         title="Customers"
-        subtitle={`${total.toLocaleString("en-GB")} ${total === 1 ? "person" : "people"} in this view.`}
+        subtitle={
+          trouble
+            ? "Can't read the customer list right now."
+            : `${total.toLocaleString("en-GB")} ${total === 1 ? "person" : "people"} in this view.`
+        }
       />
 
-      {!dbUp && <DbWarning />}
+      {trouble && <DbWarning trouble={trouble} />}
 
       <CustomersFilters />
 
@@ -92,7 +96,9 @@ export default async function CustomersPage({
             {users.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                  No customers match this view.
+                  {trouble
+                    ? "The list couldn't be loaded — this isn't an empty database."
+                    : "No customers match this view."}
                 </td>
               </tr>
             )}

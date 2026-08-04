@@ -11,7 +11,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
-import { dbReachable, safe } from "@/lib/safe-db";
+import { dbTrouble, safe } from "@/lib/safe-db";
 import { DbWarning } from "@/components/admin/db-warning";
 import { ACTION_LABEL, lifecycleStage } from "@/lib/admin";
 import { MONTHLY_PRICE } from "@/lib/membership";
@@ -23,51 +23,79 @@ export const metadata = { title: "Overview" };
 
 const WEEKS = 12;
 
+/** Monday 00:00 UTC of the week a date falls in.
+ *
+ * UTC on purpose, on both sides of the query: Prisma stores `createdAt` as a
+ * timestamp without a zone and hands it back as a UTC `Date`, and Postgres'
+ * `date_trunc('week', …)` is plain arithmetic on that same stored value. Read
+ * either one in the server's local zone instead and a signup near midnight
+ * lands in a bucket the chart never drew. */
 function weekStart(d: Date): Date {
-  const out = new Date(d);
-  out.setHours(0, 0, 0, 0);
-  const day = (out.getDay() + 6) % 7; // Monday = 0
-  out.setDate(out.getDate() - day);
+  const out = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = (out.getUTCDay() + 6) % 7; // Monday = 0
+  out.setUTCDate(out.getUTCDate() - day);
   return out;
+}
+
+const weekKey = (d: Date) => d.toISOString().slice(0, 10);
+
+/** The KPI tiles, as one trip to the database.
+ *
+ * These were six `count()` queries. Six counts is six round trips and six
+ * sequential scans of the same table to answer six questions about it, which a
+ * single pass with `FILTER` answers at once — and on a serverless connection
+ * that is deliberately narrow, the round trips cost more than the counting
+ * does. Counts are cast to `int` because Postgres returns `bigint`, which
+ * arrives in JS as a `BigInt` that `String()` renders with an `n` on the end. */
+interface UserStats {
+  total: number;
+  active: number;
+  founding: number;
+  past_due: number;
+  new_30d: number;
+}
+
+const EMPTY_STATS: UserStats = { total: 0, active: 0, founding: 0, past_due: 0, new_30d: 0 };
+
+interface WeekRow {
+  week: string;
+  signups: number;
 }
 
 export default async function AdminOverviewPage() {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const chartFrom = weekStart(new Date(Date.now() - (WEEKS - 1) * 7 * 24 * 60 * 60 * 1000));
 
-  const [
-    dbUp,
-    totalUsers,
-    activeSubs,
-    foundingActive,
-    pastDue,
-    new30d,
-    openTasks,
-    signupDates,
-    recentUsers,
-    dueTasks,
-    recentActivity,
-  ] = await Promise.all([
-    dbReachable(),
-    safe(() => prisma.user.count(), 0),
-    safe(() => prisma.user.count({ where: { subscriptionStatus: { in: ["ACTIVE", "TRIALING"] } } }), 0),
+  const [stats, openTasks, signupWeeks, recentUsers, dueTasks, recentActivity] = await Promise.all([
     safe(
-      () =>
-        prisma.user.count({
-          where: { foundingMember: true, subscriptionStatus: { in: ["ACTIVE", "TRIALING"] } },
-        }),
-      0
+      async () =>
+        (
+          await prisma.$queryRaw<UserStats[]>`
+            SELECT
+              count(*)::int AS total,
+              count(*) FILTER (WHERE "subscriptionStatus" IN ('ACTIVE', 'TRIALING'))::int AS active,
+              count(*) FILTER (
+                WHERE "foundingMember" AND "subscriptionStatus" IN ('ACTIVE', 'TRIALING')
+              )::int AS founding,
+              count(*) FILTER (WHERE "subscriptionStatus" = 'PAST_DUE')::int AS past_due,
+              count(*) FILTER (WHERE "createdAt" >= ${since30d})::int AS new_30d
+            FROM "User"
+          `
+        )[0] ?? EMPTY_STATS,
+      EMPTY_STATS
     ),
-    safe(() => prisma.user.count({ where: { subscriptionStatus: "PAST_DUE" } }), 0),
-    safe(() => prisma.user.count({ where: { createdAt: { gte: since30d } } }), 0),
     safe(() => prisma.crmTask.count({ where: { status: "OPEN" } }), 0),
+    // Bucketed in the database, so this stays twelve rows whether the site has
+    // ten members or ten thousand.
     safe(
-      () =>
-        prisma.user.findMany({
-          where: { createdAt: { gte: chartFrom } },
-          select: { createdAt: true },
-        }),
-      [] as { createdAt: Date }[]
+      () => prisma.$queryRaw<WeekRow[]>`
+        SELECT to_char(date_trunc('week', "createdAt"), 'YYYY-MM-DD') AS week,
+               count(*)::int AS signups
+        FROM "User"
+        WHERE "createdAt" >= ${chartFrom}
+        GROUP BY 1
+      `,
+      [] as WeekRow[]
     ),
     safe(
       () =>
@@ -107,33 +135,34 @@ export default async function AdminOverviewPage() {
     ),
   ]);
 
+  // Read after the queries, never before: this reports on the very calls whose
+  // results are on screen, so the banner and the figures can't disagree.
+  const trouble = dbTrouble();
+  const pastDue = stats.past_due;
+
   // Estimated MRR from display prices (real numbers live in Stripe). Yearly
   // members are blended in at the monthly rate as a rough proxy — the exact
   // split by plan lives in Stripe.
-  const mrr = Math.round(activeSubs * MONTHLY_PRICE);
+  const mrr = Math.round(stats.active * MONTHLY_PRICE);
 
-  // Bucket signups into ISO weeks for the chart.
-  const buckets = new Map<number, number>();
-  for (let i = 0; i < WEEKS; i++) {
+  // Lay out all twelve weeks so the chart keeps its shape, then drop the
+  // database's counts into the ones it returned.
+  const counted = new Map(signupWeeks.map((w) => [w.week, Number(w.signups)]));
+  const chartData: SignupPoint[] = Array.from({ length: WEEKS }, (_, i) => {
     const ws = new Date(chartFrom);
-    ws.setDate(ws.getDate() + i * 7);
-    buckets.set(ws.getTime(), 0);
-  }
-  for (const { createdAt } of signupDates) {
-    const key = weekStart(createdAt).getTime();
-    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1);
-  }
-  const chartData: SignupPoint[] = [...buckets.entries()].map(([ts, signups]) => ({
-    label: formatDate(new Date(ts), { year: undefined }),
-    signups,
-  }));
+    ws.setUTCDate(ws.getUTCDate() + i * 7);
+    return {
+      label: formatDate(ws, { year: undefined, timeZone: "UTC" }),
+      signups: counted.get(weekKey(ws)) ?? 0,
+    };
+  });
 
   const kpis = [
-    { label: "Total users", value: String(totalUsers), icon: Users },
-    { label: "Active members", value: String(activeSubs), icon: Zap },
+    { label: "Total users", value: String(stats.total), icon: Users },
+    { label: "Active members", value: String(stats.active), icon: Zap },
     { label: "Est. MRR", value: `£${mrr.toLocaleString("en-GB")}`, icon: PoundSterling },
-    { label: "Founding members", value: String(foundingActive), icon: Crown },
-    { label: "New (30 days)", value: String(new30d), icon: UserPlus },
+    { label: "Founding members", value: String(stats.founding), icon: Crown },
+    { label: "New (30 days)", value: String(stats.new_30d), icon: UserPlus },
     { label: "Open tasks", value: String(openTasks), icon: CalendarClock },
   ];
 
@@ -149,7 +178,7 @@ export default async function AdminOverviewPage() {
         }
       />
 
-      {!dbUp && <DbWarning />}
+      {trouble && <DbWarning trouble={trouble} />}
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">

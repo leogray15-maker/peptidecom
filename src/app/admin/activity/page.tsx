@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { prisma } from "@/lib/prisma";
-import { safe } from "@/lib/safe-db";
+import { dbTrouble, safe } from "@/lib/safe-db";
+import { DbWarning } from "@/components/admin/db-warning";
 import { ACTION_LABEL } from "@/lib/admin";
 import { firstParam } from "@/lib/admin-customers";
 import { formatDate } from "@/lib/utils";
@@ -32,6 +33,7 @@ export default async function AdminActivityPage({
       []
     ),
   ]);
+  const trouble = dbTrouble();
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -40,6 +42,8 @@ export default async function AdminActivityPage({
         title="Activity log"
         subtitle="Every admin action — role changes, notes, tags and tasks — with who did it and when."
       />
+
+      {trouble && <DbWarning trouble={trouble} />}
 
       <div className="card overflow-x-auto !p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -55,7 +59,9 @@ export default async function AdminActivityPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-10 text-center text-slate-400">
-                  Nothing logged yet. Actions taken in the CRM will show up here.
+                  {trouble
+                    ? "The log couldn't be loaded — this isn't an empty log."
+                    : "Nothing logged yet. Actions taken in the CRM will show up here."}
                 </td>
               </tr>
             )}

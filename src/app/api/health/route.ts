@@ -28,14 +28,18 @@ export async function GET() {
     STRIPE_PRICE_YEARLY: !!process.env.STRIPE_PRICE_YEARLY,
   };
 
-  let database = { ok: false, error: "" as string };
-  try {
-    const { prisma } = await import("@/lib/prisma");
-    await prisma.$queryRaw`SELECT 1`;
-    database = { ok: true, error: "" };
-  } catch (e) {
-    database = { ok: false, error: (e as Error).message?.split("\n")[0] ?? "failed" };
-  }
+  const { usingPooledConnection } = await import("@/lib/prisma");
+  const { pingDatabase } = await import("@/lib/safe-db");
+  const ping = await pingDatabase();
+  const database = {
+    ok: ping.ok,
+    pooled: usingPooledConnection,
+    // "capacity" is the one that means "come back in a second" rather than
+    // "someone needs to fix a setting" — worth naming in a machine-readable
+    // health check, since it's the difference between an alert and a retry.
+    kind: ping.trouble?.kind ?? "",
+    error: ping.trouble?.message ?? "",
+  };
 
   let firebaseAdmin = { ok: false, error: "" as string };
   try {

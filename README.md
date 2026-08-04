@@ -117,6 +117,9 @@ cp .env.example .env
 ```
 
 - `DATABASE_URL` — a Postgres connection string (Vercel Postgres, Neon, Supabase, Railway…).
+  When it points at a pooler, the app detects that and asks for a single connection
+  per serverless instance (see [Pooled connections](#pooled-connections) below). You can
+  override any of that by putting the parameter in the URL yourself.
 - `DIRECT_URL` — *optional, recommended when `DATABASE_URL` points at a connection
   pooler* (Supabase's `…pooler.supabase.com`, PgBouncer). The build pushes the Prisma
   schema, and the schema engine needs a session of its own — through a pooler that
@@ -148,6 +151,43 @@ The seed creates an **admin@example.com** row with an active membership and the
 ADMIN role. Sign up in the app with that email (via Firebase) and the account
 links automatically — instant admin + member access to explore the gated area.
 Remove it before going live.
+
+#### Pooled connections
+
+Managed Postgres is usually reached through a connection pooler — Supabase's
+`…pooler.supabase.com`, PgBouncer, Vercel's pooled URL — which shares a small,
+fixed number of real Postgres sessions (Supabase's default is 15) between
+everyone connecting. Serverless is the worst possible customer for that: instead
+of one process holding one pool, there are as many pools as there are warm
+lambdas, and Prisma's default of `num_cpus * 2 + 1` connections *each* empties a
+15-session pooler in a handful of concurrent requests.
+
+What that looks like when it happens is worth knowing, because it doesn't look
+like a pool problem. The pooler refuses the connection, so **every** query on the
+page fails at once, and a page whose queries all failed is indistinguishable from
+a page whose tables are all empty: the CRM shows zero members, zero revenue, no
+customers — while `/setup`, which runs one query a moment later, gets a slot and
+reports the database as perfectly healthy.
+
+So `lib/db-url.ts` detects a pooled `DATABASE_URL` and asks for
+`connection_limit=1` per instance, plus `pgbouncer=true` on Supabase's
+transaction-mode port (6543), where Prisma's prepared statements don't survive
+being handed a different backend each statement. Queries on one request queue
+behind each other — they were competing for one pool either way — and the number
+of instances, not the number of queries per page, decides how much of the pool
+gets used. Anything you set in the URL yourself wins; these are defaults, not
+policy.
+
+The two things that make this visible rather than mysterious:
+
+- `safe()` (in `lib/safe-db.ts`) retries a *transient* failure — a full pool, a
+  dropped connection — before falling back to an empty result, because that
+  fallback gets rendered as fact. A wrong password or a missing table isn't
+  retried; those don't clear on their own.
+- Admin pages report what actually failed, with the cause, instead of printing
+  zeros. `/api/health` returns the same thing as JSON, including whether the
+  connection is pooled and whether the failure was `capacity` (retry) or
+  something that needs a human.
 
 ### 4. Stripe webhook (local)
 

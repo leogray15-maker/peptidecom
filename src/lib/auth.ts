@@ -93,6 +93,17 @@ export async function getSessionClaims() {
   return (await adminAuth()).verifySessionCookie(session, true);
 }
 
+/** The signed-in Firebase uid, or null — never throws, so it can be used as a
+ * fallback on paths that are already recovering from something else. */
+async function firebaseUid(): Promise<string | null> {
+  try {
+    return (await getSessionClaims())?.uid ?? null;
+  } catch (err) {
+    if (isNextControlFlowError(err)) throw err;
+    return null;
+  }
+}
+
 /** Server-side helper: returns the current Postgres user (with fresh subscription
  * state) for the signed-in Firebase account, or null. Never throws on config/DB
  * errors so public pages render and gated pages redirect rather than 500. */
@@ -106,7 +117,18 @@ export async function getCurrentUser() {
         .findUnique({ where: { email: adminEmail } })
         .catch(() => null);
       if (dbUser) return dbUser;
-      return { ...PREVIEW_USER, email: adminEmail, name: "Admin" };
+      // No row yet — or Postgres is briefly unreachable. Either way, carry over
+      // the Firebase uid when there's a session for one: the member area keys
+      // its tracker, photos and journal by that uid (see tswKey), so a synthetic
+      // user without it reads an empty account. A database blip should not make
+      // someone's own logs look deleted.
+      const uid = await firebaseUid();
+      return {
+        ...PREVIEW_USER,
+        email: adminEmail,
+        name: "Admin",
+        firebaseUid: uid ?? PREVIEW_USER.firebaseUid,
+      };
     }
   } catch (err) {
     if (isNextControlFlowError(err)) throw err;

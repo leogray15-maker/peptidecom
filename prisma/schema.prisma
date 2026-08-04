@@ -139,6 +139,12 @@ model User {
   vendorReviews  VendorReview[]
   groupBuysOwned GroupBuy[]     @relation("GroupBuyOwner")
   groupBuyJoins  GroupBuyMember[]
+
+  // The CRM's two hot paths: the customer list sorts by join date and pages
+  // through it, and every KPI tile counts by billing state. Both scan the whole
+  // table without these.
+  @@index([createdAt])
+  @@index([subscriptionStatus])
 }
 
 // ─── Community forum ─────────────────────────────────────────────────────────

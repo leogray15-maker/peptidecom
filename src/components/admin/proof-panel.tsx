@@ -12,6 +12,7 @@ import {
   Crown,
   ExternalLink,
   FileCode2,
+  ImageOff,
   ImagePlus,
   Loader2,
   Pencil,
@@ -641,24 +642,39 @@ function PhotoStrip({
           </figure>
         ))}
 
-        {/* Photos the entry brings with it. Curated ones are file paths that
-            may 404; story ones are the member's consented before/after. */}
+        {/* Photos the entry brings with it. Curated ones are file paths into
+            /public; story ones are the member's consented before/after. A path
+            whose file was never committed is drawn as the gap it is rather than
+            requested — a broken tile says "this is broken", where the real
+            state is "nobody has uploaded this yet, and here's the button". */}
         {row.images.length === 0 &&
-          row.fileImages.map((img) => (
-            <figure
-              key={img.src.slice(0, 64)}
-              className={cn(
-                "overflow-hidden rounded-lg border",
-                row.filePhotosUnverified ? "border-dashed border-amber-500/40" : "border-lab-border"
-              )}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.src} alt={img.alt} className="h-20 w-20 object-cover" />
-              <figcaption className="max-w-20 truncate bg-lab-bg px-1 py-0.5 text-[9px] text-slate-500">
-                {row.filePhotosUnverified ? "file" : (img.caption ?? "photo")}
-              </figcaption>
-            </figure>
-          ))}
+          row.fileImages.map((img) =>
+            img.exists ? (
+              <figure
+                key={img.src.slice(0, 64)}
+                className="overflow-hidden rounded-lg border border-lab-border"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.src} alt={img.alt} className="h-20 w-20 object-cover" />
+                <figcaption className="max-w-20 truncate bg-lab-bg px-1 py-0.5 text-[9px] text-slate-500">
+                  {img.caption ?? "photo"}
+                </figcaption>
+              </figure>
+            ) : (
+              <figure
+                key={img.src.slice(0, 64)}
+                title={`${img.alt} — no file at ${img.src}`}
+                className="overflow-hidden rounded-lg border border-dashed border-amber-500/40"
+              >
+                <div className="grid h-20 w-20 place-items-center text-amber-500/60">
+                  <ImageOff className="h-4 w-4" />
+                </div>
+                <figcaption className="max-w-20 truncate bg-lab-bg px-1 py-0.5 text-[9px] text-amber-500/70">
+                  no file
+                </figcaption>
+              </figure>
+            )
+          )}
 
         {uploadable && (
           <>

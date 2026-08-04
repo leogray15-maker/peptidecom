@@ -75,24 +75,40 @@ async function runChecks(): Promise<{ env: Check[]; services: Check[]; commit: s
   // even when `prisma db push` was never run, so signup then 503s ("not
   // migrated") while this page looks green. Querying the real User table catches
   // that: a "does not exist" error means the tables aren't created yet.
+  //
+  // The check runs the same way the app does — one connection, in sequence —
+  // and reports the pooler when there is one, because "green here, red in the
+  // CRM" is nearly always a pool that had a slot for this page and none for the
+  // page that runs several queries at once.
+  const { prisma, usingPooledConnection } = await import("@/lib/prisma");
+  const { describeDbError } = await import("@/lib/safe-db");
+  const dbLabel = `Postgres database (schema migrated${usingPooledConnection ? ", pooled" : ""})`;
   try {
-    const { prisma } = await import("@/lib/prisma");
     await prisma.$queryRaw`SELECT 1`;
     try {
       await prisma.user.count();
-      services.push({ label: "Postgres database (schema migrated)", ok: true });
+      services.push({ label: dbLabel, ok: true });
     } catch (e) {
-      const msg = (e as Error).message?.split("\n")[0] ?? "";
+      const trouble = describeDbError(e);
       services.push({
-        label: "Postgres database (schema migrated)",
+        label: dbLabel,
         ok: false,
-        detail: /exist|relation|table/i.test(msg)
-          ? "Connected, but tables are missing. Run `prisma db push` (or `npm run db:push`)."
-          : msg,
+        detail:
+          trouble.kind === "schema"
+            ? "Connected, but tables are missing. Run `prisma db push` (or `npm run db:push`)."
+            : trouble.message,
       });
     }
   } catch (e) {
-    services.push({ label: "Postgres database (schema migrated)", ok: false, detail: (e as Error).message?.split("\n")[0] });
+    const trouble = describeDbError(e);
+    services.push({
+      label: dbLabel,
+      ok: false,
+      detail:
+        trouble.kind === "capacity"
+          ? `The connection pool is full, so the CRM is being turned away too. This clears on its own; if it doesn't, the pool is too small for the traffic. (${trouble.message})`
+          : trouble.message,
+    });
   }
 
   try {
