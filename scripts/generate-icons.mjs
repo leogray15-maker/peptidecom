@@ -1,5 +1,8 @@
-// Generates the app icons from the same mark the in-app <Logo /> renders:
-// the lucide "activity" pulse in white on the brand violet gradient.
+// Generates the app icons from the same mark the in-app <Logo /> renders: the
+// Arcane sigil with the tracker pulse line under it, in white on the brand
+// violet gradient. The geometry comes from src/lib/mark.mjs, so the icons and
+// the in-app logo cannot drift apart. The sigil there is traced from the brand
+// artwork, so what lands in the PNG is the logo itself, not a redraw of it.
 //
 // Run by hand after changing the mark, then commit the PNGs:
 //   node scripts/generate-icons.mjs
@@ -13,6 +16,13 @@ import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import {
+  MARK_VIEWBOX,
+  PULSE_OPACITY,
+  PULSE_POINTS,
+  PULSE_STROKE,
+  SIGIL_LOOPS,
+} from "../src/lib/mark.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -21,66 +31,125 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FROM = [0x9a, 0x7b, 0xff];
 const TO = [0x5a, 0x33, 0xda];
 
-// lucide "activity": M22 12h-4l-3 9L9 3l-3 9H2, in a 24x24 viewBox.
-const GLYPH = [
-  [22, 12], [18, 12], [15, 21], [9, 3], [6, 12], [2, 12],
-];
-const VIEWBOX = 24;
-const STROKE = 2; // viewBox units, matches lucide's stroke-width
-const GLYPH_SCALE = 0.62; // fraction of the icon the 24-unit box spans
-const SUPERSAMPLE = 3;
+const MARK_SCALE = 0.76; // fraction of the icon the 128-unit mark box spans
+const SUBSAMPLE = 4; // sample rows per pixel row
+
+/** Even-odd scanline fill of the sigil's loops into a coverage buffer — the
+ * two voids are holes, so even-odd is what makes them cut through. Vertical
+ * antialiasing comes from the subsampled rows, horizontal from the exact
+ * overlap of each inside-span with each pixel. */
+function fillSigil(cov, size, project) {
+  const edges = [];
+  for (const loop of SIGIL_LOOPS) {
+    const poly = loop.map(project);
+    for (let k = 0; k < poly.length; k++) {
+      const a = poly[k];
+      const b = poly[(k + 1) % poly.length];
+      if (a[1] !== b[1]) edges.push([a, b]);
+    }
+  }
+
+  const weight = 1 / SUBSAMPLE;
+  const xs = [];
+  for (let row = 0; row < size * SUBSAMPLE; row++) {
+    const y = (row + 0.5) / SUBSAMPLE;
+    xs.length = 0;
+    for (const [a, b] of edges) {
+      // Half-open in y so a vertex shared by two edges counts exactly once.
+      if (y >= Math.min(a[1], b[1]) && y < Math.max(a[1], b[1])) {
+        xs.push(a[0] + ((y - a[1]) / (b[1] - a[1])) * (b[0] - a[0]));
+      }
+    }
+    if (xs.length < 2) continue;
+    xs.sort((p, q) => p - q);
+
+    const base = Math.floor(y) * size;
+    for (let s = 0; s + 1 < xs.length; s += 2) {
+      const from = Math.max(0, xs[s]);
+      const to = Math.min(size, xs[s + 1]);
+      for (let x = Math.floor(from); x < to; x++) {
+        const overlap = Math.min(to, x + 1) - Math.max(from, x);
+        if (overlap > 0) cov[base + x] += overlap * weight;
+      }
+    }
+  }
+}
 
 /** Shortest distance from p to segment ab. Using this as the whole coverage
- * test gives round caps and round joins for free, which is what lucide uses. */
+ * test gives the pulse round caps and round joins for free. */
 function distToSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
   const dy = by - ay;
   const lenSq = dx * dx + dy * dy;
   const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-  const cx = ax + t * dx;
-  const cy = ay + t * dy;
-  return Math.hypot(px - cx, py - cy);
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Supersampled coverage of the stroked pulse polyline. */
+function strokePulse(cov, size, project, radius) {
+  const pts = PULSE_POINTS.map(project);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y] of pts) {
+    minX = Math.min(minX, x - radius);
+    maxX = Math.max(maxX, x + radius);
+    minY = Math.min(minY, y - radius);
+    maxY = Math.max(maxY, y + radius);
+  }
+
+  const step = 1 / SUBSAMPLE;
+  const y0 = Math.max(0, Math.floor(minY));
+  const y1 = Math.min(size, Math.ceil(maxY));
+  const x0 = Math.max(0, Math.floor(minX));
+  const x1 = Math.min(size, Math.ceil(maxX));
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      let hits = 0;
+      for (let sy = 0; sy < SUBSAMPLE; sy++) {
+        for (let sx = 0; sx < SUBSAMPLE; sx++) {
+          const px = x + (sx + 0.5) * step;
+          const py = y + (sy + 0.5) * step;
+          for (let k = 0; k < pts.length - 1; k++) {
+            const d = distToSegment(px, py, pts[k][0], pts[k][1], pts[k + 1][0], pts[k + 1][1]);
+            if (d <= radius) {
+              hits++;
+              break;
+            }
+          }
+        }
+      }
+      if (hits) cov[y * size + x] = hits / (SUBSAMPLE * SUBSAMPLE);
+    }
+  }
 }
 
 function render(size) {
-  const scale = (size * GLYPH_SCALE) / VIEWBOX;
-  const offset = (size - VIEWBOX * scale) / 2;
-  const pts = GLYPH.map(([x, y]) => [offset + x * scale, offset + y * scale]);
-  const radius = (STROKE * scale) / 2;
+  const scale = (size * MARK_SCALE) / MARK_VIEWBOX;
+  const offset = (size - MARK_VIEWBOX * scale) / 2;
+  const project = ([x, y]) => [offset + x * scale, offset + y * scale];
+
+  const sigil = new Float32Array(size * size);
+  const pulse = new Float32Array(size * size);
+  fillSigil(sigil, size, project);
+  strokePulse(pulse, size, project, (PULSE_STROKE * scale) / 2);
 
   // Raw RGB, no alpha — opaque icons avoid the black-corner artefact on iOS.
   const rgb = Buffer.alloc(size * size * 3);
-  const step = 1 / SUPERSAMPLE;
-
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       // Gradient runs top-left → bottom-right, like `bg-gradient-to-br`.
       const t = (x + y) / (2 * (size - 1));
-      const bg = [
-        Math.round(FROM[0] + (TO[0] - FROM[0]) * t),
-        Math.round(FROM[1] + (TO[1] - FROM[1]) * t),
-        Math.round(FROM[2] + (TO[2] - FROM[2]) * t),
+      const i = y * size + x;
+      const marks = [
+        Math.min(1, sigil[i]),
+        Math.min(1, pulse[i]) * PULSE_OPACITY,
       ];
 
-      // Supersampled coverage of the stroke, for antialiased edges.
-      let hits = 0;
-      for (let sy = 0; sy < SUPERSAMPLE; sy++) {
-        for (let sx = 0; sx < SUPERSAMPLE; sx++) {
-          const px = x + (sx + 0.5) * step;
-          const py = y + (sy + 0.5) * step;
-          let min = Infinity;
-          for (let i = 0; i < pts.length - 1; i++) {
-            const d = distToSegment(px, py, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
-            if (d < min) min = d;
-          }
-          if (min <= radius) hits++;
-        }
-      }
-
-      const cov = hits / (SUPERSAMPLE * SUPERSAMPLE);
-      const o = (y * size + x) * 3;
+      const o = i * 3;
       for (let c = 0; c < 3; c++) {
-        rgb[o + c] = Math.round(bg[c] + (255 - bg[c]) * cov);
+        let v = FROM[c] + (TO[c] - FROM[c]) * t;
+        for (const a of marks) v += (255 - v) * a;
+        rgb[o + c] = Math.round(v);
       }
     }
   }
