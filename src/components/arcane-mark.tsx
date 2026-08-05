@@ -3,7 +3,7 @@ import {
   PULSE_OPACITY,
   PULSE_POINTS,
   PULSE_STROKE,
-  SIGIL_PATH,
+  sigilPath,
 } from "@/lib/mark.mjs";
 
 /** The Arcane mark: the sigil with the tracker pulse line under it. Draws in
@@ -19,7 +19,7 @@ export function ArcaneMark({ className }: { className?: string }) {
       focusable="false"
     >
       <path
-        d={SIGIL_PATH.join(" ")}
+        d={sigilPath()}
         fill="currentColor"
         fillRule="evenodd"
         clipRule="evenodd"

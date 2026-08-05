@@ -1,7 +1,8 @@
 // Generates the app icons from the same mark the in-app <Logo /> renders: the
 // Arcane sigil with the tracker pulse line under it, in white on the brand
 // violet gradient. The geometry comes from src/lib/mark.mjs, so the icons and
-// the in-app logo cannot drift apart.
+// the in-app logo cannot drift apart. The sigil there is traced from the brand
+// artwork, so what lands in the PNG is the logo itself, not a redraw of it.
 //
 // Run by hand after changing the mark, then commit the PNGs:
 //   node scripts/generate-icons.mjs
@@ -20,7 +21,7 @@ import {
   PULSE_OPACITY,
   PULSE_POINTS,
   PULSE_STROKE,
-  SIGIL_PATH,
+  SIGIL_LOOPS,
 } from "../src/lib/mark.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -32,69 +33,15 @@ const TO = [0x5a, 0x33, 0xda];
 
 const MARK_SCALE = 0.76; // fraction of the icon the 128-unit mark box spans
 const SUBSAMPLE = 4; // sample rows per pixel row
-const CURVE_STEPS = 64; // line segments each bezier is flattened into
 
-/** Parses the subset of SVG path syntax src/lib/mark.mjs uses — absolute
- * M/L/C/Q/Z — into closed polygons, flattening the curves. */
-function flattenPath(d) {
-  const tokens = d.match(/[MLCQZ]|-?\d*\.?\d+/gi) ?? [];
-  const points = [];
-  let i = 0;
-  let cur = [0, 0];
-
-  const num = () => Number(tokens[i++]);
-  const push = (p) => {
-    points.push(p);
-    cur = p;
-  };
-  /** Samples a bezier of any order via de Casteljau on its control points. */
-  const curve = (ctrl) => {
-    for (let s = 1; s <= CURVE_STEPS; s++) {
-      const t = s / CURVE_STEPS;
-      let pts = ctrl;
-      while (pts.length > 1) {
-        const next = [];
-        for (let k = 0; k < pts.length - 1; k++) {
-          next.push([
-            pts[k][0] + (pts[k + 1][0] - pts[k][0]) * t,
-            pts[k][1] + (pts[k + 1][1] - pts[k][1]) * t,
-          ]);
-        }
-        pts = next;
-      }
-      push(pts[0]);
-    }
-  };
-
-  while (i < tokens.length) {
-    const cmd = tokens[i++];
-    switch (cmd) {
-      case "M":
-      case "L":
-        push([num(), num()]);
-        break;
-      case "Q":
-        curve([cur, [num(), num()], [num(), num()]]);
-        break;
-      case "C":
-        curve([cur, [num(), num()], [num(), num()], [num(), num()]]);
-        break;
-      case "Z":
-        break; // polygons are implicitly closed by the scanline fill
-      default:
-        throw new Error(`unsupported path command: ${cmd}`);
-    }
-  }
-  return points;
-}
-
-/** Even-odd scanline fill of the sigil's polygons into a coverage buffer.
- * Vertical antialiasing comes from the subsampled rows, horizontal from the
- * exact overlap of each inside-span with each pixel. */
+/** Even-odd scanline fill of the sigil's loops into a coverage buffer — the
+ * two voids are holes, so even-odd is what makes them cut through. Vertical
+ * antialiasing comes from the subsampled rows, horizontal from the exact
+ * overlap of each inside-span with each pixel. */
 function fillSigil(cov, size, project) {
   const edges = [];
-  for (const d of SIGIL_PATH) {
-    const poly = flattenPath(d).map(project);
+  for (const loop of SIGIL_LOOPS) {
+    const poly = loop.map(project);
     for (let k = 0; k < poly.length; k++) {
       const a = poly[k];
       const b = poly[(k + 1) % poly.length];
