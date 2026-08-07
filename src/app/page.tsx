@@ -1,17 +1,24 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Calculator,
+  BookOpen,
   Camera,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
+  CloudSun,
+  Compass,
   LineChart,
+  Map,
   MessagesSquare,
+  ScanEye,
+  ScanLine,
   ShieldCheck,
   Syringe,
   TrendingUp,
   UserPlus,
   Users,
+  UtensilsCrossed,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -32,24 +39,54 @@ const features = [
     body: "Private by default. Add a photo in seconds, then compare today against ninety days ago side by side — healing moves slower than memory, and the timeline remembers for you.",
   },
   {
+    icon: ScanLine,
+    title: "Ingredient scanner",
+    body: "Scan any barcode. Skincare comes back with a 0–100 score for sensitive, eczema-prone skin — irritants against barrier-friendly ingredients. Food and drink get scored on nutrition, additives and what's actually good in there.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Validated clinical scores",
+    body: "EASI and POEM — the published instruments dermatologists recognise, kept deliberately apart from our own estimates. Score them here, watch the trend, take it to your appointment.",
+  },
+  {
+    icon: Compass,
+    title: "Coach & your trends",
+    body: "Your logs read back to you: what's worth doing today, which triggers keep showing up, and how severity and sleep are really moving. Built from your data — never a guess.",
+  },
+  {
+    icon: CloudSun,
+    title: "Flare forecast & itch check-in",
+    body: "Local humidity, cold, wind and pollen scored against your condition, with today's tips. Tap the itch button whenever it bites and a week later it shows you the hour it truly peaks.",
+  },
+  {
+    icon: ScanEye,
+    title: "AI flare grading",
+    body: "Photograph an itchy patch for a 0–100 estimate of how inflamed it looks — worked out on your device, never uploaded. Built to help you describe a flare to a clinician. An estimate, not a diagnosis.",
+  },
+  {
+    icon: UtensilsCrossed,
+    title: "Healthy places to eat",
+    body: "Every restaurant, café and takeaway around you on a map, scored 0–100 for how healthy eating there is likely to be — healthiest first, anywhere in the world.",
+  },
+  {
+    icon: Map,
+    title: "Where am I in this?",
+    body: "Your recovery mapped stage by stage — TSW, eczema, psoriasis, acne or rosacea — plus flare-day support for the days that need it, so the whole app meets you where you actually are.",
+  },
+  {
     icon: Syringe,
-    title: "Peptide tracker",
-    body: "Every dose on record: compound, milligrams, date, and what you're running it for. Per-peptide totals and full dose history build themselves as you log.",
+    title: "Peptide tracker & calculator",
+    body: "Every dose on record: compound, milligrams, date and what you're running it for. The reconstitution calculator turns vial strength, water and target dose into exact syringe units, with a visual fill on the barrel.",
   },
   {
-    icon: Calculator,
-    title: "Reconstitution calculator",
-    body: "Vial strength, water added, target dose — get the exact syringe units with a visual fill on the barrel. Presets for every major compound and syringe type.",
-  },
-  {
-    icon: LineChart,
-    title: "Research journal & insights",
-    body: "Rate progress toward the goal you actually care about — skin, muscle, cognition, sleep, weight — and watch your own trend line. Charts reflect your data back; they never guess.",
+    icon: BookOpen,
+    title: "Peptide library & research journal",
+    body: "What each compound is, how long it lasts and how research protocols typically run it, in plain English — alongside a journal that tracks progress toward skin, weight, muscle, focus or sleep.",
   },
   {
     icon: MessagesSquare,
     title: "Community & protocols",
-    body: "Moderated forums grouped by recovery stage, a wall of member recovery stories, a WhatsApp community, and curated step-by-step protocols from the lab.",
+    body: "Moderated forums grouped by recovery stage, the Won wall of member recovery stories, a WhatsApp community, and the curated step-by-step healing protocol library — gut, skin, sleep, diet and biohacking.",
   },
 ];
 
@@ -81,7 +118,7 @@ const steps = [
 const faqs = [
   {
     q: "What does membership include?",
-    a: "Everything, immediately: the daily skin tracker, photo timeline, the “where am I?” stage map, insights, trigger tracking, flare-day support, the healing protocol library, the peptide tracker and calculator, the community forums and the WhatsApp chat. One membership — nothing held back.",
+    a: "Everything, immediately: the daily skin tracker, photo timeline, ingredient & food scanner, EASI and POEM scores, Coach, flare forecast, itch check-in, AI flare grading, healthy places to eat, the “where am I?” stage map, trends, trigger tracking, flare-day support, the healing protocol library, the peptide tracker, reconstitution calculator, peptide library and research journal, the community forums, the Won recovery-stories wall and the WhatsApp chat. One membership — nothing held back, no add-ons.",
   },
   {
     q: "How much is membership?",
@@ -122,8 +159,9 @@ export default function LandingPage() {
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-slate-300">
               Arcane Track is a private members&apos; platform for skin recovery and healing —
-              effortless daily tracking, a photo timeline, curated protocols, peptide tools and
-              a community that runs on evidence, not hype.
+              daily tracking, a photo timeline, an ingredient scanner, validated clinical scores,
+              a flare forecast, curated protocols, the peptide lab and a community that runs on
+              evidence, not hype.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/pricing" className="btn-primary px-6 py-3 text-base">
@@ -151,8 +189,9 @@ export default function LandingPage() {
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold text-white">One place for the whole record</h2>
             <p className="mt-4 leading-relaxed text-slate-400">
-              Research generates data every single day — most of it lost to memory. The lab
-              captures it in seconds and turns it into something you can actually read.
+              Recovery generates data every single day — most of it lost to memory. The lab
+              captures it in seconds and turns it into something you can actually read. Every
+              tool below is included in one membership.
             </p>
           </div>
           <div id="tools" className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
