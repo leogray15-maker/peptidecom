@@ -12,16 +12,58 @@ import { ManageBillingButton } from "@/components/manage-billing-button";
 export const metadata = { title: "Pricing" };
 export const dynamic = "force-dynamic";
 
-const perks = [
-  "Daily skin & recovery tracker — body map, severity, symptoms, sleep and mood",
-  "Private photo timeline — compare today against 90 days ago, side by side",
-  "“Where am I?” withdrawal stage map to see exactly where you are",
-  "Insights & trends built from your own logged data",
-  "Trigger tracking to catch what flares you up",
-  "Flare-day support tools for the hardest days",
-  "The healing protocol library — gut, skin, sleep, diet & biohacking",
-  "Peptide tracker & reconstitution calculator",
-  "Members-only community, WhatsApp chat & the Won recovery-stories wall",
+// Everything behind the membership, grouped the way the app is. Nothing here is
+// an add-on or a higher tier — the whole list unlocks the moment you join, so
+// the list has to actually show the whole list.
+const perks: { group: string; items: string[] }[] = [
+  {
+    group: "Track your day",
+    items: [
+      "Daily skin & recovery tracker — body map, severity, symptoms, sleep and mood, in about 20 seconds",
+      "Private photo timeline — compare today against 90 days ago, side by side",
+      "Itch check-in — one tap whenever it bites, and it finds the hour your itch actually peaks",
+      "Trigger tracking — products, foods, weather and stress, so you catch what flares you",
+      "“Where am I in this?” stage map for TSW, eczema, psoriasis, acne or rosacea",
+    ],
+  },
+  {
+    group: "Measure & understand",
+    items: [
+      "EASI calculator — the published Eczema Area & Severity Index your dermatologist uses",
+      "POEM weekly score — the validated 7-question measure, tracked week on week",
+      "Coach — today's plan, built from your own logs and what your data is saying",
+      "Your trends — severity, sleep and patterns surfaced from everything you've logged",
+      "Flare forecast — local humidity, cold, wind and pollen scored against your condition",
+      "AI flare grading — photograph a patch for an on-device inflammation estimate (never uploaded)",
+      "Flare-day support tools for the hardest days",
+    ],
+  },
+  {
+    group: "Know what you're putting in and on you",
+    items: [
+      "Ingredient scanner — scan any barcode for a 0–100 skincare score for sensitive, eczema-prone skin",
+      "Food & drink scanning — nutrition, additives and the good stuff, from the same barcode",
+      "Healthy places to eat — every restaurant, café and takeaway near you on a map, scored 0–100",
+    ],
+  },
+  {
+    group: "The peptide lab",
+    items: [
+      "Peptide tracker — every dose on record, with per-compound totals and full dose history",
+      "Reconstitution calculator — vial strength, water and target dose to exact syringe units",
+      "Peptide library — what each compound is, how long it lasts and how protocols typically run it",
+      "Research journal — rate progress toward skin, weight, muscle, focus or sleep and watch the trend",
+    ],
+  },
+  {
+    group: "The community & the library",
+    items: [
+      "The healing protocol library — gut, skin, sleep, diet & biohacking, step by step",
+      "Members-only forums, WhatsApp chat & the Won recovery-stories wall",
+      "The Archives — what comes next, for when recovery gives you room to think about more than skin",
+      "Your logs, photos and journal stay private to you by default — sharing is always your call",
+    ],
+  },
 ];
 
 export default async function PricingPage({
@@ -81,14 +123,26 @@ export default async function PricingPage({
         <div className="container-lab grid gap-8 lg:grid-cols-2">
           <div className="card">
             <h2 className="text-xl font-semibold text-white">What&apos;s included</h2>
-            <ul className="mt-5 space-y-3">
-              {perks.map((p) => (
-                <li key={p} className="flex items-start gap-3 text-sm text-slate-300">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-400" />
-                  {p}
-                </li>
+            <p className="mt-2 text-sm text-slate-400">
+              Every tool below, from the moment you join. No tiers, no add-ons, nothing held back.
+            </p>
+            <div className="mt-6 space-y-6">
+              {perks.map((section) => (
+                <div key={section.group}>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-300">
+                    {section.group}
+                  </h3>
+                  <ul className="mt-3 space-y-3">
+                    {section.items.map((p) => (
+                      <li key={p} className="flex items-start gap-3 text-sm leading-relaxed text-slate-300">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-400" />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
           <div>
