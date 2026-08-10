@@ -15,7 +15,7 @@
 //      every result surface, saved photo card and export.
 //   3. The BETA badge — supporting signal only, never the sole disclosure.
 
-import type { PhotoEstimate } from "@/lib/photo-score";
+import type { PhotoConfidence, PhotoEstimate } from "@/lib/photo-score";
 
 // ─── Persistent labelling ────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export const AI_ESTIMATE_LABEL = "AI estimate — not a diagnosis";
 
 /** Longer form for reports and export footers, where there's room. */
 export const AI_ESTIMATE_LABEL_LONG =
-  "AI estimate — not a diagnosis. Generated on-device from photo colour; " +
+  "AI estimate — not a diagnosis. Generated on-device from photo colour and texture; " +
   "intended to help describe a flare to a clinician, not to replace one.";
 
 // ─── Model attributability ───────────────────────────────────────────────────
@@ -58,8 +58,17 @@ export function modelIdFor(
 /** Plain-English method name for the "about this estimate" view. */
 export function methodLabel(method: PhotoEstimate["method"]): string {
   if (method === "tfjs") return "On-device image model";
-  if (method === "blended") return "Colour analysis blended with an on-device image model";
-  return "Colour analysis";
+  if (method === "blended")
+    return "Colour and texture analysis blended with an on-device image model";
+  return "Colour and texture analysis";
+}
+
+/** Plain-English confidence, for the result surface. Says what the PHOTO can
+ * support — never how bad the flare is, and never anything about the member. */
+export function confidenceLabel(confidence: PhotoConfidence): string {
+  if (confidence === "good") return "Good — the photo gave it plenty to work with";
+  if (confidence === "moderate") return "Moderate — something about the photo limits it";
+  return "Low — read this number loosely";
 }
 
 // ─── Consent ─────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Camera,
   Images,
   Loader2,
@@ -19,6 +20,7 @@ import {
   PHOTO_SCORE_VERSION,
   type PhotoRejection,
   CALM_MANUAL_SEVERITY,
+  QUALITY_FLAG_COPY,
   estimateAgreement,
   flareBand,
 } from "@/lib/photo-score";
@@ -26,6 +28,7 @@ import { gradePhoto } from "@/lib/photo-grade";
 import {
   CONSENT_VERSION,
   NON_SKIN_MESSAGE,
+  confidenceLabel,
   methodLabel,
   modelIdFor,
 } from "@/lib/ai-grading";
@@ -305,6 +308,25 @@ export function GradeClient({
                 </div>
               ) : null}
 
+              {/* What the PHOTO couldn't support. Sits next to the number
+                  rather than buried in the detail panel, because a member who
+                  only reads one thing should read the caveat with the score. */}
+              {estimate?.qualityFlags?.length ? (
+                <div className="mt-3 rounded-2xl border border-gold-500/25 bg-gold-500/5 p-3 text-left">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-gold-200">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    What could be throwing this off
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {estimate.qualityFlags.map((flag) => (
+                      <li key={flag} className="text-xs leading-relaxed text-slate-400">
+                        {QUALITY_FLAG_COPY[flag]}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
               <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
                 <button onClick={reset} className="btn-secondary">
                   <RotateCcw className="h-4 w-4" /> Grade another
@@ -359,27 +381,57 @@ export function GradeClient({
               </span>
             </li>
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
-              <span className="text-slate-400">Redness intensity</span>
+              <span className="text-slate-400">Redness of the worst of it</span>
               <span className="font-semibold tabular-nums text-slate-200">
                 {Math.round(estimate.rednessIndex * 100) / 100}
               </span>
             </li>
+            {estimate.erythemaContrast != null && (
+              <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
+                <span className="text-slate-400">Stands out from your calm skin by</span>
+                <span className="font-semibold tabular-nums text-slate-200">
+                  {Math.round(estimate.erythemaContrast * 100) / 100}
+                </span>
+              </li>
+            )}
+            {estimate.textureIndex != null && (
+              <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
+                <span className="text-slate-400">Surface roughness</span>
+                <span className="font-semibold text-slate-200">
+                  {estimate.textureIndex < 0.025
+                    ? "Smooth"
+                    : estimate.textureIndex < 0.06
+                      ? "Some texture"
+                      : "Broken or scaly"}
+                </span>
+              </li>
+            )}
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
               <span className="text-slate-400">Scale</span>
               <span className="font-semibold text-slate-200">
                 {estimate.basis === "baseline" ? "Your calm baseline" : "Absolute"}
               </span>
             </li>
+            {estimate.confidence && (
+              <li className="flex items-center justify-between gap-4 border-b border-lab-border py-2 text-sm">
+                <span className="shrink-0 text-slate-400">Confidence in this photo</span>
+                <span className="text-right font-semibold text-slate-200">
+                  {confidenceLabel(estimate.confidence)}
+                </span>
+              </li>
+            )}
             <li className="flex items-center justify-between py-2 text-sm">
               <span className="text-slate-400">Method</span>
               <span className="font-semibold text-slate-200">{methodLabel(estimate.method)}</span>
             </li>
           </ul>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            All of this is computed in your browser from the photo&apos;s colours. Only pixels
-            that look like skin are measured, so bedding and clothing in the frame don&apos;t
-            drag the number around. Nothing is uploaded unless you choose to save it to your
-            timeline.
+            All of this is computed in your browser. It measures the worst of the patch against
+            your own quieter skin in the same photo — not an average of everything in frame, so
+            a small raw patch on an otherwise clear arm still registers. Hair, deep shadow,
+            bedding and clothing are dropped before anything is measured, and surface roughness
+            is read alongside colour so scaly and broken skin isn&apos;t scored as though it were
+            smooth. Nothing is uploaded unless you choose to save it to your timeline.
           </p>
 
           <button

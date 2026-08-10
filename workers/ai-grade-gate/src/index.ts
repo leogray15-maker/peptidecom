@@ -132,9 +132,16 @@ async function skinFractionOf(dataUrl: string): Promise<number | null> {
   }
 }
 
-/** Port of isSkinPixel/computePhotoFeatures from src/lib/photo-score.ts.
+/** Port of isSkinLike/computePhotoFeatures from src/lib/photo-score.ts.
  * Generous by design: rejecting deeper skin tones would be a fairness bug in a
- * health product, so the band admits every human tone. */
+ * health product, so the band admits every human tone.
+ *
+ * This is deliberately the COLOUR-ONLY mask, matching `skinFraction` in
+ * photo-score.ts exactly. The grading engine additionally drops hair and cast
+ * shadow before it measures anything, but that pass is about measurement
+ * quality, not about "is this a photo of a person" — folding it in here would
+ * make the abuse gate reject a legitimate photo of a hairy forearm. Keep the
+ * constants below identical to the ones in photo-score.ts. */
 export function computeSkinFraction(data: Uint8ClampedArray): number {
   let usable = 0;
   let skin = 0;
@@ -144,13 +151,13 @@ export function computeSkinFraction(data: Uint8ClampedArray): number {
     const b = data[i + 2];
     const max = Math.max(r, g, b) / 255;
     const min = Math.min(r, g, b) / 255;
-    if (max < 0.15 || max > 0.98) continue; // shadow / blown highlight
+    if (max < 0.12 || max > 0.99) continue; // shadow / blown highlight
     usable++;
     const s = max === 0 ? 0 : (max - min) / max;
-    if (s < 0.08 || s > 0.9) continue;
-    if (!(r >= g && g >= b)) continue;
+    if (s < 0.1 || s > 0.88) continue;
+    if (r - b < 8) continue;
     const h = hueOf(r, g, b);
-    if (h <= 55 || h >= 335) skin++;
+    if (h <= 50 || h >= 330) skin++;
   }
   return usable > 0 ? skin / usable : 0;
 }

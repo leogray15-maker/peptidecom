@@ -59,6 +59,25 @@ const createSchema = z.object({
       composite: z.number().min(0).max(1),
       inflamedFraction: z.number().min(0).max(1),
       rednessIndex: z.number().min(0).max(1),
+      // v3+ signals. Optional: estimates saved by an earlier version of the
+      // heuristic don't carry them, and zod would otherwise reject the replay
+      // of an old client's payload.
+      erythemaContrast: z.number().min(0).max(1).optional(),
+      textureIndex: z.number().min(0).max(10).optional(),
+      confidence: z.enum(["good", "moderate", "low"]).optional(),
+      qualityFlags: z
+        .array(
+          z.enum([
+            "low-light",
+            "blown-highlights",
+            "uneven-light",
+            "partly-unreadable",
+            "small-patch",
+            "deep-tone",
+          ])
+        )
+        .max(8)
+        .optional(),
       version: z.number().int().min(1).max(100),
       method: z.enum(["heuristic", "tfjs", "blended"]),
       modelId: z.string().max(120).optional(),

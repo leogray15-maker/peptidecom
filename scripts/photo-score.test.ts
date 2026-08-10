@@ -4,14 +4,18 @@
 import assert from "node:assert/strict";
 import {
   CALM_MANUAL_SEVERITY,
+  type PhotoFeatures,
   PHOTO_SCORE_VERSION,
   computePhotoFeatures,
   erythemaRatio,
   estimateAgreement,
   flareBand,
+  isSkinLike,
+  percentileOf,
   pickBaseline,
   rejectPhoto,
   rgbToHsv,
+  rgbToLab,
   scorePhoto,
 } from "../src/lib/photo-score";
 import { labelMidpoint } from "../src/lib/photo-model";
@@ -58,19 +62,60 @@ function mix(w: number, h: number, parts: [RGB, number][]): Uint8ClampedArray {
   return data;
 }
 
+/** Multiply every pixel's brightness by a deterministic pseudo-random factor
+ * in 1±amp. Because the erythema ratio (R−G)/(R+G) is scale-invariant, this
+ * changes ONLY the texture index — colour statistics come out identical. */
+function roughen(data: Uint8ClampedArray, amp: number): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(data);
+  let seed = 12345;
+  for (let i = 0; i < out.length; i += 4) {
+    seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+    const f = 1 + amp * ((seed / 0xffffffff) * 2 - 1);
+    out[i] = Math.min(255, Math.round(out[i] * f));
+    out[i + 1] = Math.min(255, Math.round(out[i + 1] * f));
+    out[i + 2] = Math.min(255, Math.round(out[i + 2] * f));
+  }
+  return out;
+}
+
 const CALM_PALE: RGB = [224, 188, 160];
 const CALM_MID: RGB = [180, 140, 120];
 const CALM_DEEP: RGB = [110, 80, 65];
 const INFLAMED: RGB = [200, 70, 60];
 const GREY_TOWEL: RGB = [92, 92, 96]; // the backdrop in the reported photo
+const DARK_HAIR: RGB = [60, 45, 40];
 const BLACK: RGB = [4, 4, 4];
 
-const featuresOf = (rgb: RGB) => computePhotoFeatures(solid(100, 100, rgb), 100, 100);
+const featuresOf = (rgb: RGB) => computePhotoFeatures(solid(120, 120, rgb), 120, 120);
 const scoreOf = (rgb: RGB) => {
   const g = scorePhoto(featuresOf(rgb), null);
   assert.ok(g.ok, "expected a gradable photo");
   return g.score;
 };
+const absoluteScore = (features: PhotoFeatures) => {
+  const g = scorePhoto(features, null);
+  assert.ok(g.ok, "expected a gradable photo");
+  return g.score;
+};
+
+/** A synthetic feature set for the pure scoring/baseline tests. */
+function featuresLike(patch: Partial<PhotoFeatures>): PhotoFeatures {
+  return {
+    inflamedFraction: 0,
+    rednessIndex: 0,
+    erythemaContrast: 0,
+    textureIndex: 0,
+    composite: 0,
+    usableFraction: 1,
+    skinFraction: 1,
+    measuredFraction: 1,
+    measuredPixels: 8_000,
+    skinLightness: 60,
+    confidence: "good",
+    qualityFlags: [],
+    ...patch,
+  };
+}
 
 test("rgbToHsv: known colours", () => {
   assert.deepEqual(rgbToHsv(255, 0, 0), [0, 1, 1]); // pure red
@@ -81,11 +126,42 @@ test("rgbToHsv: known colours", () => {
   assert.deepEqual(rgbToHsv(0, 0, 0), [0, 0, 0]);
 });
 
+test("rgbToLab: reference values, and a* rises with redness", () => {
+  const [wl, wa, wb] = rgbToLab(255, 255, 255);
+  assert.ok(Math.abs(wl - 100) < 0.5 && Math.abs(wa) < 0.5 && Math.abs(wb) < 0.5);
+  assert.equal(Math.round(rgbToLab(0, 0, 0)[0]), 0);
+  const [, redA] = rgbToLab(255, 0, 0);
+  assert.ok(redA > 70, `pure red should sit far up a*, got ${redA}`);
+  // Lightness tracks the eye, not the raw channel average.
+  assert.ok(rgbToLab(...CALM_PALE)[0] > rgbToLab(...CALM_DEEP)[0]);
+  assert.ok(rgbToLab(...INFLAMED)[1] > rgbToLab(...CALM_PALE)[1]);
+});
+
+test("percentileOf: clamps, interpolates by index, handles empties", () => {
+  const xs = [1, 2, 3, 4, 5];
+  assert.equal(percentileOf(xs, 0), 1);
+  assert.equal(percentileOf(xs, 1), 5);
+  assert.equal(percentileOf(xs, 0.5), 3);
+  assert.equal(percentileOf([], 0.5), 0);
+  assert.equal(percentileOf([7], 0.85), 7);
+});
+
 test("erythemaRatio: separates flare from skin, never negative", () => {
   assert.ok(erythemaRatio(200, 70) > 0.4);
   assert.ok(erythemaRatio(224, 188) < 0.1);
   assert.equal(erythemaRatio(60, 200), 0); // clamped, not negative
   assert.equal(erythemaRatio(0, 0), 0);
+});
+
+test("isSkinLike: every tone in, backgrounds out", () => {
+  for (const rgb of [CALM_PALE, CALM_MID, CALM_DEEP, INFLAMED] as RGB[]) {
+    assert.ok(isSkinLike(...rgb), `${rgb} should read as skin`);
+  }
+  assert.ok(!isSkinLike(...GREY_TOWEL), "a grey towel is not skin");
+  assert.ok(!isSkinLike(60, 90, 140), "denim is not skin");
+  assert.ok(!isSkinLike(...BLACK), "deep shadow is not skin");
+  assert.ok(!isSkinLike(250, 250, 250), "a white wall is not skin");
+  assert.ok(!isSkinLike(220, 20, 20), "a saturated red jumper is not skin");
 });
 
 test("features: inflamed red scores far above calm skin", () => {
@@ -114,12 +190,12 @@ test("absolute scale: calm skin of every tone stays well below a flare", () => {
 });
 
 test("skin masking: a grey backdrop doesn't dilute the reading", () => {
-  const onlySkin = computePhotoFeatures(solid(100, 100, INFLAMED), 100, 100);
+  const onlySkin = computePhotoFeatures(solid(120, 120, INFLAMED), 120, 120);
   // Same inflamed skin, but now half the frame is the towel it's resting on.
   const withTowel = computePhotoFeatures(
-    mix(100, 100, [[INFLAMED, 1], [GREY_TOWEL, 1]]),
-    100,
-    100
+    mix(120, 120, [[INFLAMED, 1], [GREY_TOWEL, 1]]),
+    120,
+    120
   );
   assert.ok(withTowel.skinFraction < 0.7, "towel must be excluded from the skin mask");
   assert.ok(
@@ -130,6 +206,95 @@ test("skin masking: a grey backdrop doesn't dilute the reading", () => {
   assert.ok(graded.ok && graded.score > 80, "an inflamed patch on a towel is still a flare");
 });
 
+// v3 headline fix #1: the flare is a PATCH. Averaging it with the calm skin
+// around it is a worse measurement the more of the person is in shot.
+test("percentile stats: a raw patch on mostly-calm skin is not 'calm'", () => {
+  // 80% ordinary pale skin, 20% raw. The v2 mean put this at ~20/100.
+  const frame = mix(200, 200, [[CALM_PALE, 4], [INFLAMED, 1]]);
+  const features = computePhotoFeatures(frame, 200, 200);
+  assert.ok(
+    features.erythemaContrast > 0.3,
+    `the patch must stand out from their own skin, got ${features.erythemaContrast}`
+  );
+  assert.ok(
+    Math.abs(features.inflamedFraction - 0.2) < 0.05,
+    `about a fifth of the skin is involved, got ${features.inflamedFraction}`
+  );
+  const score = absoluteScore(features);
+  assert.ok(score >= 55, `a raw fifth of the frame must not read calm, got ${score}`);
+  assert.notEqual(flareBand(score).label, "Calm");
+  // …and it stays below a frame that is raw all over.
+  assert.ok(score < scoreOf(INFLAMED), "extent must still move the number");
+});
+
+// v3 headline fix #2: dark hair is a warm, R > G > B colour and sailed through
+// the v2 skin gate, dragging the mean down on every photo of a face or a beard.
+// This is the reported "Calm 12/100" on a badly crusted face.
+test("hair rejection: a face full of hair doesn't dilute the flare", () => {
+  const frame = mix(200, 200, [[DARK_HAIR, 2], [CALM_PALE, 2], [INFLAMED, 1]]);
+  const features = computePhotoFeatures(frame, 200, 200);
+
+  // Hair is a skin-COLOURED candidate (skinFraction sees it, so the abuse gate
+  // is unchanged) but must not survive into the measurement.
+  assert.ok(features.skinFraction > 0.9, "the colour gate still admits hair");
+  assert.ok(
+    Math.abs(features.measuredFraction - 0.6) < 0.06,
+    `hair should be ~40% of the frame and dropped, measured ${features.measuredFraction}`
+  );
+
+  const score = absoluteScore(features);
+  assert.ok(score > 55, `an inflamed patch beside hair must read as a flare, got ${score}`);
+  assert.ok(["Moderate", "Marked"].includes(flareBand(score).label));
+});
+
+test("hair rejection: a dark red crust survives the darkness test", () => {
+  // Deep bruise-coloured plaque against ordinary skin — dark, but frankly red.
+  const CRUST: RGB = [130, 58, 48];
+  const frame = mix(200, 200, [[CALM_PALE, 3], [CRUST, 2]]);
+  const features = computePhotoFeatures(frame, 200, 200);
+  assert.ok(
+    features.measuredFraction > 0.9,
+    `the crust must not be mistaken for hair, measured ${features.measuredFraction}`
+  );
+  assert.ok(absoluteScore(features) > 50, "a dark plaque is still a plaque");
+});
+
+test("deep skin tones are not treated as hair", () => {
+  const features = featuresOf(CALM_DEEP);
+  assert.ok(
+    features.measuredFraction > 0.95,
+    `deep skin must survive the darkness test, measured ${features.measuredFraction}`
+  );
+  assert.ok(features.qualityFlags.includes("deep-tone"), "…but the caveat is surfaced");
+  assert.notEqual(features.confidence, "good");
+});
+
+// v3 headline fix #3: crust, scale and excoriation are what make a flare look
+// severe, and none of them are red.
+test("texture: broken skin reads above the same colour, smooth", () => {
+  const MODERATE: RGB = [200, 105, 92];
+  const flat = computePhotoFeatures(solid(200, 200, MODERATE), 200, 200);
+  const rough = computePhotoFeatures(roughen(solid(200, 200, MODERATE), 0.2), 200, 200);
+
+  assert.ok(flat.textureIndex < 0.01, `smooth skin should be flat, got ${flat.textureIndex}`);
+  assert.ok(rough.textureIndex > 0.02, `broken skin should be rough, got ${rough.textureIndex}`);
+  // Colour statistics are untouched — the ratio is scale-invariant — so the
+  // whole difference below is texture.
+  assert.ok(Math.abs(rough.rednessIndex - flat.rednessIndex) < 0.02);
+
+  const flatScore = absoluteScore(flat);
+  const roughScore = absoluteScore(rough);
+  assert.ok(roughScore > flatScore, `${roughScore} should beat ${flatScore}`);
+  assert.ok(roughScore - flatScore <= 25, "texture is a bonus, never the driver");
+});
+
+test("texture: can't invent a flare out of calm skin", () => {
+  const rough = computePhotoFeatures(roughen(solid(200, 200, CALM_PALE), 0.25), 200, 200);
+  assert.ok(rough.textureIndex > 0.02, "the frame really is textured");
+  const score = absoluteScore(rough);
+  assert.ok(score < 20, `textured but calm skin must stay calm, got ${score}`);
+});
+
 test("rejects: too dark, and frames that are mostly background", () => {
   const dark = featuresOf(BLACK);
   assert.ok(dark.usableFraction < 0.2);
@@ -138,14 +303,61 @@ test("rejects: too dark, and frames that are mostly background", () => {
 
   // Mostly towel, a sliver of skin — grading this would grade the bedding.
   const mostlyTowel = computePhotoFeatures(
-    mix(100, 100, [[GREY_TOWEL, 9], [INFLAMED, 1]]),
-    100,
-    100
+    mix(120, 120, [[GREY_TOWEL, 9], [INFLAMED, 1]]),
+    120,
+    120
   );
   assert.equal(rejectPhoto(mostlyTowel), "too-little-skin");
   assert.deepEqual(scorePhoto(mostlyTowel, null), { ok: false, reason: "too-little-skin" });
 
+  // Skin-coloured, but it was all hair: nothing survives to measure.
+  assert.equal(rejectPhoto(featuresLike({ measuredPixels: 20 })), "too-dark");
+
   assert.equal(rejectPhoto(featuresOf(CALM_PALE)), null);
+});
+
+test("confidence: clean frames are trusted, compromised ones say so", () => {
+  const clean = featuresOf(CALM_PALE);
+  assert.equal(clean.confidence, "good");
+  assert.deepEqual(clean.qualityFlags, []);
+
+  // Half the frame is towel — the patch isn't filling it.
+  const small = computePhotoFeatures(
+    mix(200, 200, [[GREY_TOWEL, 7], [INFLAMED, 3]]),
+    200,
+    200
+  );
+  assert.ok(small.qualityFlags.includes("small-patch"));
+  assert.notEqual(small.confidence, "good");
+
+  // Deep shadow over most of the frame.
+  const dim = computePhotoFeatures(mix(200, 200, [[BLACK, 1], [CALM_PALE, 1]]), 200, 200);
+  assert.ok(dim.qualityFlags.includes("low-light"));
+
+  // Same skin, lit from bright to dim across the frame.
+  const uneven = computePhotoFeatures(
+    mix(200, 200, [
+      [[240, 205, 178], 1],
+      [CALM_PALE, 1],
+      [[150, 124, 105], 1],
+      [[105, 86, 73], 1],
+    ]),
+    200,
+    200
+  );
+  assert.ok(uneven.qualityFlags.includes("partly-unreadable"));
+  assert.equal(uneven.confidence, "moderate");
+});
+
+// Evenness is judged on the UNINVOLVED skin: a dark plaque makes a frame very
+// uneven in lightness, and that's the flare, not the lighting.
+test("confidence: a dark plaque isn't mistaken for bad lighting", () => {
+  const features = computePhotoFeatures(
+    mix(200, 200, [[CALM_PALE, 3], [[130, 58, 48], 2]]),
+    200,
+    200
+  );
+  assert.ok(!features.qualityFlags.includes("uneven-light"), features.qualityFlags.join(","));
 });
 
 test("scorePhoto: baseline-relative anchors the calm photo near 12", () => {
@@ -180,7 +392,7 @@ test("pickBaseline: a flare is never the baseline just because it was saved firs
   assert.equal(pickBaseline(flaresOnly, "arms", severities), null);
 
   // …so the next flare is scored absolutely, and reads as a flare.
-  const today = { composite: 0.739, inflamedFraction: 0.6, rednessIndex: 0.3, usableFraction: 1, skinFraction: 1 };
+  const today = featuresLike({ composite: 0.739, inflamedFraction: 0.6, rednessIndex: 0.3 });
   const graded = scorePhoto(today, pickBaseline(flaresOnly, "arms", severities));
   assert.ok(graded.ok);
   assert.equal(graded.basis, "absolute");
@@ -226,7 +438,9 @@ test("absolute scale: climbs monotonically with redness, no cliffs", () => {
     ["calm deep", CALM_DEEP],
     ["very deep", [90, 60, 45]],
     ["mild pink", [230, 150, 140]],
+    ["pink", [220, 130, 118]],
     ["moderate", [210, 110, 95]],
+    ["angry", [205, 90, 78]],
     ["inflamed", INFLAMED],
   ];
   const scores = ladder.map(([, rgb]) => scoreOf(rgb));
@@ -262,6 +476,32 @@ test("regression: the reported photo grades as a flare, baseline or not", () => 
   const relative = scorePhoto(features, { composite: 0.18 });
   assert.ok(relative.ok && Math.abs(relative.score - absolute.score) < 15);
   assert.equal(flareBand(relative.score).label, "Marked");
+});
+
+// The second reported photo: a crusted face and neck, shot in a car. Lots of
+// dark curly hair, a bright window behind, plenty of ordinary facial skin, and
+// a large broken red patch. v2 called it "Calm 12/100".
+test("regression: the crusted-face photo is not calm", () => {
+  const frame = roughen(
+    mix(240, 240, [
+      [[248, 250, 252], 1.2], // blown-out car window
+      [DARK_HAIR, 2.2], // curly hair and beard
+      [[222, 176, 152], 2], // unaffected cheek and ear
+      [[186, 96, 84], 3], // crusted, broken plaque
+      [[150, 66, 58], 1.6], // darker weeping area
+    ]),
+    0.18
+  );
+  const features = computePhotoFeatures(frame, 240, 240);
+
+  assert.equal(rejectPhoto(features), null, "this photo is gradable");
+  assert.ok(features.measuredFraction < 0.8, "the hair is dropped from the measurement");
+  assert.ok(features.erythemaContrast > 0.15, "the plaque stands out from the face");
+  assert.ok(features.textureIndex > 0.02, "broken skin registers as broken");
+
+  const score = absoluteScore(features);
+  assert.ok(score > 65, `the reported photo must not read calm, got ${score}`);
+  assert.equal(flareBand(score).label, "Marked");
 });
 
 test("estimateAgreement: needs 5 pairs, detects a tracking heuristic", () => {

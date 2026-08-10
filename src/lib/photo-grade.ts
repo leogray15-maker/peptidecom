@@ -76,6 +76,12 @@ export async function gradePhoto({
       composite: features.composite,
       inflamedFraction: features.inflamedFraction,
       rednessIndex: features.rednessIndex,
+      erythemaContrast: features.erythemaContrast,
+      textureIndex: features.textureIndex,
+      // Carried onto the saved estimate so a historical grading still says how
+      // much the photo it came from could actually support.
+      confidence: features.confidence,
+      qualityFlags: features.qualityFlags,
       version: PHOTO_SCORE_VERSION,
       method,
       basis: graded.basis,
