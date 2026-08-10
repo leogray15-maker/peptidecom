@@ -160,6 +160,7 @@ const AUDITED = [
   "src/lib/ai-grading.ts",
   "src/lib/photo-score.ts",
   "src/components/grade-client.tsx",
+  "src/components/flare-region-map.tsx",
   "src/components/ai-grading-consent.tsx",
   "src/components/ai-estimate-label.tsx",
   "src/app/(app)/grade/page.tsx",

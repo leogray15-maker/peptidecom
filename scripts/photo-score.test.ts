@@ -6,9 +6,12 @@ import {
   CALM_MANUAL_SEVERITY,
   type PhotoFeatures,
   PHOTO_SCORE_VERSION,
+  REGION_GRID,
   computePhotoFeatures,
+  easiAreaBand,
   erythemaRatio,
   estimateAgreement,
+  estimateInterval,
   flareBand,
   isSkinLike,
   percentileOf,
@@ -17,6 +20,7 @@ import {
   rgbToHsv,
   rgbToLab,
   scorePhoto,
+  signReadout,
 } from "../src/lib/photo-score";
 import { labelMidpoint } from "../src/lib/photo-model";
 
@@ -111,8 +115,13 @@ function featuresLike(patch: Partial<PhotoFeatures>): PhotoFeatures {
     measuredFraction: 1,
     measuredPixels: 8_000,
     skinLightness: 60,
+    intensity: 0,
     confidence: "good",
     qualityFlags: [],
+    regionMap: new Array(REGION_GRID * REGION_GRID).fill(null),
+    worstRegion: null,
+    regionSpread: 0,
+    boundaryAmbiguity: 0,
     ...patch,
   };
 }
@@ -358,6 +367,120 @@ test("confidence: a dark plaque isn't mistaken for bad lighting", () => {
     200
   );
   assert.ok(!features.qualityFlags.includes("uneven-light"), features.qualityFlags.join(","));
+});
+
+// ─── Region map ──────────────────────────────────────────────────────────────
+
+test("region map: points at the patch instead of restating the whole frame", () => {
+  // Raw band across the bottom fifth, calm skin above it.
+  const features = computePhotoFeatures(
+    mix(250, 250, [[CALM_PALE, 4], [INFLAMED, 1]]),
+    250,
+    250
+  );
+  assert.equal(features.regionMap.length, REGION_GRID * REGION_GRID);
+  assert.ok(features.regionMap.every((c) => c === null || (c >= 0 && c <= 1)));
+
+  const worst = features.worstRegion!;
+  assert.ok(worst, "a tile should stand out");
+  assert.equal(worst.row, REGION_GRID - 1, "the flare is along the bottom");
+
+  // Top row is calm skin, bottom row is raw — the map must separate them.
+  const top = features.regionMap[0]!;
+  assert.ok(top < 0.2, `top tile should read calm, got ${top}`);
+  assert.ok(worst.composite > 0.75, `bottom tile should read raw, got ${worst.composite}`);
+  assert.ok(features.regionSpread > 0.3, "the frame genuinely disagrees with itself");
+});
+
+// The whole point of scoring tiles against the GLOBAL quiet reference: a tile
+// made entirely of flare has no calm skin in it, and referencing it to itself
+// would recreate the original "Calm 12/100" bug one level down.
+test("region map: a tile that is all flare doesn't score itself as calm", () => {
+  const features = computePhotoFeatures(
+    mix(250, 250, [[CALM_PALE, 4], [INFLAMED, 1]]),
+    250,
+    250
+  );
+  const bottomRow = features.regionMap.slice(-REGION_GRID);
+  for (const tile of bottomRow) {
+    assert.ok(tile != null && tile > 0.75, `an all-flare tile read ${tile}`);
+  }
+});
+
+test("region map: a uniform frame agrees with itself", () => {
+  const features = featuresOf(INFLAMED);
+  assert.ok(features.regionSpread < 0.05, `uniform frame spread ${features.regionSpread}`);
+  assert.ok(features.regionMap.every((c) => c != null && c > 0.9));
+});
+
+// ─── Honest range ────────────────────────────────────────────────────────────
+
+test("estimateInterval: tight when the frame agrees, wide when it doesn't", () => {
+  const clean = estimateInterval(50, { regionSpread: 0, boundaryAmbiguity: 0, qualityFlags: [] });
+  assert.deepEqual(clean, { low: 46, high: 54 });
+
+  const messy = estimateInterval(50, {
+    regionSpread: 0.4,
+    boundaryAmbiguity: 0.5,
+    qualityFlags: ["low-light", "deep-tone"],
+  });
+  assert.ok(messy.high - messy.low > clean.high - clean.low, "caveats must widen it");
+  assert.ok(messy.high - messy.low <= 50, "…but not unboundedly");
+
+  // Never runs off the ends of the scale.
+  const top = estimateInterval(98, { regionSpread: 1, boundaryAmbiguity: 1, qualityFlags: [] });
+  assert.equal(top.high, 100);
+  assert.equal(estimateInterval(2, { regionSpread: 1, boundaryAmbiguity: 1, qualityFlags: [] }).low, 0);
+});
+
+// ─── Structured read-out ─────────────────────────────────────────────────────
+
+test("easiAreaBand: matches the EASI categories", () => {
+  assert.equal(easiAreaBand(0), 0);
+  assert.equal(easiAreaBand(1), 1);
+  assert.equal(easiAreaBand(9), 1);
+  assert.equal(easiAreaBand(10), 2);
+  assert.equal(easiAreaBand(29), 2);
+  assert.equal(easiAreaBand(30), 3);
+  assert.equal(easiAreaBand(50), 4);
+  assert.equal(easiAreaBand(70), 5);
+  assert.equal(easiAreaBand(90), 6);
+  assert.equal(easiAreaBand(100), 6);
+});
+
+test("signReadout: breaks the number into what a clinician asks about", () => {
+  const calm = signReadout(featuresOf(CALM_PALE));
+  assert.equal(calm.erythema, 0);
+  assert.equal(calm.surfaceDamage, 0);
+  assert.equal(calm.areaBand, 0);
+
+  const raw = signReadout(featuresOf(INFLAMED));
+  assert.equal(raw.erythema, 3);
+  assert.equal(raw.areaPercentOfPhoto, 100);
+  assert.equal(raw.areaBand, 6);
+
+  // Broken skin lifts the surface sign without touching redness.
+  const MODERATE: RGB = [200, 105, 92];
+  const flat = signReadout(computePhotoFeatures(solid(200, 200, MODERATE), 200, 200));
+  const rough = signReadout(
+    computePhotoFeatures(roughen(solid(200, 200, MODERATE), 0.2), 200, 200)
+  );
+  assert.equal(flat.surfaceDamage, 0);
+  assert.ok(rough.surfaceDamage >= 2, `broken skin should register, got ${rough.surfaceDamage}`);
+  assert.equal(rough.erythema, flat.erythema, "texture must not move the redness sign");
+
+  // The two signs a photograph cannot show are named, never guessed.
+  assert.deepEqual([...raw.notMeasurable], ["edema", "lichenification"]);
+});
+
+test("signReadout: every value lands in the EASI ranges", () => {
+  for (const rgb of [CALM_PALE, CALM_MID, CALM_DEEP, INFLAMED, [210, 110, 95]] as RGB[]) {
+    const r = signReadout(featuresOf(rgb));
+    assert.ok(r.erythema >= 0 && r.erythema <= 3, `erythema ${r.erythema}`);
+    assert.ok(r.surfaceDamage >= 0 && r.surfaceDamage <= 3, `surface ${r.surfaceDamage}`);
+    assert.ok(r.areaBand >= 0 && r.areaBand <= 6, `area ${r.areaBand}`);
+    assert.ok(r.areaPercentOfPhoto >= 0 && r.areaPercentOfPhoto <= 100);
+  }
 });
 
 test("scorePhoto: baseline-relative anchors the calm photo near 12", () => {

@@ -64,6 +64,10 @@ const createSchema = z.object({
       // of an old client's payload.
       erythemaContrast: z.number().min(0).max(1).optional(),
       textureIndex: z.number().min(0).max(10).optional(),
+      low: z.number().min(0).max(100).optional(),
+      high: z.number().min(0).max(100).optional(),
+      // Coarse REGION_GRID² map of where the reading came from.
+      regionMap: z.array(z.number().min(0).max(1).nullable()).max(64).optional(),
       confidence: z.enum(["good", "moderate", "low"]).optional(),
       qualityFlags: z
         .array(

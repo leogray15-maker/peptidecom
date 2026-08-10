@@ -15,6 +15,7 @@ import {
   type PhotoFeatures,
   type PhotoRejection,
   PHOTO_SCORE_VERSION,
+  estimateInterval,
   extractImageFeatures,
   pickBaseline,
   scorePhoto,
@@ -67,12 +68,19 @@ export async function gradePhoto({
     // Heuristic-only result stands.
   }
 
+  // The range is derived from the FINAL score, so a blended Tier B result
+  // carries an interval around the number the member actually sees.
+  const { low, high } = estimateInterval(score, features);
+
   return {
     ok: true,
     features,
     baseline,
     estimate: {
       score,
+      low,
+      high,
+      regionMap: features.regionMap,
       composite: features.composite,
       inflamedFraction: features.inflamedFraction,
       rednessIndex: features.rednessIndex,

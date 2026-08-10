@@ -104,8 +104,34 @@ export interface PhotoFeatures {
   measuredPixels: number;
   /** Median L* of the measured skin (0–100). Drives the deep-tone caveat. */
   skinLightness: number;
+  /** Intensity term before the texture bonus (0–1) — the pure colour reading.
+   * Kept separate so the erythema sign can be suggested from colour alone. */
+  intensity: number;
   confidence: PhotoConfidence;
   qualityFlags: PhotoQualityFlag[];
+  /** Composite per tile over a REGION_GRID × REGION_GRID map of the frame,
+   * row-major; null where a tile held too little measured skin to say. This is
+   * what lets the UI show WHERE the reading came from instead of asking the
+   * member to trust one number for the whole photo. */
+  regionMap: (number | null)[];
+  /** The worst tile on that map, or null when no tile qualified. */
+  worstRegion: RegionReading | null;
+  /** p90 − p10 of the tile composites (0–1): how patchy the frame is. NOT the
+   * interquartile range — a flare covering a fifth of the frame sits entirely
+   * inside the top quartile, so an IQR reports perfect agreement for precisely
+   * the case where one number represents the photo worst. */
+  regionSpread: number;
+  /** Share of measured pixels sitting inside the involved ramp rather than
+   * clearly in or out (0–1). These are the pixels the threshold is arguing
+   * about, so this is the honest measure of how fragile the reading is. */
+  boundaryAmbiguity: number;
+}
+
+export interface RegionReading {
+  /** 0-based tile position on the REGION_GRID × REGION_GRID map. */
+  col: number;
+  row: number;
+  composite: number;
 }
 
 export interface PhotoEstimate {
@@ -120,6 +146,11 @@ export interface PhotoEstimate {
   /** v3+. How much the photo itself can support. */
   confidence?: PhotoConfidence;
   qualityFlags?: PhotoQualityFlag[];
+  /** v3+. The honest range around `score` — see estimateInterval. */
+  low?: number;
+  high?: number;
+  /** v3+. Coarse map of where the reading came from, row-major. */
+  regionMap?: (number | null)[];
   version: number;
   method: "heuristic" | "tfjs" | "blended";
   /** Which model produced this number (lib/ai-grading.ts modelIdFor). Stored
@@ -238,6 +269,14 @@ const EXTENT_CURVE = 0.6;
 /** Slight compression at the top of the intensity scale. */
 const INTENSITY_CURVE = 0.85;
 
+/** The frame is scored again over a REGION_GRID × REGION_GRID tiling, so the
+ * result can say WHERE the reading came from and how much the tiles disagree.
+ * 5 is a compromise: fine enough to point at a patch, coarse enough that each
+ * tile still holds ~1,500 measured pixels on a typical photo. */
+export const REGION_GRID = 5;
+/** A tile with fewer measured pixels than this has nothing to say. */
+const MIN_TILE_PIXELS = 100;
+
 /** Sampled-pixel floor below which the photo is too dark/blown to score. */
 const MIN_USABLE_FRACTION = 0.2;
 /** Skin-pixel floor below which we're mostly grading the background. */
@@ -305,6 +344,44 @@ export function rgbToLab(r: number, g: number, b: number): [number, number, numb
   const fy = labF(R * 0.2126 + G * 0.7152 + B * 0.0722);
   const fz = labF((R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883);
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+/**
+ * The scoring formula, shared by the whole frame and by every tile.
+ *
+ * Pulled out deliberately: a tile has to be scored on exactly the same terms
+ * as the frame, and against the SAME reference skin. Letting each tile derive
+ * its own quiet reference would reintroduce the original bug at tile scale —
+ * a tile that is entirely flare has no quiet skin in it, so it would compare
+ * the flare against itself and come back calm.
+ */
+function compositeOf(input: {
+  /** p85 erythema over the pixels being scored. */
+  peak: number;
+  /** p85 erythema minus the QUIET reference for the whole photo. */
+  contrast: number;
+  /** Same, in CIELAB a*. */
+  aContrast: number;
+  textureIndex: number;
+  /** Share of the pixels reading as involved. */
+  involvedFraction: number;
+}): { intensity: number; composite: number } {
+  const intensity = Math.max(
+    ramp(input.contrast, CONTRAST_LO, CONTRAST_HI),
+    ramp(input.peak, ABSOLUTE_LO, ABSOLUTE_HI),
+    A_CONTRAST_WEIGHT * ramp(input.aContrast, A_CONTRAST_LO, A_CONTRAST_HI)
+  );
+  const severity = clamp(
+    intensity +
+      TEXTURE_BONUS_MAX *
+        ramp(input.textureIndex, TEXTURE_LO, TEXTURE_HI) *
+        Math.min(1, intensity / TEXTURE_GATE),
+    0,
+    1
+  );
+  const extent =
+    EXTENT_FLOOR + (1 - EXTENT_FLOOR) * input.involvedFraction ** EXTENT_CURVE;
+  return { intensity, composite: clamp(severity ** INTENSITY_CURVE * extent, 0, 1) };
 }
 
 /** Percentile of a PRE-SORTED ascending array, 0 ≤ p ≤ 1. */
@@ -389,8 +466,13 @@ export function computePhotoFeatures(
     measuredFraction: 0,
     measuredPixels: 0,
     skinLightness: 0,
+    intensity: 0,
     confidence: "low",
     qualityFlags: flags,
+    regionMap: new Array(REGION_GRID * REGION_GRID).fill(null),
+    worstRegion: null,
+    regionSpread: 0,
+    boundaryAmbiguity: 0,
   });
 
   if (skin === 0) return empty(qualityFlagsFor(sampled, dark, blown, usable, 0, 0, 0));
@@ -444,29 +526,41 @@ export function computePhotoFeatures(
   // Lightness of the UNINVOLVED skin only, for the uneven-light check below.
   // Measuring it over everything would flag a dark plaque as bad lighting.
   const quietLum: number[] = [];
+  // Pixels the threshold is arguing about — neither clearly in nor clearly out.
+  let ambiguous = 0;
   for (let i = 0; i < measuredPixels; i++) {
     const w = ramp(eryValues[i], involvedFloor, involvedFloor + INVOLVED_RAMP);
     involved += w;
     if (w === 0) quietLum.push(lumValues[i]);
+    else if (w < 1) ambiguous++;
   }
   const inflamedFraction = involved / measuredPixels;
+  const boundaryAmbiguity = ambiguous / measuredPixels;
 
   const textureIndex = computeTexture(lum, measured, gw, gh);
 
-  const intensity = Math.max(
-    ramp(erythemaContrast, CONTRAST_LO, CONTRAST_HI),
-    ramp(peak, ABSOLUTE_LO, ABSOLUTE_HI),
-    A_CONTRAST_WEIGHT * ramp(aContrast, A_CONTRAST_LO, A_CONTRAST_HI)
-  );
+  const { intensity, composite } = compositeOf({
+    peak,
+    contrast: erythemaContrast,
+    aContrast,
+    textureIndex,
+    involvedFraction: inflamedFraction,
+  });
 
-  const severity = clamp(
-    intensity +
-      TEXTURE_BONUS_MAX * ramp(textureIndex, TEXTURE_LO, TEXTURE_HI) * Math.min(1, intensity / TEXTURE_GATE),
-    0,
-    1
-  );
-  const extent = EXTENT_FLOOR + (1 - EXTENT_FLOOR) * inflamedFraction ** EXTENT_CURVE;
-  const composite = clamp(severity ** INTENSITY_CURVE * extent, 0, 1);
+  // Tile pass — the same formula over a coarse grid, every tile referenced to
+  // the SAME quiet skin, so the map says where rather than restating the whole.
+  const aQuiet = percentileOf(aSorted, 0.2);
+  const { regionMap, worstRegion, regionSpread } = scoreRegions({
+    ery,
+    aStar,
+    lum,
+    measured,
+    gw,
+    gh,
+    quiet,
+    aQuiet,
+    involvedFloor,
+  });
 
   const measuredFraction = usable > 0 ? measuredPixels / usable : 0;
   // Needs enough quiet skin for the spread to mean anything; a frame that is
@@ -489,9 +583,84 @@ export function computePhotoFeatures(
     measuredFraction,
     measuredPixels,
     skinLightness,
+    intensity,
     confidence: confidenceFor(flags, measuredPixels),
     qualityFlags: flags,
+    regionMap,
+    worstRegion,
+    regionSpread,
+    boundaryAmbiguity,
   };
+}
+
+/** Score every tile of the coarse map. Pure over the grid arrays. */
+function scoreRegions(input: {
+  ery: Float32Array;
+  aStar: Float32Array;
+  lum: Float32Array;
+  measured: Uint8Array;
+  gw: number;
+  gh: number;
+  quiet: number;
+  aQuiet: number;
+  involvedFloor: number;
+}): {
+  regionMap: (number | null)[];
+  worstRegion: RegionReading | null;
+  regionSpread: number;
+} {
+  const { ery, aStar, lum, measured, gw, gh, quiet, aQuiet, involvedFloor } = input;
+  const regionMap: (number | null)[] = [];
+  const scored: number[] = [];
+  let worstRegion: RegionReading | null = null;
+
+  for (let row = 0; row < REGION_GRID; row++) {
+    const y0 = Math.floor((row * gh) / REGION_GRID);
+    const y1 = Math.floor(((row + 1) * gh) / REGION_GRID);
+    for (let col = 0; col < REGION_GRID; col++) {
+      const x0 = Math.floor((col * gw) / REGION_GRID);
+      const x1 = Math.floor(((col + 1) * gw) / REGION_GRID);
+
+      const tileEry: number[] = [];
+      const tileA: number[] = [];
+      let involved = 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const k = y * gw + x;
+          if (!measured[k]) continue;
+          tileEry.push(ery[k]);
+          tileA.push(aStar[k]);
+          involved += ramp(ery[k], involvedFloor, involvedFloor + INVOLVED_RAMP);
+        }
+      }
+      if (tileEry.length < MIN_TILE_PIXELS) {
+        regionMap.push(null);
+        continue;
+      }
+
+      tileEry.sort((p, q) => p - q);
+      tileA.sort((p, q) => p - q);
+      const tilePeak = percentileOf(tileEry, 0.85);
+      const { composite } = compositeOf({
+        peak: tilePeak,
+        contrast: Math.max(0, tilePeak - quiet),
+        aContrast: Math.max(0, percentileOf(tileA, 0.85) - aQuiet),
+        textureIndex: computeTexture(lum, measured, gw, gh, x0, x1, y0, y1),
+        involvedFraction: involved / tileEry.length,
+      });
+
+      regionMap.push(composite);
+      scored.push(composite);
+      if (!worstRegion || composite > worstRegion.composite) {
+        worstRegion = { col, row, composite };
+      }
+    }
+  }
+
+  scored.sort((p, q) => p - q);
+  const regionSpread =
+    scored.length >= 4 ? percentileOf(scored, 0.9) - percentileOf(scored, 0.1) : 0;
+  return { regionMap, worstRegion, regionSpread };
 }
 
 /**
@@ -507,12 +676,17 @@ export function computeTexture(
   lum: Float32Array,
   mask: Uint8Array,
   gw: number,
-  gh: number
+  gh: number,
+  /** Optional sub-rectangle, for scoring one tile of the region map. */
+  bx0 = 0,
+  bx1 = gw,
+  by0 = 0,
+  by1 = gh
 ): number {
   let sum = 0;
   let count = 0;
-  for (let y = 1; y < gh - 1; y++) {
-    for (let x = 1; x < gw - 1; x++) {
+  for (let y = Math.max(1, by0); y < Math.min(gh - 1, by1); y++) {
+    for (let x = Math.max(1, bx0); x < Math.min(gw - 1, bx1); x++) {
       const k = y * gw + x;
       if (!mask[k]) continue;
       const left = k - 1;
@@ -619,6 +793,111 @@ export function scorePhoto(
     return { ok: true, score: Math.round(clamp(rel, 0, 100)), basis: "baseline" };
   }
   return { ok: true, score: Math.round(clamp(100 * features.composite, 0, 100)), basis: "absolute" };
+}
+
+// ─── Honest range ────────────────────────────────────────────────────────────
+
+/** Even a clean photo doesn't justify single-point precision. */
+const INTERVAL_BASE = 4;
+/** Pixels sitting on the involved threshold are the real uncertainty: nudge
+ * the threshold and the extent term moves. Weighted highest for that reason. */
+const INTERVAL_AMBIGUITY_WEIGHT = 12;
+/** A patchy frame gets a modest widening, not a large one — extent already
+ * models patchiness, so this is only about one number representing it poorly. */
+const INTERVAL_SPREAD_WEIGHT = 6;
+/** Each quality caveat widens it by this much. */
+const INTERVAL_FLAG_PENALTY = 3;
+/** Past about ±15 on a 0–100 scale the range stops communicating anything —
+ * "somewhere between moderate and maximum" is not a useful sentence. Beyond
+ * this the honest signal is `confidence`, which is already "low" by then, so
+ * the band is capped and the confidence carries the rest. */
+const INTERVAL_MAX_HALF = 15;
+
+/**
+ * The range the estimate can actually support, as a ± band around the score.
+ *
+ * Reporting "53" implies a precision this method does not have, and a member
+ * comparing 53 against last week's 58 is reading noise as improvement. The
+ * width is built from three things the pipeline genuinely knows:
+ *
+ *   · how many pixels sit ON the involved threshold rather than clearly either
+ *     side of it — those are the ones a small change in lighting would flip;
+ *   · how patchy the frame is across its tiles;
+ *   · how many quality caveats the photo picked up.
+ */
+export function estimateInterval(
+  score: number,
+  features: Pick<PhotoFeatures, "regionSpread" | "boundaryAmbiguity" | "qualityFlags">
+): { low: number; high: number } {
+  const half = Math.min(
+    INTERVAL_MAX_HALF,
+    INTERVAL_BASE +
+      INTERVAL_AMBIGUITY_WEIGHT * features.boundaryAmbiguity +
+      INTERVAL_SPREAD_WEIGHT * features.regionSpread +
+      INTERVAL_FLAG_PENALTY * features.qualityFlags.length
+  );
+  return {
+    low: Math.round(clamp(score - half, 0, 100)),
+    high: Math.round(clamp(score + half, 0, 100)),
+  };
+}
+
+// ─── Structured read-out, for the appointment ────────────────────────────────
+
+/** Signs a flat photograph genuinely cannot show, named so the read-out can say
+ * so out loud instead of quietly omitting them. Both need to be seen or felt in
+ * three dimensions: swelling is a raised surface, thickening is a change in the
+ * skin's body. Guessing at either from pixels would be making it up. */
+export const NOT_PHOTOGRAPHABLE_SIGNS = ["edema", "lichenification"] as const;
+
+export interface SignReadout {
+  /** EASI-style 0–3: redness. */
+  erythema: number;
+  /** EASI-style 0–3: broken, scratched, scaling or crusted surface. Offered as
+   * a starting point for the excoriation sign — a photo can't separate scratch
+   * marks from scale, so it is deliberately one number. */
+  surfaceDamage: number;
+  /** Share of the skin IN THIS PHOTO reading as involved, 0–100. Not the same
+   * thing as the EASI area score, which is a share of a whole body region —
+   * they only coincide when the photo covers the whole region. */
+  areaPercentOfPhoto: number;
+  /** EASI area category 0–6 for that percentage, given the caveat above. */
+  areaBand: number;
+  notMeasurable: typeof NOT_PHOTOGRAPHABLE_SIGNS;
+}
+
+const band = (n: number, cuts: [number, number, number]) =>
+  n < cuts[0] ? 0 : n < cuts[1] ? 1 : n < cuts[2] ? 2 : 3;
+
+/** EASI area category for a percentage: 0 · 1–9 · 10–29 · 30–49 · 50–69 ·
+ * 70–89 · 90–100. Kept local so this module stays dependency-free for tests. */
+export function easiAreaBand(percent: number): number {
+  if (percent < 1) return 0;
+  if (percent < 10) return 1;
+  if (percent < 30) return 2;
+  if (percent < 50) return 3;
+  if (percent < 70) return 4;
+  if (percent < 90) return 5;
+  return 6;
+}
+
+/**
+ * Break the single number back into the things a clinician actually asks about.
+ *
+ * This is the most useful thing the tool can hand over: "68/100" means nothing
+ * in a consultation, whereas "redness moderate, surface broken, about a fifth
+ * of what's in shot" is a description someone can work with — and it maps onto
+ * the EASI calculator already in the app.
+ */
+export function signReadout(features: PhotoFeatures): SignReadout {
+  const areaPercentOfPhoto = Math.round(features.inflamedFraction * 100);
+  return {
+    erythema: band(features.intensity, [0.12, 0.4, 0.7]),
+    surfaceDamage: band(features.textureIndex, [0.025, 0.05, 0.085]),
+    areaPercentOfPhoto,
+    areaBand: easiAreaBand(areaPercentOfPhoto),
+    notMeasurable: NOT_PHOTOGRAPHABLE_SIGNS,
+  };
 }
 
 /** Manual severity (1–10) at or below which a logged day counts as calm enough

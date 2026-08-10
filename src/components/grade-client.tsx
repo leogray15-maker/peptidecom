@@ -21,9 +21,13 @@ import {
   type PhotoRejection,
   CALM_MANUAL_SEVERITY,
   QUALITY_FLAG_COPY,
+  type SignReadout,
   estimateAgreement,
   flareBand,
+  signReadout,
 } from "@/lib/photo-score";
+import { EASI_AREA_BANDS, EASI_SIGN_BANDS } from "@/lib/easi";
+import { FlareRegionMap } from "@/components/flare-region-map";
 import { gradePhoto } from "@/lib/photo-grade";
 import {
   CONSENT_VERSION,
@@ -37,6 +41,61 @@ import { getConsent, setConsent, syncConsents } from "@/lib/consent";
 import { anyZoneLabel } from "@/lib/conditions";
 import { type BodyZone, dateKey } from "@/lib/tsw";
 import { cn } from "@/lib/utils";
+
+/** One row of the clinician-facing read-out. */
+function ReadoutRow({ label, hint, value }: { label: string; hint: string; value: string }) {
+  return (
+    <li className="flex items-start justify-between gap-4 border-b border-lab-border pb-2 text-sm">
+      <span className="min-w-0">
+        <span className="text-slate-300">{label}</span>
+        <span className="mt-0.5 block text-xs leading-snug text-slate-500">{hint}</span>
+      </span>
+      <span className="shrink-0 font-semibold tabular-nums text-white">{value}</span>
+    </li>
+  );
+}
+
+/**
+ * Which way things have moved since the last photo of this area.
+ *
+ * The change is only called a change when it clears the estimate's own margin
+ * of error. Two readings inside the same interval are the same reading, and
+ * saying "down 4" about them would manufacture progress out of noise.
+ */
+function TrendLine({
+  score,
+  previous,
+  margin,
+}: {
+  score: number;
+  previous: GradedPhoto;
+  margin: number;
+}) {
+  const delta = score - previous.score;
+  const days = daysBetween(previous.takenAt, dateKey());
+  const when = days <= 0 ? "earlier today" : days === 1 ? "yesterday" : `${days} days ago`;
+
+  if (Math.abs(delta) <= margin) {
+    return (
+      <p className="mt-1.5 text-xs text-slate-400">
+        About the same as your last photo of this area ({previous.score}/100, {when}) — the
+        difference is inside the estimate&apos;s margin of error.
+      </p>
+    );
+  }
+  return (
+    <p className={cn("mt-1.5 text-xs font-medium", delta < 0 ? "text-emerald-300" : "text-rose-300")}>
+      {delta < 0 ? "↓" : "↑"} {Math.abs(delta)} points vs your last photo of this area (
+      {previous.score}/100, {when}).
+    </p>
+  );
+}
+
+/** Whole days between two YYYY-MM-DD keys. */
+function daysBetween(from: string, to: string): number {
+  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
+  return Number.isNaN(ms) ? 0 : Math.round(ms / 86_400_000);
+}
 
 /** A previously graded photo, used as the personal baseline. */
 export interface GradedPhoto {
@@ -67,6 +126,7 @@ export function GradeClient({
   const [area, setArea] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<PhotoEstimate | null>(null);
+  const [readout, setReadout] = useState<SignReadout | null>(null);
   const [skinFraction, setSkinFraction] = useState<number | null>(null);
   const [usedBaseline, setUsedBaseline] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -89,6 +149,19 @@ export function GradeClient({
 
   const band = estimate ? flareBand(estimate.score) : null;
 
+  /** The last estimate for this same area, so the result can say which way
+   * things have moved rather than leaving the member to compare two numbers
+   * across two screens. Same-area only — comparing a face to a shin is noise,
+   * and same-version only, since v2 composites aren't comparable to v3 ones. */
+  const previous = useMemo(() => {
+    if (!area) return null;
+    const today = dateKey();
+    const prior = graded
+      .filter((p) => p.area === area && p.version === PHOTO_SCORE_VERSION && p.takenAt < today)
+      .sort((a, b) => b.takenAt.localeCompare(a.takenAt));
+    return prior[0] ?? null;
+  }, [graded, area]);
+
   /** How well the estimate has tracked this member's own tracker ratings. */
   const agreement = useMemo(() => {
     const pairs: [number, number][] = [];
@@ -103,6 +176,7 @@ export function GradeClient({
     setError(null);
     setRejected(null);
     setEstimate(null);
+    setReadout(null);
     setSkinFraction(null);
     setSaved(false);
     setWorking(true);
@@ -124,6 +198,7 @@ export function GradeClient({
       }
       setSkinFraction(result.features.skinFraction);
       setUsedBaseline(!!result.baseline);
+      setReadout(signReadout(result.features));
       // Record which maths produced the number and which disclaimer version
       // the member had accepted when it was produced.
       setEstimate({
@@ -172,6 +247,7 @@ export function GradeClient({
   function reset() {
     setPreview(null);
     setEstimate(null);
+    setReadout(null);
     setSkinFraction(null);
     setRejected(null);
     setShowAbout(false);
@@ -264,12 +340,16 @@ export function GradeClient({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview}
-              alt="The photo being graded"
-              className="h-40 w-40 shrink-0 rounded-2xl object-cover"
-            />
+            {estimate?.regionMap ? (
+              <FlareRegionMap src={preview} regionMap={estimate.regionMap} />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={preview}
+                alt="The photo being graded"
+                className="h-40 w-40 shrink-0 rounded-2xl object-cover"
+              />
+            )}
             <div className="min-w-0 flex-1 text-center sm:text-left">
               {working ? (
                 <p className="flex items-center justify-center gap-2 text-sm text-slate-400 sm:justify-start">
@@ -298,6 +378,29 @@ export function GradeClient({
                       {band.label}
                     </p>
                     <p className="mt-1 text-sm text-slate-400">{band.blurb}</p>
+                    {/* The range, not just the point. A member comparing 53
+                        against last week's 58 is otherwise reading noise as
+                        improvement. */}
+                    {estimate.low != null && estimate.high != null && (
+                      <p className="mt-1 text-sm text-slate-400">
+                        Realistically somewhere in{" "}
+                        <span className="font-semibold tabular-nums text-slate-300">
+                          {estimate.low}–{estimate.high}
+                        </span>
+                        .
+                      </p>
+                    )}
+                    {previous && (
+                      <TrendLine
+                        score={estimate.score}
+                        previous={previous}
+                        margin={
+                          estimate.low != null && estimate.high != null
+                            ? Math.round((estimate.high - estimate.low) / 2)
+                            : 5
+                        }
+                      />
+                    )}
                     <p className="mt-2 text-xs text-slate-500">
                       {estimate.basis === "baseline"
                         ? "Scored against your own photo from a day you rated calm."
@@ -449,6 +552,49 @@ export function GradeClient({
               />
             </div>
           )}
+        </div>
+      )}
+
+      {/* The number, broken back into what a clinician actually asks about */}
+      {estimate && readout && (
+        <div className="card !rounded-3xl">
+          <h2 className="font-semibold text-white">Describing this to a clinician</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            &ldquo;{estimate.score}/100&rdquo; means nothing in an appointment. These are the
+            same headings the EASI uses, so you can read them straight out.
+          </p>
+
+          <ul className="mt-4 space-y-2">
+            <ReadoutRow
+              label="Redness"
+              hint="Erythema"
+              value={`${EASI_SIGN_BANDS[readout.erythema].label} (${readout.erythema}/3)`}
+            />
+            <ReadoutRow
+              label="Broken skin, scale or crusting"
+              hint="A photo can't tell scratch marks from scale, so this is one number"
+              value={`${EASI_SIGN_BANDS[readout.surfaceDamage].label} (${readout.surfaceDamage}/3)`}
+            />
+            <ReadoutRow
+              label="How much of the skin in this photo"
+              hint={`Roughly the EASI area band ${readout.areaBand} — ${EASI_AREA_BANDS[readout.areaBand].label} — but only if this photo covers the whole body region`}
+              value={`${readout.areaPercentOfPhoto}%`}
+            />
+          </ul>
+
+          {/* Named rather than silently omitted: a reader who sees three signs
+              filled in would reasonably assume the other two were checked. */}
+          <p className="mt-3 rounded-2xl border border-lab-border bg-lab-bg/60 p-3 text-xs leading-relaxed text-slate-400">
+            <span className="font-semibold text-slate-300">Swelling and thickening aren&apos;t
+            here on purpose.</span>{" "}
+            The EASI also scores oedema/papulation and lichenification, and neither can be read
+            from a flat photograph — they need to be seen or felt in three dimensions. Fill those
+            two in yourself.
+          </p>
+
+          <Link href="/easi" className="btn-secondary mt-3">
+            Open the EASI calculator
+          </Link>
         </div>
       )}
 
