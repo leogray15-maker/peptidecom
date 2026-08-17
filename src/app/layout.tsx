@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { DisclaimerBar } from "@/components/disclaimer-bar";
+import { WhopPageViews } from "@/components/whop-pixel";
+import { WHOP_PIXEL_SNIPPET } from "@/lib/whop-pixel";
 
 const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Arcane Track";
 
@@ -38,9 +40,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Whop ad pixel. Whop requires it in the <head> of every page, so it
+            lives in the root layout rather than in a page or in next/script
+            (which injects into <body> for anything but beforeInteractive).
+            The snippet fires its own "page" event on first load; SPA
+            navigations are tracked by <WhopPageViews /> below. */}
+        <script dangerouslySetInnerHTML={{ __html: WHOP_PIXEL_SNIPPET }} />
+      </head>
       <body>
         <DisclaimerBar />
         {children}
+        <WhopPageViews />
       </body>
     </html>
   );
