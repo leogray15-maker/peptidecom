@@ -8,6 +8,7 @@ import { MONTHLY_PRICE, YEARLY_PRICE, YEARLY_SAVINGS_PCT, formatPrice } from "@/
 import { PricingPlans } from "@/components/pricing-plans";
 import { reconcileMembership } from "@/lib/stripe-sync";
 import { ManageBillingButton } from "@/components/manage-billing-button";
+import { WhopEvent } from "@/components/whop-pixel";
 
 export const metadata = { title: "Pricing" };
 export const dynamic = "force-dynamic";
@@ -101,6 +102,9 @@ export default async function PricingPage({
 
   return (
     <>
+      {/* The offer page. Reported to Whop only for someone who can still buy —
+          a member re-reading what they already pay for isn't a funnel step. */}
+      {!member && <WhopEvent event="view_content" />}
       <SiteHeader />
       <section className="border-b border-lab-border py-16">
         <div className="container-lab text-center">

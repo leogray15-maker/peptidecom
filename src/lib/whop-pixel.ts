@@ -19,3 +19,25 @@ const WHOP_LOADER = `!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new
 export const WHOP_PIXEL_SNIPPET = `${WHOP_LOADER}whop.setScope(${JSON.stringify(
   WHOP_BIZ_ID,
 )});whop.track("page");`;
+
+// Whop's standard funnel events, as listed in the pixel dashboard
+// (whop.com/dashboard/<biz>/pixel → "Fire events from your funnel"). Whop's own
+// example fires them lowercase — `whop.track("lead")` — and the counters on
+// that page are the check that a name is landing: fire one and watch the row
+// tick up. If a name is ever rejected, this list is the only place to fix it.
+export const WHOP_EVENTS = [
+  "page",
+  "lead",
+  "complete_registration",
+  "submit_application",
+  "schedule",
+  "contact",
+  "view_content",
+  "add_to_cart",
+  "custom",
+] as const;
+
+export type WhopEventName = (typeof WHOP_EVENTS)[number];
+
+/** Currency the membership is billed in, for events that carry a value. */
+export const WHOP_CURRENCY = "GBP";

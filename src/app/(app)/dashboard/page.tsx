@@ -25,6 +25,10 @@ import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { StageSheet } from "@/components/stage-sheet";
 import { WelcomeBanner } from "@/components/welcome-banner";
+import { WhopEvent } from "@/components/whop-pixel";
+import { STRIPE_PRICES } from "@/lib/stripe";
+import { WHOP_CURRENCY } from "@/lib/whop-pixel";
+import { PLANS } from "@/lib/membership";
 import { getCurrentUser } from "@/lib/auth";
 import { anyStageName, getCondition } from "@/lib/conditions";
 import {
@@ -175,6 +179,16 @@ export default async function DashboardPage({
   const justSubscribed = welcome === "1" || checkout === "success";
   const user = await getCurrentUser();
 
+  // Which plan they just bought, resolved from the Stripe price on their own
+  // record — never from a query parameter, so the reported value can't be
+  // faked by editing the URL.
+  const purchasedPlan =
+    user?.stripePriceId && user.stripePriceId === STRIPE_PRICES.yearly
+      ? ("yearly" as const)
+      : user?.stripePriceId && user.stripePriceId === STRIPE_PRICES.monthly
+        ? ("monthly" as const)
+        : null;
+
   const getRecentPosts = () =>
     prisma.post.findMany({
       take: 5,
@@ -225,6 +239,27 @@ export default async function DashboardPage({
         <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
       )}
       {justSubscribed && <WelcomeBanner name={user?.name?.split(" ")[0]} />}
+      {/* The paid conversion, reported to Whop. This lands here rather than on
+          /checkout/success because that page redirects straight through on the
+          happy path and never renders. Fires once: WelcomeBanner strips
+          ?welcome=1 from the URL on mount, so a refresh doesn't count twice.
+          Sent as a "custom" event because Whop's own purchase tracking only
+          covers Whop checkout — this membership is billed through Stripe. */}
+      {justSubscribed && (
+        <WhopEvent
+          event="custom"
+          meta={
+            purchasedPlan
+              ? {
+                  name: "purchase",
+                  value: PLANS[purchasedPlan].price,
+                  currency: WHOP_CURRENCY,
+                  plan: purchasedPlan,
+                }
+              : { name: "purchase" }
+          }
+        />
+      )}
       <PageHeader
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ import { establishSession } from "@/lib/session-client";
 import { GoogleIcon } from "@/components/google-icon";
 import { InAppBrowserNotice, useInAppBrowser } from "@/components/in-app-browser-guard";
 import { Turnstile } from "@/components/turnstile";
+import { whopTrack } from "@/components/whop-pixel";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,6 +28,12 @@ export default function RegisterPage() {
   // exactly what the server expects in that case (lib/turnstile.ts fails open).
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
+  // Reaching the sign-up form is the first thing a visitor does that says they
+  // want in — the earliest point Whop can call this traffic a lead.
+  useEffect(() => {
+    whopTrack("lead");
+  }, []);
+
   async function withEmail(e: React.FormEvent) {
     e.preventDefault();
     if (!clientAuth) return setError("Sign-up is not configured yet.");
@@ -36,6 +43,7 @@ export default function RegisterPage() {
       const cred = await createUserWithEmailAndPassword(clientAuth, email, password);
       if (name) await updateProfile(cred.user, { displayName: name });
       await establishSession(cred.user, turnstileToken);
+      whopTrack("complete_registration");
       router.push("/pricing?welcome=1");
       router.refresh();
     } catch (err) {
@@ -51,6 +59,7 @@ export default function RegisterPage() {
     try {
       const cred = await signInWithPopup(clientAuth, googleProvider);
       await establishSession(cred.user, turnstileToken);
+      whopTrack("complete_registration");
       router.push("/pricing?welcome=1");
       router.refresh();
     } catch (err) {

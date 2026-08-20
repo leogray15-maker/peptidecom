@@ -5,10 +5,13 @@ import { Check, Loader2 } from "lucide-react";
 import {
   type PlanId,
   PLAN_LIST,
+  PLANS,
   YEARLY_PER_MONTH,
   formatPrice,
 } from "@/lib/membership";
 import { cn } from "@/lib/utils";
+import { whopTrack } from "@/components/whop-pixel";
+import { WHOP_CURRENCY } from "@/lib/whop-pixel";
 
 export function PricingPlans() {
   const [plan, setPlan] = useState<PlanId>("yearly");
@@ -18,6 +21,14 @@ export function PricingPlans() {
   async function subscribe() {
     setLoading(true);
     setError(null);
+    // Reported before the request, not after: the success path leaves for
+    // Stripe immediately, and an event fired against a page that's already
+    // navigating away is an event that may never leave the browser.
+    whopTrack("add_to_cart", {
+      value: PLANS[plan].price,
+      currency: WHOP_CURRENCY,
+      plan,
+    });
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
