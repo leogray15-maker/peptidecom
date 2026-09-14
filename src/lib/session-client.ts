@@ -3,15 +3,26 @@
 import type { User } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
 
+export interface SessionOptions {
+  /** Cloudflare Turnstile token — only needed on the signup path. */
+  turnstileToken?: string | null;
+  /** Contact number from the signup form, stored on the account row. */
+  phone?: string | null;
+}
+
 /** After a Firebase sign-in, exchange the ID token for a server session cookie
  * and refresh the local token so custom claims (member/role) are available for
  * Firestore. Throws on failure. */
-export async function establishSession(user: User, turnstileToken?: string | null) {
+export async function establishSession(user: User, options: SessionOptions = {}) {
   const idToken = await user.getIdToken();
   const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken, turnstileToken: turnstileToken ?? null }),
+    body: JSON.stringify({
+      idToken,
+      turnstileToken: options.turnstileToken ?? null,
+      phone: options.phone ?? null,
+    }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

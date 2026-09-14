@@ -9,6 +9,7 @@ import {
 import { isAdminEmail, syncMembershipClaim } from "@/lib/auth";
 import { reconcileMembership } from "@/lib/stripe-sync";
 import { clientIp, verifyTurnstile } from "@/lib/turnstile";
+import { PHONE_INPUT_MAX, normalizePhone } from "@/lib/phone";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,9 @@ const schema = z.object({
   /** Cloudflare Turnstile token from the signup form. Only required when this
    * request would CREATE an account — returning members log in without one. */
   turnstileToken: z.string().max(4000).optional().nullable(),
+  /** Contact number from the signup form. Optional here because returning
+   * members log in without one; the signup form is what makes it required. */
+  phone: z.string().max(PHONE_INPUT_MAX).optional().nullable(),
 });
 
 function makeUsername(email: string) {
@@ -59,6 +63,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Account has no email." }, { status: 400 });
   }
   const normalizedEmail = email.toLowerCase();
+  // Prefer what they just typed; fall back to a number Firebase already holds
+  // (phone sign-in, or a number added to the Firebase user elsewhere).
+  const phone =
+    normalizePhone(parsed.data.phone) ?? normalizePhone(decoded.phone_number ?? null);
 
   // 2. Postgres — find/link/create the user row.
   let user;
@@ -73,6 +81,7 @@ export async function POST(req: Request) {
             firebaseUid: uid,
             name: byEmail.name ?? name ?? null,
             image: byEmail.image ?? picture ?? null,
+            phone: byEmail.phone ?? phone,
           },
         });
       } else {
@@ -96,11 +105,18 @@ export async function POST(req: Request) {
             email: normalizedEmail,
             name: name ?? null,
             image: picture ?? null,
+            phone,
             username,
             role: isAdminEmail(normalizedEmail) ? "ADMIN" : "MEMBER",
           },
         });
       }
+    }
+
+    // Backfill a number for an account that predates this field, or whose
+    // first sign-in came through a path that never asked for one.
+    if (phone && !user.phone) {
+      user = await prisma.user.update({ where: { id: user.id }, data: { phone } });
     }
 
     // Ensure allow-listed emails always have the ADMIN role (bypasses the paywall).

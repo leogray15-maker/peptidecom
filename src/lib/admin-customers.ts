@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import { normalizePhone } from "@/lib/phone";
 
 /** Shared customer query builder so the table and the CSV export always agree
  * on what "the current view" means. */
@@ -17,13 +18,25 @@ export function customerWhere(p: CustomerQueryParams): Prisma.UserWhereInput {
 
   const q = p.q?.trim();
   if (q) {
-    and.push({
-      OR: [
-        { email: { contains: q, mode: "insensitive" } },
-        { name: { contains: q, mode: "insensitive" } },
-        { username: { contains: q, mode: "insensitive" } },
-      ],
-    });
+    const or: Prisma.UserWhereInput[] = [
+      { email: { contains: q, mode: "insensitive" } },
+      { name: { contains: q, mode: "insensitive" } },
+      { username: { contains: q, mode: "insensitive" } },
+    ];
+
+    // Phone search, matched however it was typed: numbers are stored in E.164,
+    // so "07700 900123", "+44 7700 900123" and "900123" all have to find the
+    // same person.
+    const digits = q.replace(/\D/g, "");
+    if (digits.length >= 4) {
+      const normalized = normalizePhone(q);
+      if (normalized) or.push({ phone: normalized });
+      // Trailing digits: the end of a number is what an admin remembers, and
+      // it's the part that doesn't change with the country code.
+      or.push({ phone: { endsWith: digits.replace(/^0+/, "") } });
+    }
+
+    and.push({ OR: or });
   }
 
   switch (p.status) {

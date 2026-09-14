@@ -14,13 +14,21 @@ import { establishSession } from "@/lib/session-client";
 import { GoogleIcon } from "@/components/google-icon";
 import { InAppBrowserNotice, useInAppBrowser } from "@/components/in-app-browser-guard";
 import { Turnstile } from "@/components/turnstile";
+import { PhoneField } from "@/components/phone-field";
+import { DEFAULT_DIAL_CODE, normalizePhone } from "@/lib/phone";
+
+const PHONE_ERROR = `Add a mobile number we can reach you on, with its country code (e.g. +${DEFAULT_DIAL_CODE} 7700 900123).`;
 
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Which sign-up path produced the error, so it renders beside the button
+  // that was actually pressed rather than somewhere off-screen.
+  const [errorSource, setErrorSource] = useState<"email" | "google">("email");
   const [loading, setLoading] = useState<"email" | "google" | null>(null);
   const inAppBrowser = useInAppBrowser();
   // Cloudflare Turnstile. Stays null when the widget isn't configured, which is
@@ -29,13 +37,16 @@ export default function RegisterPage() {
 
   async function withEmail(e: React.FormEvent) {
     e.preventDefault();
+    setErrorSource("email");
     if (!clientAuth) return setError("Sign-up is not configured yet.");
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) return setError(PHONE_ERROR);
     setError(null);
     setLoading("email");
     try {
       const cred = await createUserWithEmailAndPassword(clientAuth, email, password);
       if (name) await updateProfile(cred.user, { displayName: name });
-      await establishSession(cred.user, turnstileToken);
+      await establishSession(cred.user, { turnstileToken, phone: normalizedPhone });
       router.push("/pricing?welcome=1");
       router.refresh();
     } catch (err) {
@@ -45,12 +56,17 @@ export default function RegisterPage() {
   }
 
   async function withGoogle() {
+    setErrorSource("google");
     if (!clientAuth) return setError("Sign-up is not configured yet.");
+    // Google hands us an email, never a number — so it still has to be typed in
+    // before the popup opens, not discovered as missing afterwards.
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) return setError(PHONE_ERROR);
     setError(null);
     setLoading("google");
     try {
       const cred = await signInWithPopup(clientAuth, googleProvider);
-      await establishSession(cred.user, turnstileToken);
+      await establishSession(cred.user, { turnstileToken, phone: normalizedPhone });
       router.push("/pricing?welcome=1");
       router.refresh();
     } catch (err) {
@@ -72,13 +88,21 @@ export default function RegisterPage() {
         </p>
       )}
 
+      <div className="mt-6">
+        <PhoneField value={phone} onChange={setPhone} />
+      </div>
+
+      {error && errorSource === "google" && (
+        <p className="mt-3 text-sm text-red-400">{error}</p>
+      )}
+
       {inAppBrowser ? (
         <InAppBrowserNotice appName={inAppBrowser} />
       ) : (
         <button
           onClick={withGoogle}
           disabled={loading !== null}
-          className="btn-secondary mt-6 w-full"
+          className="btn-secondary mt-4 w-full"
         >
           {loading === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
           Continue with Google
@@ -107,7 +131,7 @@ export default function RegisterPage() {
           <p className="mt-1 text-xs text-slate-500">At least 8 characters.</p>
         </div>
         <Turnstile onToken={setTurnstileToken} />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && errorSource === "email" && <p className="text-sm text-red-400">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={loading !== null}>
           {loading === "email" && <Loader2 className="h-4 w-4 animate-spin" />}
           Continue

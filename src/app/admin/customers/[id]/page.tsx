@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, ExternalLink, BadgeCheck, Mail } from "lucide-react";
+import { ArrowLeft, Crown, ExternalLink, BadgeCheck, Mail, MessageSquare, Phone } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/prisma";
 import { safe } from "@/lib/safe-db";
@@ -12,6 +12,7 @@ import { JourneyPanel } from "@/components/admin/journey-panel";
 import { NotesPanel } from "@/components/admin/notes-panel";
 import { TasksPanel, type TaskItem } from "@/components/admin/tasks-panel";
 import { formatDate, timeAgo } from "@/lib/utils";
+import { formatPhone } from "@/lib/phone";
 
 export const metadata = { title: "Customer" };
 
@@ -99,6 +100,15 @@ export default async function CustomerDetailPage({
                 {user.email}
                 {user.username && <> · @{user.username}</>}
               </p>
+              <p className="text-sm text-slate-400">
+                {user.phone ? (
+                  <a href={`tel:${user.phone}`} className="text-brand-300 hover:text-brand-200">
+                    {formatPhone(user.phone)}
+                  </a>
+                ) : (
+                  <span className="text-slate-500">No phone number on file</span>
+                )}
+              </p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <StageBadge stage={stage} manual={!!user.crmStage} />
                 <SubscriptionBadge status={user.subscriptionStatus} />
@@ -115,6 +125,16 @@ export default async function CustomerDetailPage({
             <a href={`mailto:${user.email}`} className="btn-secondary">
               <Mail className="h-4 w-4" /> Email
             </a>
+            {user.phone && (
+              <>
+                <a href={`tel:${user.phone}`} className="btn-secondary">
+                  <Phone className="h-4 w-4" /> Call
+                </a>
+                <a href={`sms:${user.phone}`} className="btn-secondary">
+                  <MessageSquare className="h-4 w-4" /> Text
+                </a>
+              </>
+            )}
             {user.stripeCustomerId && (
               <a
                 href={`https://dashboard.stripe.com/customers/${user.stripeCustomerId}`}

@@ -103,6 +103,9 @@ model User {
   username      String?   @unique
   email         String    @unique
   emailVerified DateTime?
+  // Collected at signup and at checkout — email alone isn't enough to chase a
+  // payment that stalled or to reach someone about their order.
+  phone         String?
   image         String?
   bio           String?
   role          Role      @default(MEMBER)

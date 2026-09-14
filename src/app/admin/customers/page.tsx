@@ -10,6 +10,7 @@ import { customerOrderBy, customerWhere, firstParam } from "@/lib/admin-customer
 import { CustomersFilters } from "@/components/admin/customers-filters";
 import { RoleBadge, StageBadge, SubscriptionBadge, TagBadge } from "@/components/admin/badges";
 import { formatDate } from "@/lib/utils";
+import { formatPhone } from "@/lib/phone";
 
 export const metadata = { title: "Customers" };
 
@@ -108,6 +109,9 @@ export default async function CustomersPage({
                         <RoleBadge role={u.role} />
                       </span>
                       <span className="block truncate text-xs text-slate-500">{u.email}</span>
+                      <span className="block truncate text-xs text-slate-500">
+                        {u.phone ? formatPhone(u.phone) : "No phone"}
+                      </span>
                     </span>
                   </Link>
                 </td>

@@ -9,6 +9,8 @@ import { safe } from "@/lib/safe-db";
 import { type TswProfile, getProfile, tswKey } from "@/lib/tsw-db";
 import { formatDate } from "@/lib/utils";
 import { ManageBillingButton } from "@/components/manage-billing-button";
+import { PhoneSettings } from "@/components/phone-settings";
+import { formatPhone } from "@/lib/phone";
 
 const exports = [
   { data: "logs", label: "Daily skin logs" },
@@ -54,11 +56,19 @@ export default async function SettingsPage() {
               <dd className="text-white">{user.email}</dd>
             </div>
             <div className="flex justify-between">
+              <dt className="text-slate-400">Phone</dt>
+              <dd className="text-white">
+                {user.phone ? formatPhone(user.phone) : <span className="text-amber-300">Not added</span>}
+              </dd>
+            </div>
+            <div className="flex justify-between">
               <dt className="text-slate-400">Role</dt>
               <dd className="text-white">{user.role}</dd>
             </div>
           </dl>
         </section>
+
+        <PhoneSettings initial={user.phone} />
 
         <section className="card">
           <h2 className="text-lg font-semibold text-white">Membership</h2>

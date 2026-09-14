@@ -132,6 +132,10 @@ cp .env.example .env
 - Stripe keys — from your [Stripe dashboard](https://dashboard.stripe.com).
 - `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY` — create two recurring prices
   (a £11.99/month and a £70/year price) on a single product and paste their IDs.
+- `NEXT_PUBLIC_DEFAULT_DIAL_CODE` — *optional, defaults to `+44`*. Sign-up and
+  checkout both ask for a phone number, stored in E.164 (`+447700900123`). A
+  number typed in national form (`07700 900123`) is assumed to be from this
+  country; the signup form shows the result back so anyone abroad can correct it.
 
 ### 3. Database & Firestore rules
 

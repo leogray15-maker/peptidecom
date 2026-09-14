@@ -54,7 +54,7 @@ export function CustomersFilters() {
         <input
           name="q"
           defaultValue={params.get("q") ?? ""}
-          placeholder="Search name, email, username…"
+          placeholder="Search name, email, phone, username…"
           className="input !pl-9"
         />
       </form>

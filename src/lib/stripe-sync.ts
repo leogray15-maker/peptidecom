@@ -9,6 +9,7 @@ import {
   isActiveStatus,
   RENEWAL_GRACE_MS,
 } from "@/lib/auth";
+import { normalizePhone } from "@/lib/phone";
 import type { SubscriptionStatus, User } from "@prisma/client";
 
 /** Stripe's subscription status → the status we store on the user row. */
@@ -82,6 +83,42 @@ export async function syncSubscription(
   }
 
   return updated;
+}
+
+/**
+ * Record the phone number Stripe collected during checkout.
+ *
+ * Checkout is the second place we ask (signup being the first), and it's the
+ * one that catches members who joined before we asked and anyone who paid
+ * through a link rather than the signup flow. Only ever fills a gap — a number
+ * the member gave us directly is never overwritten by one typed into Stripe.
+ *
+ * Never throws: a missing phone number must not fail an activation.
+ */
+export async function recordCheckoutPhone(
+  session: Stripe.Checkout.Session,
+  fallbackUserId?: string | null
+): Promise<void> {
+  const phone = normalizePhone(session.customer_details?.phone ?? null);
+  if (!phone) return;
+
+  const customerId =
+    typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+
+  try {
+    const user = customerId
+      ? await prisma.user.findUnique({ where: { stripeCustomerId: customerId } })
+      : null;
+    const userId = user?.id ?? fallbackUserId ?? session.metadata?.userId ?? null;
+    if (!userId) return;
+
+    await prisma.user.updateMany({
+      where: { id: userId, phone: null },
+      data: { phone },
+    });
+  } catch (err) {
+    console.error("Could not save the checkout phone number:", err);
+  }
 }
 
 /**

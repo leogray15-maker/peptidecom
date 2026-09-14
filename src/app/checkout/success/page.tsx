@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getCurrentUser, hasAccess } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
-import { reconcileMembership, syncSubscription } from "@/lib/stripe-sync";
+import { recordCheckoutPhone, reconcileMembership, syncSubscription } from "@/lib/stripe-sync";
 
 export const metadata = { title: "Payment received" };
 export const dynamic = "force-dynamic";
@@ -59,6 +59,12 @@ export default async function CheckoutSuccessPage({
         session.subscription && typeof session.subscription !== "string"
           ? session.subscription
           : null;
+
+      if (ownsSession) {
+        // Stripe asked for a number at the payment step; keep it if we didn't
+        // already have one, without waiting on the webhook to land.
+        await recordCheckoutPhone(session, user.id);
+      }
 
       if (ownsSession && subscription) {
         member = (await syncSubscription(subscription, user.id)) ?? member;

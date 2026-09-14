@@ -34,11 +34,18 @@ export async function POST(req: Request) {
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name ?? undefined,
+        phone: user.phone ?? undefined,
         metadata: { userId: user.id },
       });
       customerId = customer.id;
       await prisma.user
         .update({ where: { id: user.id }, data: { stripeCustomerId: customerId } })
+        .catch(() => {});
+    } else if (user.phone) {
+      // Keep the number we hold on the Stripe record too, so it's there when
+      // the sale is chased from the Stripe dashboard rather than from here.
+      await stripe.customers
+        .update(customerId, { phone: user.phone })
         .catch(() => {});
     }
 
@@ -47,6 +54,11 @@ export async function POST(req: Request) {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
+      // Ask for a number at the payment step too. A checkout that stalls —
+      // card declined, bank authentication abandoned — is exactly when an
+      // email address on its own isn't enough to get the sale back, and
+      // Stripe pre-fills this from the customer record when we already have one.
+      phone_number_collection: { enabled: true },
       subscription_data: {
         metadata: { userId: user.id, plan },
       },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
-import { syncSubscription } from "@/lib/stripe-sync";
+import { recordCheckoutPhone, syncSubscription } from "@/lib/stripe-sync";
 
 // Stripe requires the raw body for signature verification.
 export const runtime = "nodejs";
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        await recordCheckoutPhone(session, session.metadata?.userId);
         if (session.subscription) {
           const sub = await stripe.subscriptions.retrieve(
             session.subscription as string

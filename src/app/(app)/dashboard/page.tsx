@@ -22,6 +22,7 @@ import {
 import { ConditionPickerModal } from "@/components/condition-picker";
 import { FeatureCard, type FeatureCardProps } from "@/components/feature-card";
 import { InsightsPanel } from "@/components/insights-panel";
+import { MissingPhoneNotice } from "@/components/missing-phone-notice";
 import { PageHeader } from "@/components/page-header";
 import { StageSheet } from "@/components/stage-sheet";
 import { WelcomeBanner } from "@/components/welcome-banner";
@@ -225,6 +226,7 @@ export default async function DashboardPage({
         <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
       )}
       {justSubscribed && <WelcomeBanner name={user?.name?.split(" ")[0]} />}
+      {user && !user.phone && <MissingPhoneNotice />}
       <PageHeader
         title={`Welcome back, ${firstName}`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."

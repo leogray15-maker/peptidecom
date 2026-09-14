@@ -39,6 +39,7 @@ const PREVIEW_USER: User = {
   username: "preview",
   email: "preview@arcanetrack.local",
   emailVerified: null,
+  phone: null,
   image: null,
   bio: null,
   role: "ADMIN",
