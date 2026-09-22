@@ -9,8 +9,14 @@
 // the buttons or the wheel, and score pins drawn on top.
 //
 // Tiles come from CARTO's dark basemap, rendered from OpenStreetMap data —
-// attribution is required and rendered in the corner. No cookies, no API key,
-// and the only thing the tile server learns is the area being looked at.
+// attribution is required and rendered in the corner. No cookies, and the only
+// thing the tile server learns is the area being looked at.
+//
+// CARTO's raster tiles now want an API key; without one the tiles come back
+// stamped "API KEY REQUIRED". Set NEXT_PUBLIC_CARTO_API_KEY to the key from
+// carto.com/basemaps/apikey. It's public by nature (the browser fetches the
+// tiles), so lock it to this site's domain in the CARTO dashboard rather than
+// trying to hide it. Unset, the map still draws — watermarked.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Crosshair, Minus, Plus, Search } from "lucide-react";
@@ -18,6 +24,11 @@ import type { ScoreTone } from "@/lib/product-score";
 import { cn } from "@/lib/utils";
 
 const TILE_SIZE = 256;
+
+// Appended to every tile request; empty when no key is configured.
+const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY
+  ? `?key=${encodeURIComponent(process.env.NEXT_PUBLIC_CARTO_API_KEY)}`
+  : "";
 const MIN_ZOOM = 11;
 const MAX_ZOOM = 18;
 
@@ -204,7 +215,7 @@ export function RestaurantMap({
           key: `${view.zoom}/${x}/${y}`,
           url: `https://${sub}.basemaps.cartocdn.com/dark_all/${view.zoom}/${wrapped}/${y}${
             retina ? "@2x" : ""
-          }.png`,
+          }.png${CARTO_KEY}`,
           left: x * TILE_SIZE - topLeft.x,
           top: y * TILE_SIZE - topLeft.y,
         });
