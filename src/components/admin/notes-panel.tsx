@@ -41,7 +41,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
 
   return (
     <div className="card">
-      <h2 className="mb-3 font-semibold text-white">Notes</h2>
+      <h2 className="mb-3 font-medium text-white">Notes</h2>
 
       <form
         onSubmit={async (e) => {

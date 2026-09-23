@@ -27,7 +27,7 @@ export default function LibraryPage() {
         {peptides.map((p) => (
           <article key={p.slug} className="card flex flex-col">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-white">{p.name}</h2>
+              <h2 className="text-lg font-medium text-white">{p.name}</h2>
               <span className="badge bg-brand-900/60 text-brand-200">{p.category}</span>
               {p.goals?.map((g) => (
                 <span key={g} className="badge border border-lab-border text-slate-400" title={goalLabel(g) ?? g}>

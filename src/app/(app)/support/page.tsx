@@ -72,7 +72,7 @@ export default function SupportPage() {
       </div>
 
       {/* Coping strategies */}
-      <h2 className="mt-8 text-lg font-semibold text-white">Getting through the itch</h2>
+      <h2 className="mt-8 text-lg font-medium text-white">Getting through the itch</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {COPING.map((c) => (
           <div key={c.title} className="card">
@@ -86,7 +86,7 @@ export default function SupportPage() {
       </div>
 
       {/* Reach out */}
-      <h2 className="mt-8 text-lg font-semibold text-white">Don&apos;t white-knuckle it alone</h2>
+      <h2 className="mt-8 text-lg font-medium text-white">Don&apos;t white-knuckle it alone</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Link href="/chat" className="card group transition hover:border-brand-600">
           <MessagesSquare className="h-5 w-5 text-brand-300" />

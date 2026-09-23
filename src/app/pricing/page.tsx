@@ -107,7 +107,7 @@ export default async function PricingPage({
           <span className="badge mb-5 border border-brand-500/40 bg-brand-500/10 text-brand-200">
             Save {YEARLY_SAVINGS_PCT}% with yearly
           </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white">
+          <h1 className="text-4xl font-medium tracking-tight text-white">
             One membership. Everything included.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-slate-400">
@@ -122,7 +122,7 @@ export default async function PricingPage({
       <section className="py-16">
         <div className="container-lab grid gap-8 lg:grid-cols-2">
           <div className="card">
-            <h2 className="text-xl font-semibold text-white">What&apos;s included</h2>
+            <h2 className="text-xl font-medium text-white">What&apos;s included</h2>
             <p className="mt-2 text-sm text-slate-400">
               Every tool below, from the moment you join. No tiers, no add-ons, nothing held back.
             </p>
@@ -199,7 +199,7 @@ export default async function PricingPage({
       <section className="border-t border-lab-border py-16">
         <div className="container-lab">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold text-white">What it looks like when it works</h2>
+            <h2 className="text-2xl font-medium text-white">What it looks like when it works</h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-400">
               Members&apos; own words, published with their permission. Individual experiences —
               not typical results, and not medical advice.

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   BookOpen,
   Calculator,
   ClipboardCheck,
   ClipboardList,
+  ChevronRight,
   CloudSun,
   Compass,
   Hand,
@@ -12,6 +12,8 @@ import {
   LineChart,
   ListChecks,
   Map,
+  MessageCircle,
+  Plus,
   Ruler,
   ScanEye,
   ScanLine,
@@ -20,7 +22,11 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { ConditionPickerModal } from "@/components/condition-picker";
-import { FeatureCard, type FeatureCardProps } from "@/components/feature-card";
+import {
+  FeatureBadgePill,
+  FeatureCard,
+  type FeatureCardProps,
+} from "@/components/feature-card";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { StageSheet } from "@/components/stage-sheet";
@@ -217,6 +223,12 @@ export default async function DashboardPage({
       )
     : [];
 
+  // The ring fills toward the next streak milestone, so it always has
+  // somewhere to go — a full ring at 7 would have nothing to say at 8.
+  const ringValue = stats.streak > 0 ? stats.streak : stats.daysTracked;
+  const nextMilestone = STREAK_MILESTONES.find((m) => m > ringValue) ?? ringValue;
+  const ringFraction = ringValue > 0 ? ringValue / nextMilestone : 0;
+
   return (
     <div>
       {/* One-time onboarding: adapts the whole app to the member's condition.
@@ -226,237 +238,367 @@ export default async function DashboardPage({
       )}
       {justSubscribed && <WelcomeBanner name={user?.name?.split(" ")[0]} />}
       <PageHeader
-        title={`Welcome back, ${firstName}`}
+        eyebrow={profile.condition ? condition.label : undefined}
+        title={`Welcome back, ${firstName}.`}
         subtitle="However your skin is today, showing up here counts. Here's where you stand."
       />
 
-      {/* Today at a glance — the three things that change hour to hour, each a
-          shortcut to the screen that owns them. */}
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
-        {[
-          {
-            href: "/tracker",
-            label: "Today",
-            value: todayLogged ? "Logged ✓" : "Log it",
-            hot: !todayLogged,
-          },
-          {
-            href: "/itch",
-            label: "Itch peak",
-            value: itch.todayPeak != null ? `${itch.todayPeak}/10` : "Check in",
-            hot: (itch.todayPeak ?? 0) >= 7,
-          },
-          {
-            href: "/forecast",
-            label: "Flare risk",
-            value: forecast ? `${forecast.score} ${forecast.band}` : "Check",
-            hot: (forecast?.score ?? 0) >= 50,
-          },
-        ].map((chip) => (
-          <Link
-            key={chip.href}
-            href={chip.href}
-            className={cn(
-              "card !rounded-2xl !p-3 text-center transition hover:border-brand-500/60",
-              chip.hot && "border-brand-500/50 bg-brand-500/10"
-            )}
-          >
-            <p className="text-[11px] text-slate-400">{chip.label}</p>
-            <p className="mt-0.5 truncate text-sm font-bold text-white">{chip.value}</p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Recovery stats — 2×2 on phones so the overview fits one screen. */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {/* Streak. A bare "0 days" is the single most demoralising thing this
-            screen could say to someone mid-flare, so zero never renders as a
-            number — it becomes total-days-logged or a plain invitation. */}
-        <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-slate-400 sm:text-sm">
-            {stats.streak > 0 ? "Tracking streak" : "Your tracking"}
-          </p>
-          {stats.streak > 0 ? (
-            <>
-              <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
-                {stats.streak}
-                <span className="text-sm font-normal text-slate-500 sm:text-base">
-                  {" "}
-                  day{stats.streak === 1 ? "" : "s"}
-                </span>
-              </p>
-              {stats.streakUsedGrace && (
-                <p className="mt-1 text-xs text-gold-300">Flare-day pass kept it alive ✦</p>
-              )}
-              {!todayLogged && (
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0 space-y-4">
+          {/* Today — the streak and the three things that change hour to hour,
+              each a shortcut to the screen that owns them. */}
+          <section aria-label="Today" className="card !rounded-3xl">
+            <div className="flex items-center gap-5">
+              <StreakRing
+                fraction={ringFraction}
+                value={ringValue}
+                label={
+                  stats.streak > 0
+                    ? `day streak`
+                    : stats.daysTracked > 0
+                      ? `day${stats.daysTracked === 1 ? "" : "s"} logged`
+                      : "start here"
+                }
+                gold={stats.streak > 0}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-slate-400">Today</p>
+                <p className="mt-0.5 text-lg font-semibold text-white">
+                  {todayLogged ? "Logged — nicely done" : "Not logged yet"}
+                </p>
+                {stats.streakUsedGrace && (
+                  <p className="mt-0.5 text-xs text-gold-300">Flare-day pass kept it alive ✦</p>
+                )}
                 <Link
                   href="/tracker"
-                  className="mt-1 inline-block text-xs text-brand-300 hover:text-brand-200"
+                  className={cn(
+                    "btn mt-3 w-full rounded-2xl sm:w-auto sm:px-6",
+                    todayLogged
+                      ? "border border-lab-border bg-lab-raised text-slate-100 hover:border-brand-500/40"
+                      : "bg-brand-300 font-bold text-lab-bg hover:bg-brand-200"
+                  )}
                 >
-                  Log today to keep it →
+                  {todayLogged ? (
+                    <>Edit today&apos;s log</>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" strokeWidth={2.6} />
+                      {stats.daysTracked === 0 ? "Log your first day" : "Log today · 20 sec"}
+                    </>
+                  )}
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-lab-line pt-4 sm:gap-4">
+              <Link href="/itch" className="group min-w-0 rounded-xl">
+                <p className="text-xs text-slate-400">Itch peak</p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-white">
+                  {itch.todayPeak != null ? (
+                    <>
+                      {itch.todayPeak}
+                      <span className="text-sm font-medium text-slate-500">/10</span>
+                    </>
+                  ) : (
+                    <span className="text-base text-brand-300 group-hover:text-brand-200">
+                      Check in
+                    </span>
+                  )}
+                </p>
+                {itch.todayPeak != null && (
+                  <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-lab-border">
+                    <span
+                      className={cn(
+                        "block h-full rounded-full",
+                        itch.todayPeak >= 7 ? "bg-orange-400" : "bg-brand-400"
+                      )}
+                      style={{ width: `${itch.todayPeak * 10}%` }}
+                    />
+                  </span>
+                )}
+              </Link>
+              <Link href="/forecast" className="group min-w-0 rounded-xl">
+                <p className="text-xs text-slate-400">Flare risk</p>
+                {forecast ? (
+                  <>
+                    <p className="mt-1 text-xl font-semibold tabular-nums text-white">
+                      {forecast.score}
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-0.5 flex items-center gap-1.5 truncate text-xs font-medium capitalize",
+                        forecast.score >= 50 ? "text-orange-300" : "text-emerald-300"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          forecast.score >= 50 ? "bg-orange-300" : "bg-emerald-300"
+                        )}
+                      />
+                      {forecast.band}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-base font-semibold text-brand-300 group-hover:text-brand-200">
+                    Check
+                  </p>
+                )}
+              </Link>
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400">Stage</p>
+                {stage ? (
+                  <StageSheet
+                    stages={condition.stages}
+                    currentStageId={profile.recoveryStage ?? null}
+                    currentStageName={stage}
+                  />
+                ) : (
+                  <Link
+                    href="/timeline"
+                    className="mt-1 inline-block text-base font-semibold text-brand-300 hover:text-brand-200"
+                  >
+                    Mark it
+                  </Link>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Recovery stats. A bare "0 days" is the single most demoralising
+              thing this screen could say to someone mid-flare, so zero never
+              renders as a number. */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="card !p-4 sm:!p-5">
+              <p className="text-xs text-slate-400 sm:text-sm">Days tracked</p>
+              {stats.daysTracked > 0 ? (
+                <p className="stat-num mt-2 text-3xl sm:text-4xl">{stats.daysTracked}</p>
+              ) : (
+                <Link
+                  href="/tracker"
+                  className="mt-2 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
+                >
+                  Start today →
                 </Link>
               )}
-            </>
-          ) : stats.daysTracked > 0 ? (
-            <>
-              <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
-                {stats.daysTracked}
-                <span className="text-sm font-normal text-slate-500 sm:text-base"> day{stats.daysTracked === 1 ? "" : "s"} logged</span>
+            </div>
+            <div className="card !p-4 sm:!p-5">
+              <p className="text-xs text-slate-400 sm:text-sm">Since last bad flare</p>
+              <p className="mt-2">
+                {stats.daysSinceBadFlare != null ? (
+                  <>
+                    <span className="stat-num text-3xl sm:text-4xl">{stats.daysSinceBadFlare}</span>
+                    <span className="text-sm text-slate-500">
+                      {" "}
+                      day{stats.daysSinceBadFlare === 1 ? "" : "s"}
+                    </span>
+                  </>
+                ) : stats.daysTracked > 0 ? (
+                  <span className="font-display text-xl text-white">None logged ✦</span>
+                ) : (
+                  <span className="stat-num text-3xl text-slate-600">—</span>
+                )}
               </p>
+            </div>
+          </div>
+
+          {/* Cohort + personal insights */}
+          <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
+        </div>
+
+        {/* Right rail on wide screens; flows under the stats on phones. */}
+        <div className="space-y-4">
+          <Link
+            href="/support"
+            className="card group flex items-center gap-4 !p-4 border-brand-500/30 bg-[#16122a] transition hover:border-brand-500 sm:!p-5"
+          >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/20 text-brand-300">
+              <LifeBuoy className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-white">Today is bad?</span>
+              <span className="block text-sm text-slate-400">
+                Calming tools, itch coping and the community — no judgement.
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
+          </Link>
+
+          <section className="card !p-4 sm:!p-5">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-white">Latest discussion</h2>
               <Link
-                href="/tracker"
-                className="mt-1 inline-block text-xs text-brand-300 hover:text-brand-200"
+                href="/community"
+                className="text-sm font-medium text-brand-300 hover:text-brand-200"
               >
-                {todayLogged ? "Every day counts →" : "Pick it back up today →"}
+                View all
               </Link>
-            </>
-          ) : (
-            <Link
-              href="/tracker"
-              className="mt-1 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
-            >
-              Log your first day →
-            </Link>
-          )}
-        </div>
-        <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-slate-400 sm:text-sm">Days tracked</p>
-          <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">{stats.daysTracked}</p>
-        </div>
-        <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-slate-400 sm:text-sm">Current stage</p>
-          {stage ? (
-            <StageSheet
-              stages={condition.stages}
-              currentStageId={profile.recoveryStage ?? null}
-              currentStageName={stage}
-            />
-          ) : (
-            <Link href="/timeline" className="mt-1 inline-block text-sm font-medium text-brand-300 hover:text-brand-200">
-              Mark where you are →
-            </Link>
-          )}
-        </div>
-        <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-slate-400 sm:text-sm">Since last bad flare</p>
-          <p className="mt-1 text-2xl font-bold text-white sm:text-3xl">
-            {stats.daysSinceBadFlare != null ? (
-              <>
-                {stats.daysSinceBadFlare}
-                <span className="text-sm font-normal text-slate-500 sm:text-base"> day{stats.daysSinceBadFlare === 1 ? "" : "s"}</span>
-              </>
-            ) : stats.daysTracked > 0 ? (
-              <span className="text-lg sm:text-xl">None logged ✦</span>
+            </div>
+            {recentPosts.length === 0 ? (
+              <p className="py-2 text-sm text-slate-400">
+                No posts yet. Be the first to{" "}
+                <Link href="/community" className="text-brand-300 hover:text-brand-200">
+                  start a discussion
+                </Link>
+                .
+              </p>
             ) : (
-              "—"
+              <ul className="divide-y divide-lab-line">
+                {recentPosts.map((post) => (
+                  <li key={post.id}>
+                    <Link
+                      href={`/community/${post.id}`}
+                      className="group flex items-center justify-between gap-3 py-3"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-white group-hover:text-brand-100">
+                          {post.title}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-slate-500">
+                          {post.category?.name ?? "General"} · {post.author.name} ·{" "}
+                          {timeAgo(post.createdAt)}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1 text-xs text-slate-500">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        {post._count.comments}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
-          </p>
+          </section>
         </div>
       </div>
-
-      {/* Flare-day support */}
-      <Link
-        href="/support"
-        className="card group mt-4 flex items-center justify-between border-brand-500/30 bg-gradient-to-r from-brand-950/50 to-lab-card transition hover:border-brand-500"
-      >
-        <div className="flex items-center gap-4">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/20 text-brand-300">
-            <LifeBuoy className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-semibold text-white">Today is bad?</p>
-            <p className="text-sm text-slate-400">
-              Calming tools, itch coping and the community — all in one place, no judgement.
-            </p>
-          </div>
-        </div>
-        <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
-      </Link>
-
-      {/* Cohort + personal insights */}
-      <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
 
       {/* Skin toolkit — validated instruments kept visibly apart from our own
           experimental scoring. */}
-      <h2 className="mt-8 text-lg font-semibold text-white">Validated clinical measures</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Published instruments your clinician will recognise, used here as self-tracking tools.
-      </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
-        {clinicalTools.map((tool) => (
-          <FeatureCard key={tool.href} {...tool} />
-        ))}
-      </div>
-
-      <h2 className="mt-8 text-lg font-semibold text-white">Experimental tools</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Our own estimates, built to help you describe what you&apos;re seeing. Not validated
-        measures, and never a diagnosis.
-      </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
-        {experimentalTools.map((tool) => (
-          <FeatureCard key={tool.href} {...tool} />
-        ))}
-      </div>
-
-      <h2 className="mt-8 text-lg font-semibold text-white">Day-to-day tracking</h2>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
-        {trackingTools.map((tool) => (
-          <FeatureCard key={tool.href} {...tool} />
-        ))}
-      </div>
+      <ToolSection
+        title="Validated clinical measures"
+        badge="VALIDATED"
+        blurb="Published instruments your clinician will recognise, used here as self-tracking tools."
+        tools={clinicalTools}
+      />
+      <ToolSection
+        title="Experimental tools"
+        badge="EXPERIMENTAL"
+        blurb="Our own estimates, built to help you describe what you're seeing. Not validated measures, and never a diagnosis."
+        tools={experimentalTools}
+      />
+      <ToolSection title="Day-to-day tracking" tools={trackingTools} />
 
       {/* The lab tools */}
-      <h2 className="mt-8 text-lg font-semibold text-white">The lab</h2>
+      <h2 className="mt-10 text-xl font-medium text-white">The lab</h2>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {labLinks.map((l) => (
           <Link
             key={l.href}
             href={l.href}
-            className="card group flex items-center gap-3 !p-4 transition hover:border-brand-600"
+            className="card group flex items-center gap-3 !p-4 transition hover:border-brand-500/50 hover:bg-lab-raised/60"
           >
             <l.icon className="h-4.5 w-4.5 shrink-0 text-brand-300" />
             <span className="text-sm font-medium text-slate-200">{l.label}</span>
           </Link>
         ))}
       </div>
+    </div>
+  );
+}
 
-      {/* Recent discussion */}
-      <div className="mt-8 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Latest discussion</h2>
-        <Link href="/community" className="text-sm font-medium text-brand-300 hover:text-brand-200">
-          View all
-        </Link>
-      </div>
-      <div className="mt-4 space-y-3">
-        {recentPosts.length === 0 ? (
-          <div className="card text-sm text-slate-400">
-            No posts yet. Be the first to{" "}
-            <Link href="/community" className="text-brand-300 hover:text-brand-200">
-              start a discussion
-            </Link>
-            .
-          </div>
-        ) : (
-          recentPosts.map((post) => (
-            <Link
-              key={post.id}
-              href={`/community/${post.id}`}
-              className="card flex items-center justify-between transition hover:border-brand-600"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium text-white">{post.title}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {post.category?.name ?? "General"} · {post.author.name} · {timeAgo(post.createdAt)}
-                </p>
-              </div>
-              <span className="ml-4 shrink-0 text-sm text-slate-400">
-                {post._count.comments} 💬
-              </span>
-            </Link>
-          ))
+const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
+
+/** Progress ring with the figure set in the display serif. Gold only while a
+ * streak is alive — gold is reserved for milestones across the app. */
+function StreakRing({
+  fraction,
+  value,
+  label,
+  gold,
+}: {
+  fraction: number;
+  value: number;
+  label: string;
+  gold: boolean;
+}) {
+  const r = 40;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - Math.min(1, Math.max(0, fraction)));
+  return (
+    <div className="relative h-[5.75rem] w-[5.75rem] shrink-0">
+      <svg viewBox="0 0 92 92" className="h-full w-full -rotate-90" aria-hidden>
+        <circle cx="46" cy="46" r={r} fill="none" strokeWidth="7" className="stroke-lab-border" />
+        {fraction > 0 && (
+          <circle
+            cx="46"
+            cy="46"
+            r={r}
+            fill="none"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            className={gold ? "stroke-gold-400" : "stroke-brand-400"}
+          />
         )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        {value > 0 ? (
+          <span className="stat-num text-3xl">{value}</span>
+        ) : (
+          <span className="font-display text-2xl leading-none text-brand-300">✦</span>
+        )}
+        <span className="mt-1 text-[11px] text-slate-400">{label}</span>
       </div>
     </div>
+  );
+}
+
+/** A toolkit section: grouped rows on phones (one card, hairline dividers),
+ * a grid of cards from `sm` up where there's room for the descriptions. */
+function ToolSection({
+  title,
+  badge,
+  blurb,
+  tools,
+}: {
+  title: string;
+  badge?: "VALIDATED" | "EXPERIMENTAL";
+  blurb?: string;
+  tools: FeatureCardProps[];
+}) {
+  return (
+    <section className="mt-10">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-medium text-white">{title}</h2>
+        {badge && <FeatureBadgePill badge={badge} />}
+      </div>
+      {blurb && <p className="mt-1 text-sm text-slate-500">{blurb}</p>}
+
+      <div className="list-group mt-4 sm:hidden">
+        {tools.map((tool) => (
+          <Link key={tool.href} href={tool.href} className="flex min-h-16 items-center gap-3.5 px-4 py-3 transition active:bg-white/[0.03]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500/10 text-brand-300">
+              <tool.icon className="h-[1.1rem] w-[1.1rem]" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-semibold text-white">{tool.title}</span>
+              <span className="line-clamp-1 text-[13px] text-slate-400">{tool.description}</span>
+            </span>
+            {tool.badge && tool.badge !== badge ? (
+              <FeatureBadgePill badge={tool.badge} />
+            ) : (
+              <ChevronRight className="h-4.5 w-4.5 shrink-0 text-slate-600" />
+            )}
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-4 hidden gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
+        {tools.map((tool) => (
+          <FeatureCard key={tool.href} {...tool} badge={tool.badge === badge ? null : tool.badge} />
+        ))}
+      </div>
+    </section>
   );
 }

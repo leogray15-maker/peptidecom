@@ -129,7 +129,7 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">Photo proof wall</h1>
+          <h1 className="text-xl font-medium text-white">Photo proof wall</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">
             Everything the public pages show as proof — the landing page, /pricing and /results
             all read this list, in this order. Approve what goes live, set the running order
@@ -182,7 +182,7 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
       {/* What the landing page will render */}
       {wall.live.length > 0 && (
         <div className="card mt-4">
-          <h2 className="font-semibold text-white">What the landing page shows</h2>
+          <h2 className="font-medium text-white">What the landing page shows</h2>
           <p className="mt-1 text-xs text-slate-500">
             The first entry runs as the big card with its photos; the next two run as pull quotes.
           </p>
@@ -331,7 +331,7 @@ function Section({
   return (
     <section className="mt-8">
       <div className="flex flex-wrap items-baseline gap-x-3">
-        <h2 className="font-semibold text-white">{title}</h2>
+        <h2 className="font-medium text-white">{title}</h2>
         <span className="text-xs text-slate-500">{count}</span>
       </div>
       <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
@@ -867,7 +867,7 @@ function NewProofForm({ onDone, onSaved }: { onDone: () => void; onSaved: () => 
 
   return (
     <div className="card">
-      <h2 className="font-semibold text-white">New proof entry</h2>
+      <h2 className="font-medium text-white">New proof entry</h2>
       <p className="mt-1 text-sm text-slate-400">
         It saves as a draft. Add the photos on its card below, then approve it to put it live.
       </p>

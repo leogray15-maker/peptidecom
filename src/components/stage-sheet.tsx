@@ -62,7 +62,7 @@ export function StageSheet({
           setOpen(true);
           trackEvent("stage_sheet_open", { stage: currentStageId });
         }}
-        className="mt-1 flex items-start gap-1 text-left text-base font-bold leading-snug text-white transition hover:text-brand-200 sm:text-xl"
+        className="mt-1 flex items-start gap-1 text-left font-display text-lg font-medium leading-snug text-white transition hover:text-brand-200 sm:text-xl"
         title="See every stage and what marks the move between them"
       >
         {currentStageName}
@@ -82,7 +82,7 @@ export function StageSheet({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Map className="h-5 w-5 text-brand-300" />
-                  <h2 className="text-lg font-semibold text-white">The stages</h2>
+                  <h2 className="text-lg font-medium text-white">The stages</h2>
                 </div>
                 <button
                   onClick={close}

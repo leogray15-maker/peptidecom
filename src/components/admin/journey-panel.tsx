@@ -50,7 +50,7 @@ export function JourneyPanel({ journey }: { journey: CustomerJourney }) {
   if (!journey.hasData) {
     return (
       <div className="card">
-        <h2 className="font-semibold text-white">Their journey</h2>
+        <h2 className="font-medium text-white">Their journey</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">
           Nothing tracked yet — no logs, photos, doses or journal entries on this account. If
           they joined recently, a nudge to make a first entry is usually what gets the habit
@@ -63,7 +63,7 @@ export function JourneyPanel({ journey }: { journey: CustomerJourney }) {
   return (
     <div className="card">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold text-white">Their journey</h2>
+        <h2 className="font-medium text-white">Their journey</h2>
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="badge border border-lab-border text-slate-300">
             {journey.conditionLabel}

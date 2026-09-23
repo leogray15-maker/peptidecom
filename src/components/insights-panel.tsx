@@ -32,7 +32,7 @@ function PrivacyModal({ onClose }: { onClose: () => void }) {
         </button>
         <div className="flex items-center gap-2 text-brand-300">
           <Lock className="h-5 w-5" />
-          <h2 className="text-lg font-semibold text-white">This card never leaves your account</h2>
+          <h2 className="text-lg font-medium text-white">This card never leaves your account</h2>
         </div>
         <ul className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
           <li className="flex gap-3">
@@ -112,15 +112,15 @@ export function InsightsPanel({
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       <div className="flex items-center gap-2">
         <FlaskConical className="h-4.5 w-4.5 text-brand-300" />
-        <h2 className="text-lg font-semibold text-white">From the lab data</h2>
+        <h2 className="text-xl font-medium text-white">From the lab data</h2>
       </div>
       <div className="mt-4 grid gap-3 sm:gap-4 lg:grid-cols-2">
         {personal && (
-          <div className="card border-brand-500/40 bg-gradient-to-br from-brand-950/40 to-lab-card">
+          <div className="card border-brand-500/30 bg-[#16122a]">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-brand-300">
                 <Sparkles className="h-4 w-4" />
-                <p className="text-xs font-semibold uppercase tracking-widest">Your data</p>
+                <p className="eyebrow !text-brand-300">Your data</p>
               </div>
               <button
                 onClick={() => {
@@ -134,7 +134,7 @@ export function InsightsPanel({
               </button>
             </div>
             <p
-              className="mt-2 cursor-pointer font-semibold text-white"
+              className="mt-3 cursor-pointer font-display text-xl leading-snug text-white"
               onClick={() => trackEvent("insight_card_tap")}
             >
               {personal.headline}
@@ -157,7 +157,7 @@ export function InsightsPanel({
           <div key={s.id} className="card">
             <div className="flex items-center gap-2 text-slate-500">
               <Users className="h-4 w-4" />
-              <p className="text-xs font-semibold uppercase tracking-widest">The community</p>
+              <p className="eyebrow">The community</p>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">{s.text}</p>
           </div>

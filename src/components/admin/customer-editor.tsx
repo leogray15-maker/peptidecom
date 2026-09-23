@@ -55,7 +55,7 @@ export function CustomerEditor({ customer }: { customer: EditableCustomer }) {
   return (
     <div className="card">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-semibold text-white">CRM controls</h2>
+        <h2 className="font-medium text-white">CRM controls</h2>
         {busy && <Loader2 className="h-4 w-4 animate-spin text-brand-300" />}
       </div>
 

@@ -2,9 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
+/* --font-display / --font-sans / --font-mono are set on <html> by next/font
+ * (see app/layout.tsx). */
 
 html {
   scroll-behavior: smooth;
@@ -21,7 +20,20 @@ body {
 }
 
 body {
-  @apply bg-lab-bg text-slate-100 antialiased;
+  @apply bg-lab-bg font-sans text-slate-100 antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Headings speak in the display serif. Weight is left to each heading's own
+ * utility classes; tighter tracking suits the serif at size. */
+h1,
+h2 {
+  @apply font-display tracking-tight;
+  font-optical-sizing: auto;
+}
+
+::selection {
+  @apply bg-brand-500/40 text-white;
 }
 
 @layer components {
@@ -29,20 +41,38 @@ body {
     @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
+  /* Surfaces separate by lightness and a hairline, not by drop shadow — on
+   * an ink background shadows just read as mud. */
   .card {
-    @apply rounded-2xl border border-lab-border bg-lab-card p-5 shadow-lg shadow-black/20 sm:p-6;
+    @apply rounded-[1.25rem] border border-lab-border bg-lab-card p-5 sm:p-6;
+  }
+
+  /* Grouped list: one card, rows divided by hairlines (iOS inset-grouped). */
+  .list-group {
+    @apply divide-y divide-lab-line overflow-hidden rounded-[1.25rem] border border-lab-border bg-lab-card;
+  }
+
+  /* Small mono label above a heading or value. */
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500;
+  }
+
+  /* Big serif figure for stats — tabular so ticking numbers don't jitter. */
+  .stat-num {
+    @apply font-display font-medium leading-none tabular-nums text-white;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-lab-bg disabled:cursor-not-allowed disabled:opacity-50;
   }
 
+  /* brand-600 (not 500) under white text: 500 misses 4.5:1. */
   .btn-primary {
-    @apply btn bg-brand-500 text-white hover:bg-brand-600;
+    @apply btn bg-brand-600 text-white hover:bg-brand-500;
   }
 
   .btn-secondary {
-    @apply btn border border-lab-border bg-transparent text-slate-100 hover:bg-white/5;
+    @apply btn border border-lab-border bg-lab-raised text-slate-100 hover:border-brand-500/40 hover:bg-lab-raised/70;
   }
 
   .btn-ghost {
@@ -52,7 +82,7 @@ body {
   /* The loud one: a filled pill in the light end of the brand ramp with dark
    * text. Reserved for the single most important action on a screen. */
   .btn-accent {
-    @apply btn rounded-2xl bg-brand-300 px-6 py-4 text-base font-bold text-lab-bg shadow-lg shadow-brand-500/20 hover:bg-brand-200;
+    @apply btn rounded-2xl bg-brand-300 px-6 py-4 text-base font-bold text-lab-bg hover:bg-brand-200;
   }
 
   /* Quiet twin of .btn-accent, for the secondary action under it. */
@@ -67,11 +97,11 @@ body {
   }
 
   .tap-row-idle {
-    @apply tap-row text-slate-200 hover:border-brand-500/40 hover:bg-brand-500/5;
+    @apply tap-row border-lab-border bg-lab-raised text-slate-200 hover:border-brand-500/40 hover:bg-brand-500/5;
   }
 
   .tap-row-on {
-    @apply tap-row border-brand-500/60 bg-brand-500/15 text-white;
+    @apply tap-row border-brand-500 bg-brand-500/15 text-white;
   }
 
   /* Circular icon button — back chevrons, close buttons. */
@@ -85,7 +115,7 @@ body {
   }
 
   .input {
-    @apply w-full rounded-xl border border-lab-border bg-lab-bg px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
+    @apply min-h-11 w-full rounded-xl border border-lab-border bg-lab-sunken px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-[3px] focus:ring-brand-500/25;
   }
 
   .label {
@@ -107,8 +137,8 @@ body {
   z-index: 0;
   background: radial-gradient(
     80% 55% at 50% -10%,
-    rgba(124, 92, 255, 0.22) 0%,
-    rgba(124, 92, 255, 0.08) 45%,
+    rgba(124, 92, 255, 0.14) 0%,
+    rgba(124, 92, 255, 0.05) 45%,
     transparent 75%
   );
 }

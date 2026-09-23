@@ -77,7 +77,7 @@ export function ProductResult({
         <div className="card !rounded-3xl">
           <div className="flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 text-rose-300" />
-            <h2 className="font-semibold text-white">Negatives</h2>
+            <h2 className="font-medium text-white">Negatives</h2>
             <span className="text-xs text-slate-500">for sensitive skin</span>
           </div>
           <ul className="mt-4 space-y-3">
@@ -110,7 +110,7 @@ export function ProductResult({
         <div className="card !rounded-3xl">
           <div className="flex items-center gap-2">
             <Leaf className="h-4 w-4 text-emerald-300" />
-            <h2 className="font-semibold text-white">Positives</h2>
+            <h2 className="font-medium text-white">Positives</h2>
             <span className="text-xs text-slate-500">barrier-friendly</span>
           </div>
           <ul className="mt-4 space-y-3">
@@ -144,7 +144,7 @@ export function ProductResult({
             onClick={() => setShowAll((v) => !v)}
             className="flex w-full items-center justify-between"
           >
-            <h2 className="font-semibold text-white">All {analysis.ingredientCount} ingredients</h2>
+            <h2 className="font-medium text-white">All {analysis.ingredientCount} ingredients</h2>
             <ChevronDown className={cn("h-5 w-5 text-slate-500 transition", showAll && "rotate-180")} />
           </button>
           {showAll && (

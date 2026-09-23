@@ -579,7 +579,7 @@ export function PhotosClient({
       ) : (
         byMonth.map(([month, items]) => (
           <div key={month}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-500">{month}</h2>
+            <h2 className="mb-3 text-sm font-medium uppercase tracking-widest text-slate-500">{month}</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {items.map((p) => {
                 const pickIndex = compareMode ? compare.findIndex((c) => c.id === p.id) : -1;

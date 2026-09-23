@@ -48,7 +48,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
             <span className="badge bg-brand-900/60 text-brand-200">
               {post.category?.name ?? "General"}
             </span>
-            <h1 className="mt-2 text-2xl font-bold text-white">{post.title}</h1>
+            <h1 className="mt-2 text-2xl font-medium text-white">{post.title}</h1>
             <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
               <Avatar name={post.author.name} image={post.author.image} className="h-6 w-6 text-[10px]" />
               <span>{post.author.name}</span>
@@ -59,7 +59,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         </div>
       </article>
 
-      <h2 className="mt-8 text-lg font-semibold text-white">
+      <h2 className="mt-8 text-lg font-medium text-white">
         {post.comments.length} {post.comments.length === 1 ? "comment" : "comments"}
       </h2>
 

@@ -40,7 +40,7 @@ export default function ArchivesPage() {
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-500/30 to-gold-500/30">
             <Sparkles className="h-6 w-6 text-gold-300" />
           </div>
-          <h2 className="mt-5 max-w-xl text-2xl font-bold leading-snug text-white">
+          <h2 className="mt-5 max-w-xl text-2xl font-medium leading-snug text-white">
             You didn&apos;t just survive this. You trained something.
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-300">

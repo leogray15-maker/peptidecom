@@ -109,14 +109,14 @@ export function trackArchivesClick() {
 
 export function navItemClass(item: NavItem, active: boolean) {
   return cn(
-    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
+    "flex items-center gap-3 rounded-[11px] px-3 py-2 text-sm transition",
     active
       ? item.gold
-        ? "bg-gold-500/15 text-gold-200"
-        : "bg-brand-500/15 text-brand-200"
+        ? "bg-gold-500/15 font-semibold text-gold-200"
+        : "bg-brand-500/15 font-semibold text-brand-100"
       : item.gold
-        ? "text-gold-400/80 hover:bg-gold-500/10 hover:text-gold-200"
-        : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+        ? "font-medium text-gold-400/80 hover:bg-gold-500/10 hover:text-gold-200"
+        : "font-medium text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
   );
 }
 
@@ -133,20 +133,21 @@ export function AppNav({ onNavigate }: { onNavigate?: () => void }) {
           if (item.href === "/archives") trackArchivesClick();
           onNavigate?.();
         }}
+        aria-current={active ? "page" : undefined}
         className={navItemClass(item, active)}
       >
-        <item.icon className="h-4.5 w-4.5 shrink-0" />
+        <item.icon className={cn("h-4.5 w-4.5 shrink-0", active ? "opacity-100" : "opacity-70")} />
         {item.label}
       </Link>
     );
   };
 
   return (
-    <nav className="space-y-4">
+    <nav className="space-y-5">
       {NAV_SECTIONS.map((section, i) => (
         <div key={section.title ?? i}>
           {section.title && (
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            <p className="mb-1.5 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
               {section.title}
             </p>
           )}
@@ -169,7 +170,7 @@ export function ArchivesNavLink({ onNavigate }: { onNavigate?: () => void }) {
         onNavigate?.();
       }}
       className={cn(
-        "mb-2 flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
+        "mb-2 flex items-center justify-between gap-3 rounded-[11px] px-3 py-2 text-sm font-medium transition",
         active
           ? "bg-gold-500/15 text-gold-200"
           : "text-gold-400/80 hover:bg-gold-500/10 hover:text-gold-200"
@@ -179,7 +180,7 @@ export function ArchivesNavLink({ onNavigate }: { onNavigate?: () => void }) {
         <Sparkles className="h-4.5 w-4.5 shrink-0" />
         The Archives
       </span>
-      <span className="shrink-0 whitespace-nowrap rounded-full border border-gold-500/30 px-2 py-0.5 text-[9px] uppercase tracking-wider text-gold-500/80">
+      <span className="shrink-0 whitespace-nowrap rounded-full border border-gold-500/30 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-gold-400/90">
         Next
       </span>
     </Link>

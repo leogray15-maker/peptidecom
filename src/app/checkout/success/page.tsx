@@ -109,7 +109,7 @@ function Shell({
             {spinner && (
               <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin text-brand-400" />
             )}
-            <h1 className="text-2xl font-bold text-white">{title}</h1>
+            <h1 className="text-2xl font-medium text-white">{title}</h1>
             <p className="mt-3 text-sm leading-relaxed text-slate-400">{body}</p>
             <Link href={action.href} className="btn-primary mt-6">
               {action.label}

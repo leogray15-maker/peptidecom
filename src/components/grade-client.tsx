@@ -350,7 +350,7 @@ export function GradeClient({
       {/* What went into the number */}
       {estimate && (
         <div className="card !rounded-3xl">
-          <h2 className="font-semibold text-white">What the estimate looked at</h2>
+          <h2 className="font-medium text-white">What the estimate looked at</h2>
           <ul className="mt-3 space-y-2">
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
               <span className="text-slate-400">Skin reading as inflamed</span>

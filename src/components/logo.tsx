@@ -7,10 +7,10 @@ const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Arcane Track";
 export function Logo({ className, href = "/" }: { className?: string; href?: string }) {
   return (
     <Link href={href} className={cn("group inline-flex items-center gap-2.5", className)}>
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 shadow-lg shadow-brand-900/40">
+      <span className="grid h-9 w-9 place-items-center rounded-[11px] bg-brand-600 transition group-hover:bg-brand-500">
         <ArcaneMark className="h-6 w-6 text-white" />
       </span>
-      <span className="text-lg font-bold tracking-tight text-white">
+      <span className="font-display text-[1.2rem] font-medium tracking-tight text-white">
         {appName}
       </span>
     </Link>

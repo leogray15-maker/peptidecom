@@ -140,7 +140,7 @@ export function Markdown({ content }: { content: string }) {
       const text = renderInline(heading[2].replace(/[:.]\s*$/, ""));
       if (level === 1) {
         blocks.push(
-          <h2 key={key++} className="mt-8 text-xl font-bold text-white first:mt-0">
+          <h2 key={key++} className="mt-8 text-xl font-medium text-white first:mt-0">
             {text}
           </h2>
         );

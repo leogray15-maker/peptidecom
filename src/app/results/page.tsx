@@ -27,7 +27,7 @@ export default async function ResultsPage() {
           <span className="badge border border-gold-500/40 bg-gold-500/10 text-gold-300">
             <Sparkles className="h-3.5 w-3.5" /> Published with permission
           </span>
-          <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+          <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-medium tracking-tight text-white sm:text-5xl">
             The wall of what got better
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-300">
