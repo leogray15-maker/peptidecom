@@ -32,7 +32,7 @@ export function TestimonialCard({
     <article
       className={cn(
         "card flex flex-col gap-5",
-        featured && "border-brand-700/60 bg-gradient-to-br from-brand-950/40 to-lab-card",
+        featured && "border-brand-700/60 bg-[#16122a]",
         className
       )}
     >

@@ -15,11 +15,35 @@ const ALLOWED_HOSTS = new Set([
   "i5.walmartimages.ca",
 ]);
 // Notion's own file storage (uploaded images) — signed URLs on this bucket.
-const ALLOWED_HOST_SUFFIXES = [".amazonaws.com"];
+// Named exactly: a blanket ".amazonaws.com" suffix would let anyone point the
+// proxy at any bucket or EC2 host on AWS.
+const ALLOWED_EXACT_AWS = new Set(["prod-files-secure.s3.us-west-2.amazonaws.com"]);
 
 function hostAllowed(host: string): boolean {
-  if (ALLOWED_HOSTS.has(host)) return true;
-  return ALLOWED_HOST_SUFFIXES.some((s) => host.endsWith(s));
+  return ALLOWED_HOSTS.has(host) || ALLOWED_EXACT_AWS.has(host);
+}
+
+const MAX_REDIRECTS = 3;
+
+/** fetch() that re-checks the allowlist on every redirect hop. Following
+ * redirects blindly would let an allowed host bounce the proxy anywhere. */
+async function fetchAllowed(start: URL): Promise<Response | null> {
+  let url = start;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await fetch(url.toString(), {
+      // No Referer/credentials — defeats CDN hot-link protection.
+      headers: { Accept: "image/*", "User-Agent": "ArcaneTrack/1.0" },
+      cache: "no-store",
+      redirect: "manual",
+    });
+    if (res.status < 300 || res.status >= 400) return res;
+    const location = res.headers.get("location");
+    if (!location) return null;
+    const next = new URL(location, url);
+    if (next.protocol !== "https:" || !hostAllowed(next.hostname)) return null;
+    url = next;
+  }
+  return null;
 }
 
 export async function GET(req: Request) {
@@ -37,12 +61,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const upstream = await fetch(target.toString(), {
-      // No Referer/credentials — defeats CDN hot-link protection.
-      headers: { Accept: "image/*", "User-Agent": "ArcaneTrack/1.0" },
-      cache: "no-store",
-    });
-    if (!upstream.ok || !upstream.body) {
+    const upstream = await fetchAllowed(target);
+    if (!upstream || !upstream.ok || !upstream.body) {
       return NextResponse.json({ error: "Upstream failed" }, { status: 502 });
     }
     const contentType = upstream.headers.get("content-type") ?? "image/jpeg";

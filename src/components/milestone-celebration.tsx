@@ -63,7 +63,7 @@ export function MilestoneCelebration({
           <Sparkles className="h-7 w-7 text-gold-300" />
         </div>
 
-        <h2 className="mt-5 text-2xl font-bold text-white">{primary.title}</h2>
+        <h2 className="mt-5 text-2xl font-medium text-white">{primary.title}</h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-300">{primary.message}</p>
 
         {milestones.length > 1 && (

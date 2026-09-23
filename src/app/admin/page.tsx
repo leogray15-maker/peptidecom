@@ -180,7 +180,7 @@ export default async function AdminOverviewPage() {
       {/* Signups chart */}
       <div className="card mt-4">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold text-white">Signups per week</h2>
+          <h2 className="font-medium text-white">Signups per week</h2>
           <p className="text-xs text-slate-500">last {WEEKS} weeks</p>
         </div>
         <SignupsChart data={chartData} />
@@ -190,7 +190,7 @@ export default async function AdminOverviewPage() {
         {/* Recent signups */}
         <div className="card">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold text-white">Newest customers</h2>
+            <h2 className="font-medium text-white">Newest customers</h2>
             <Link href="/admin/customers" className="text-sm font-medium text-brand-300 hover:text-brand-200">
               View all
             </Link>
@@ -222,7 +222,7 @@ export default async function AdminOverviewPage() {
         {/* Tasks due */}
         <div className="card">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold text-white">Next follow-ups</h2>
+            <h2 className="font-medium text-white">Next follow-ups</h2>
             <Link href="/admin/tasks" className="text-sm font-medium text-brand-300 hover:text-brand-200">
               All tasks
             </Link>
@@ -257,7 +257,7 @@ export default async function AdminOverviewPage() {
       {/* Recent admin activity */}
       <div className="card mt-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-white">Recent activity</h2>
+          <h2 className="font-medium text-white">Recent activity</h2>
           <Link href="/admin/activity" className="text-sm font-medium text-brand-300 hover:text-brand-200">
             Full log
           </Link>

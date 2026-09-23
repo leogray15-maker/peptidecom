@@ -122,7 +122,7 @@ export function FoodResult({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-rose-300" />
-              <h2 className="font-semibold text-white">Negatives</h2>
+              <h2 className="font-medium text-white">Negatives</h2>
             </div>
             <span className="text-xs text-slate-500">per 100 g</span>
           </div>
@@ -173,7 +173,7 @@ export function FoodResult({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Leaf className="h-4 w-4 text-emerald-300" />
-              <h2 className="font-semibold text-white">Positives</h2>
+              <h2 className="font-medium text-white">Positives</h2>
             </div>
             <span className="text-xs text-slate-500">per 100 g</span>
           </div>
@@ -190,7 +190,7 @@ export function FoodResult({
         <div className="card !rounded-3xl">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-brand-300" />
-            <h2 className="font-semibold text-white">Ingredients</h2>
+            <h2 className="font-medium text-white">Ingredients</h2>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">{product.ingredientsText}</p>
         </div>

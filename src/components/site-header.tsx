@@ -4,7 +4,7 @@ import { HeaderAuthButtons } from "@/components/header-auth-buttons";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-lab-border bg-lab-bg/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-lab-line bg-lab-bg/85 backdrop-blur-xl">
       <div className="container-lab flex h-16 items-center justify-between">
         <Logo />
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-300 md:flex">

@@ -28,7 +28,7 @@ export function TabBar() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
     >
-      <div className="flex w-full max-w-md items-center justify-between gap-0.5 rounded-full border border-lab-border bg-lab-card/95 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl">
+      <div className="flex w-full max-w-md items-center justify-between gap-0.5 rounded-full border border-white/[0.08] bg-[#15121f]/90 p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl">
         {TABS.map((tab) => {
           const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
           return (
@@ -37,10 +37,10 @@ export function TabBar() {
               href={tab.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-full px-1 py-2 text-[11px] font-medium transition",
+                "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 text-[11px] transition",
                 active
-                  ? "bg-brand-500/20 text-brand-200"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-brand-500/20 font-semibold text-brand-100"
+                  : "font-medium text-slate-500 hover:text-slate-200"
               )}
             >
               <tab.icon className={cn("h-5 w-5 shrink-0", active && "text-brand-300")} />

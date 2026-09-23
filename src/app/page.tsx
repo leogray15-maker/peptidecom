@@ -145,17 +145,15 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(124,92,255,0.20),transparent)]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_55%_at_50%_0%,rgba(124,92,255,0.12),transparent)]" />
         <div className="container-lab py-24 sm:py-32">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="badge border border-brand-700 bg-brand-950/60 text-brand-200">
-              <Users className="h-3.5 w-3.5" /> Private membership · Research & recovery community
+            <span className="badge border border-brand-500/30 bg-[#16122a] font-mono text-[11px] uppercase tracking-[0.12em] text-brand-200">
+              <Users className="h-3.5 w-3.5" /> Private membership · Skin recovery
             </span>
-            <h1 className="mt-7 text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
-              Every dose logged.
-              <span className="block bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">
-                Every day mapped.
-              </span>
+            <h1 className="mt-7 text-[2.75rem] font-medium leading-[1] tracking-[-0.03em] text-white sm:text-7xl">
+              Every flare logged.
+              <em className="block font-normal italic text-brand-300">Every day mapped.</em>
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-slate-300">
               Arcane Track is a private members&apos; platform for skin recovery and healing —
@@ -164,10 +162,10 @@ export default function LandingPage() {
               evidence, not hype.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="/pricing" className="btn-primary px-6 py-3 text-base">
+              <Link href="/pricing" className="btn-accent">
                 Join Arcane Track — from £11.99/mo <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/login" className="btn-secondary px-6 py-3 text-base">
+              <Link href="/login" className="btn-secondary rounded-2xl px-6 py-4 text-base">
                 Member login
               </Link>
             </div>
@@ -187,7 +185,7 @@ export default function LandingPage() {
       <section id="features" className="border-t border-lab-border py-24">
         <div className="container-lab">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-white">One place for the whole record</h2>
+            <h2 className="text-4xl font-medium text-white">One place for the whole record</h2>
             <p className="mt-4 leading-relaxed text-slate-400">
               Recovery generates data every single day — most of it lost to memory. The lab
               captures it in seconds and turns it into something you can actually read. Every
@@ -197,10 +195,10 @@ export default function LandingPage() {
           <div id="tools" className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="card">
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-brand-900/60 text-brand-300">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/10 text-brand-300">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold text-white">{f.title}</h3>
+                <h3 className="mt-5 font-display text-xl font-medium text-white">{f.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">{f.body}</p>
               </div>
             ))}
@@ -212,7 +210,7 @@ export default function LandingPage() {
       <section className="border-t border-lab-border py-24">
         <div className="container-lab">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-white">How it works</h2>
+            <h2 className="text-4xl font-medium text-white">How it works</h2>
             <p className="mt-4 text-slate-400">
               Three habits, a few seconds each. The compounding is the point.
             </p>
@@ -221,12 +219,12 @@ export default function LandingPage() {
             {steps.map((s, i) => (
               <div key={s.title} className="card">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-900/60 text-sm font-bold text-brand-300">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-500/10 font-display text-lg font-medium text-brand-300">
                     {i + 1}
                   </span>
                   <s.icon className="h-5 w-5 text-brand-300" />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold text-white">{s.title}</h3>
+                <h3 className="mt-5 font-display text-xl font-medium text-white">{s.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">{s.body}</p>
               </div>
             ))}
@@ -241,10 +239,10 @@ export default function LandingPage() {
       <section id="trust" className="border-t border-lab-border py-24">
         <div className="container-lab grid items-center gap-14 lg:grid-cols-2">
           <div>
-            <span className="badge border border-brand-700 bg-brand-950/60 text-brand-200">
+            <span className="badge border border-brand-500/30 bg-[#16122a] text-brand-200">
               <ShieldCheck className="h-3.5 w-3.5" /> Built on trust
             </span>
-            <h2 className="mt-6 text-3xl font-bold text-white">
+            <h2 className="mt-6 text-4xl font-medium text-white">
               Verifiable by design
             </h2>
             <p className="mt-4 leading-relaxed text-slate-400">
@@ -303,7 +301,7 @@ export default function LandingPage() {
       <section className="border-t border-lab-border py-24">
         <div className="container-lab">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-white">Questions, answered</h2>
+            <h2 className="text-4xl font-medium text-white">Questions, answered</h2>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-2">
             {faqs.map((f) => (
@@ -319,8 +317,8 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="border-t border-lab-border py-24">
         <div className="container-lab">
-          <div className="card bg-gradient-to-br from-brand-900/60 to-lab-card py-14 text-center">
-            <h2 className="text-3xl font-bold text-white">Start your record today</h2>
+          <div className="card bg-[#16122a] py-14 text-center">
+            <h2 className="text-4xl font-medium text-white">Start your record today</h2>
             <p className="mx-auto mt-4 max-w-xl leading-relaxed text-slate-300">
               £11.99/month or £70/year (over 50% off) — cancel anytime. Every tool and the full
               community from the moment you join, and a day-one entry you&apos;ll be glad you made

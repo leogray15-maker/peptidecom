@@ -19,7 +19,7 @@ export async function ResultsSection() {
           <span className="badge border border-gold-500/40 bg-gold-500/10 text-gold-300">
             <Sparkles className="h-3.5 w-3.5" /> Real members, real photos
           </span>
-          <h2 className="mt-6 text-3xl font-bold text-white">Skin that actually got better</h2>
+          <h2 className="mt-6 text-3xl font-medium text-white">Skin that actually got better</h2>
           <p className="mt-4 leading-relaxed text-slate-400">
             Nothing here is stock copy. These are members&apos; own words and their own
             before-and-afters, published with their permission — and every one of them started
@@ -35,7 +35,7 @@ export async function ResultsSection() {
               <TestimonialQuote key={t.id} testimonial={t} />
             ))}
 
-            <div className="card flex flex-1 flex-col justify-center bg-gradient-to-br from-brand-900/50 to-lab-card">
+            <div className="card flex flex-1 flex-col justify-center bg-[#16122a]">
               <h3 className="text-lg font-semibold text-white">
                 Your before-and-after belongs here too
               </h3>

@@ -23,10 +23,31 @@ const config: Config = {
           900: "#3d2889",
           950: "#241858",
         },
+        // "Nocturne" surfaces: ink-dark, faintly violet, layered by lightness
+        // rather than by shadow. sunken < bg-adjacent chrome, card < raised.
         lab: {
-          bg: "#07070a",
-          card: "#0f0f15",
-          border: "#20202b",
+          bg: "#0a0911",
+          sunken: "#0d0c14",
+          card: "#121019",
+          raised: "#1a1724",
+          border: "#25212f",
+          line: "#1f1c2a",
+        },
+        // Violet-tinted neutrals in place of Tailwind's blue-grey slate, so
+        // every existing text-slate-* class sits on the ink palette. Also a
+        // contrast fix: slate-500 on a card is ~5.6:1 here (was ~3.9:1).
+        slate: {
+          50: "#f8f7fc",
+          100: "#f4f2fa",
+          200: "#e3dfee",
+          300: "#ccc6db",
+          400: "#a8a2ba",
+          500: "#8e88a3",
+          600: "#6e6882",
+          700: "#4a4559",
+          800: "#2e2a3a",
+          900: "#1a1724",
+          950: "#0d0c14",
         },
         // Subtle gold — used sparingly for milestones & The Archives.
         gold: {
@@ -39,6 +60,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
     },
   },

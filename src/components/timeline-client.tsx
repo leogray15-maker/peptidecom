@@ -139,7 +139,7 @@ export function TimelineClient({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-semibold text-white">{stage.name}</h2>
+                      <h2 className="font-medium text-white">{stage.name}</h2>
                       {isHere && (
                         <span className="badge bg-brand-500/20 text-brand-200">You are here ✦</span>
                       )}

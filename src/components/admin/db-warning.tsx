@@ -10,7 +10,7 @@ export function DbWarning() {
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
         <div className="min-w-0">
-          <h2 className="font-semibold text-white">Database not reachable</h2>
+          <h2 className="font-medium text-white">Database not reachable</h2>
           <p className="mt-1 text-sm text-slate-300">
             Every figure below is a placeholder, not a real count — the CRM can&apos;t read
             Postgres, so it can&apos;t tell an empty table from a missing connection. Sign-in is

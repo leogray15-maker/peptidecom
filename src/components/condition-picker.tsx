@@ -95,7 +95,7 @@ export function ConditionPickerModal({ hasLoggedBefore }: { hasLoggedBefore: boo
         >
           <X className="h-5 w-5" />
         </button>
-        <h2 className="text-xl font-bold text-white">What are you tracking?</h2>
+        <h2 className="text-xl font-medium text-white">What are you tracking?</h2>
         <p className="mt-1.5 text-sm text-slate-400">
           The tracker, stages and trigger suggestions adapt to your condition. You can change
           this any time in Settings.

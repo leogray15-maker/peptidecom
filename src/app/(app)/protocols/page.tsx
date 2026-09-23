@@ -34,7 +34,7 @@ export default function ProtocolsPage() {
       <div className="mt-8 space-y-8">
         {groups.map((group) => (
           <section key={group.category}>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-slate-500">
               {group.category}
             </h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">

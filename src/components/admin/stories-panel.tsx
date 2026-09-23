@@ -105,7 +105,7 @@ export function StoriesPanel({
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">Recovery stories</h1>
+          <h1 className="text-xl font-medium text-white">Recovery stories</h1>
           <p className="mt-1 text-sm text-slate-400">
             Triage submissions, check consent, feature the best on the public results wall,
             and generate post-ready cards. Where a featured story lands on the site — and what

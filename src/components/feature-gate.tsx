@@ -33,7 +33,7 @@ export function FeatureGate({
       <div className="icon-tile">
         <Icon className="h-8 w-8" />
       </div>
-      <h2 className="mt-6 max-w-sm text-2xl font-bold leading-tight text-white">{title}</h2>
+      <h2 className="mt-6 max-w-sm text-2xl font-medium leading-tight text-white">{title}</h2>
       <p className="mx-auto mt-3 max-w-sm text-base leading-relaxed text-slate-400">
         {description}
       </p>

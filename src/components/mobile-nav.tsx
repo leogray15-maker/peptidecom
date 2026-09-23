@@ -34,11 +34,11 @@ export function MobileNav({
   return (
     <>
       {/* Top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-lab-border bg-lab-bg/90 px-4 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-lab-line bg-lab-bg/85 px-4 backdrop-blur-xl lg:hidden">
         <Logo href="/dashboard" />
         <button
           onClick={() => setOpen(true)}
-          className="grid h-10 w-10 place-items-center rounded-xl text-slate-300 hover:bg-white/5"
+          className="icon-circle"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
@@ -64,15 +64,15 @@ export function MobileNav({
         {/* Panel */}
         <div
           className={cn(
-            "absolute inset-y-0 left-0 flex w-[86%] max-w-xs flex-col border-r border-lab-border bg-lab-card transition-transform duration-200 ease-out",
+            "absolute inset-y-0 left-0 flex w-[86%] max-w-xs flex-col border-r border-lab-border bg-lab-sunken transition-transform duration-200 ease-out",
             open ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="flex items-center justify-between border-b border-lab-border p-4">
+          <div className="flex items-center justify-between border-b border-lab-line p-4">
             <Logo href="/dashboard" />
             <button
               onClick={() => setOpen(false)}
-              className="grid h-9 w-9 place-items-center rounded-xl text-slate-400 hover:bg-white/5"
+              className="icon-circle"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -83,7 +83,7 @@ export function MobileNav({
             <AppNav onNavigate={() => setOpen(false)} />
           </div>
 
-          <div className="border-t border-lab-border p-4 pt-3">
+          <div className="border-t border-lab-line p-4 pt-3">
             <ArchivesNavLink onNavigate={() => setOpen(false)} />
             <Link
               href="/settings"

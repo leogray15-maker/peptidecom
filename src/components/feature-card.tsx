@@ -26,6 +26,21 @@ const badgeClass: Record<NonNullable<FeatureBadge>, string> = {
   EXPERIMENTAL: "border border-gold-500/40 bg-gold-500/10 text-gold-200",
 };
 
+/** The badge pill on its own, for section headings that label a whole group. */
+export function FeatureBadgePill({ badge, className }: { badge: NonNullable<FeatureBadge>; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.1em]",
+        badgeClass[badge],
+        className
+      )}
+    >
+      {badge}
+    </span>
+  );
+}
+
 /**
  * Clean, tappable feature row — icon tile · title (+ badge) · description ·
  * chevron. Modelled on the reference App Store screenshots but in the Arcane
@@ -43,31 +58,22 @@ export function FeatureCard({
 }: FeatureCardProps) {
   const inner = (
     <>
-      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20 transition group-hover:bg-brand-500/20 group-hover:text-brand-200">
+      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/10 text-brand-300 transition group-hover:bg-brand-500/20 group-hover:text-brand-200">
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate font-semibold text-white">{title}</p>
-          {badge && (
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                badgeClass[badge]
-              )}
-            >
-              {badge}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="font-semibold text-white">{title}</p>
+          {badge && <FeatureBadgePill badge={badge} />}
         </div>
         <p className="mt-1 text-sm leading-snug text-slate-400">{description}</p>
       </div>
-      <ChevronRight className="h-5 w-5 shrink-0 self-center text-slate-600 transition group-hover:text-brand-300" />
+      <ChevronRight className="h-5 w-5 shrink-0 self-center text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-brand-300" />
     </>
   );
 
   const classes = cn(
-    "card group flex items-start gap-4 !rounded-3xl transition hover:border-brand-500/60 hover:bg-lab-card/80",
+    "card group flex items-start gap-4 !p-4 transition hover:border-brand-500/50 hover:bg-lab-raised/60 sm:!p-5",
     className
   );
 

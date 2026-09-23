@@ -154,7 +154,7 @@ export default async function SetupPage() {
   return (
     <div className="container-lab py-16">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold text-white">Setup status</h1>
+        <h1 className="text-2xl font-medium text-white">Setup status</h1>
         <p className="mt-1 text-sm text-slate-400">
           Deploy commit: <code className="text-slate-300">{commit}</code>
         </p>
@@ -173,13 +173,13 @@ export default async function SetupPage() {
 
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div className="card">
-            <h2 className="font-semibold text-white">Environment variables</h2>
+            <h2 className="font-medium text-white">Environment variables</h2>
             <ul className="mt-2 divide-y divide-lab-border">
               {env.map((c) => <Row key={c.label} c={c} />)}
             </ul>
           </div>
           <div className="card">
-            <h2 className="font-semibold text-white">Live connections</h2>
+            <h2 className="font-medium text-white">Live connections</h2>
             <ul className="mt-2 divide-y divide-lab-border">
               {services.map((c) => <Row key={c.label} c={c} />)}
             </ul>

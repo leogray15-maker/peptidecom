@@ -40,7 +40,7 @@ export default async function ProtocolArticlePage({
         <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
           {article.category}
         </p>
-        <h1 className="mt-1 text-3xl font-bold text-white">{article.title}</h1>
+        <h1 className="mt-1 text-3xl font-medium text-white">{article.title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">{article.summary}</p>
       </div>
 

@@ -77,7 +77,7 @@ export default async function WonPage({
       {/* Shared progress photos */}
       {sharedPhotos.length > 0 && (
         <div className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-slate-500">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-widest text-slate-500">
             Progress, shared by members
           </h2>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
@@ -128,7 +128,7 @@ export default async function WonPage({
             <article key={s.id} className="card border-l-4 border-l-gold-500/60">
               <div className="flex flex-wrap items-center gap-2">
                 <Trophy className="h-4 w-4 text-gold-400" />
-                <h2 className="font-semibold text-white">{s.title}</h2>
+                <h2 className="font-medium text-white">{s.title}</h2>
                 {s.monthsIn != null && (
                   <span className="badge bg-gold-500/15 text-gold-300">{s.monthsIn} months in</span>
                 )}
