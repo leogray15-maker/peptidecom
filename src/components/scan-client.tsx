@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Barcode,
-  Loader2,
-  ScanLine,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, Barcode, ChevronDown, Loader2, Lock, ScanLine, Sparkles, Trash2 } from "lucide-react";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ProductResult } from "@/components/product-result";
 import { FoodResult } from "@/components/food-result";
@@ -25,20 +18,25 @@ import {
   addScan,
   clearScans,
   gradingCounts,
+  groupScans,
   loadScans,
   syncScans,
 } from "@/lib/scan-history";
+import { EmptyState, ListRow, SCORE_COLOR, ScoreBadge, SegmentedControl, Tag, toneLevel } from "@/components/ui";
+import type { ScoreLevel } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE =
   "Aqua, Glycerin, Cetearyl Alcohol, Parfum, Linalool, Limonene, Sodium Lauryl Sulfate, Methylisothiazolinone, Lavandula Angustifolia Oil, Phenoxyethanol";
 
-const gradeMeta: { label: keyof GradingCounts; dot: string; text: string }[] = [
-  { label: "Excellent", dot: "bg-emerald-400", text: "text-emerald-300" },
-  { label: "Good", dot: "bg-lime-400", text: "text-lime-300" },
-  { label: "Poor", dot: "bg-orange-400", text: "text-orange-300" },
-  { label: "Bad", dot: "bg-rose-500", text: "text-rose-300" },
+const GRADES: { label: keyof GradingCounts; level: ScoreLevel }[] = [
+  { label: "Excellent", level: "excellent" },
+  { label: "Good", level: "good" },
+  { label: "Poor", level: "poor" },
+  { label: "Bad", level: "bad" },
 ];
+
+type KindFilter = "all" | "food" | "cosmetic";
 
 export function ScanClient() {
   const [scanning, setScanning] = useState(false);
@@ -53,17 +51,24 @@ export function ScanClient() {
   const [pasteName, setPasteName] = useState("");
   const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
   const [history, setHistory] = useState<ScanRecord[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [filter, setFilter] = useState<KindFilter>("all");
 
   // This device's scans render instantly; the account's are merged in behind.
   useEffect(() => {
     setHistory(loadScans());
+    setHistoryLoaded(true);
     void syncScans().then(setHistory);
   }, []);
 
   const counts = useMemo(() => gradingCounts(history), [history]);
   const totalScans = history.length;
+  const grouped = useMemo(
+    () => groupScans(history).filter((g) => filter === "all" || g.latest.kind === filter),
+    [history, filter]
+  );
 
-  function record(p: ScannedProduct, a: { score: number; band: ScoreBand }) {
+  function record(p: ScannedProduct, a: { score: number; band: ScoreBand }, kind: "food" | "cosmetic") {
     const next = addScan({
       at: new Date().toISOString(),
       code: p.code || null,
@@ -73,6 +78,7 @@ export function ScanClient() {
       score: a.score,
       band: a.band.label,
       tone: a.band.tone,
+      kind,
     });
     setHistory(next);
   }
@@ -86,7 +92,7 @@ export function ScanClient() {
         setProduct(p);
         setFoodAnalysis(fa);
         setAnalysis(null);
-        record(p, fa);
+        record(p, fa, "food");
         return true;
       }
     }
@@ -95,7 +101,7 @@ export function ScanClient() {
       setProduct(p);
       setAnalysis(a);
       setFoodAnalysis(null);
-      record(p, a);
+      record(p, a, "cosmetic");
       return true;
     }
     return false;
@@ -171,7 +177,7 @@ export function ScanClient() {
     setAnalysis(a);
     setFoodAnalysis(null);
     setError(null);
-    record(p, a);
+    record(p, a, "cosmetic");
   }
 
   function reset() {
@@ -197,7 +203,7 @@ export function ScanClient() {
     return (
       <div className="space-y-5">
         <button onClick={reset} className="btn-ghost -ml-2">
-          <ArrowLeft className="h-4 w-4" /> Scan another
+          <ArrowLeft className="h-4 w-4" aria-hidden /> Scan another
         </button>
         {foodAnalysis ? (
           <FoodResult product={product} analysis={foodAnalysis} />
@@ -210,182 +216,275 @@ export function ScanClient() {
 
   // ── Home view ────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {scanning && (
         <BarcodeScanner onDetected={(code) => lookupBarcode(code)} onClose={() => setScanning(false)} />
       )}
 
-      {/* Scan CTA */}
-      <div className="card">
-        <div className="flex flex-col items-center py-6 text-center">
-          <div className="grid h-16 w-16 place-items-center rounded-card bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
-            <Barcode className="h-8 w-8" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-white">Scan a product barcode</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">
-            Point your camera at the barcode. We look it up and score it — skincare for sensitive,
-            eczema-prone skin; food &amp; drink on nutrition.
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        {/* Scan: viewfinder, barcode entry, paste fallback */}
+        <section className="card" aria-labelledby="scan-title">
+          <h2 id="scan-title" className="card-title">
+            Scan a product
+          </h2>
+          <p className="mt-0.5 text-meta text-fg-muted">
+            Skincare is scored for sensitive, eczema-prone skin; food and drink on nutrition.
           </p>
-          <button onClick={() => setScanning(true)} disabled={loading} className="btn-primary mt-5">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
-            {loading ? "Looking up…" : "Open scanner"}
-          </button>
-        </div>
 
-        {/* Manual barcode */}
-        <div className="border-t border-lab-border pt-4">
-          <label className="label">Or type the barcode</label>
-          <div className="flex gap-2">
-            <input
-              value={manualBarcode}
-              onChange={(e) => setManualBarcode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitManualBarcode()}
-              inputMode="numeric"
-              placeholder="e.g. 3337875597197"
-              className="input flex-1"
-            />
-            <button onClick={submitManualBarcode} disabled={loading} className="btn-secondary">
-              Look up
-            </button>
-          </div>
-        </div>
-
-        {error && <p className="mt-3 text-sm text-amber-300">{error}</p>}
-        {notFoundCode && (
-          <a
-            href={`https://world.openbeautyfacts.org/cgi/product.pl?type=add&code=${notFoundCode}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
-          >
-            Add this product to the open database →
-          </a>
-        )}
-      </div>
-
-      {/* Paste ingredients (manual / fallback) */}
-      <div className="card">
-        {!showPaste ? (
-          <button
-            onClick={() => setShowPaste(true)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <div>
-              <p className="font-semibold text-white">No barcode? Paste the ingredients</p>
-              <p className="mt-0.5 text-sm text-slate-400">
-                Type or paste the list from the back of the pack and score it directly.
-              </p>
-            </div>
-            <ScanLine className="h-5 w-5 text-slate-500" />
-          </button>
-        ) : (
-          <>
-            <label className="label">Ingredient list</label>
-            <input
-              value={pasteName}
-              onChange={(e) => setPasteName(e.target.value)}
-              placeholder="Product name (optional)"
-              className="input mb-2"
-            />
-            <textarea
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              rows={5}
-              placeholder="Aqua, Glycerin, Cetearyl Alcohol, Parfum…"
-              className="input min-h-[120px] resize-y"
-            />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button onClick={() => analysePasted(pasteName)} disabled={!pasteText.trim()} className="btn-primary">
-                <ScanLine className="h-4 w-4" /> Score ingredients
-              </button>
-              <button
-                onClick={() => {
-                  setPasteText(EXAMPLE);
-                  setPasteName("Example lotion");
-                }}
-                className="btn-secondary"
-              >
-                <Sparkles className="h-4 w-4" /> Try an example
-              </button>
-            </div>
-          </>
-        )}
-        <p className="mt-3 text-xs text-slate-500">
-          Ingredient analysis runs entirely on your device — the list never leaves your phone.
-        </p>
-      </div>
-
-      {/* Grading overview */}
-      {totalScans > 0 && (
-        <div className="card">
-          <h2 className="font-medium text-white">Grading overview</h2>
-          <p className="mt-0.5 text-sm text-slate-400">{totalScans} product{totalScans === 1 ? "" : "s"} scanned on your account</p>
-          <div className="mt-4 space-y-2">
-            {gradeMeta.map((g) => (
-              <div key={g.label} className="flex items-center justify-between rounded-control border border-lab-border bg-lab-bg px-4 py-2.5">
-                <span className="flex items-center gap-3">
-                  <span className={cn("h-2.5 w-2.5 rounded-full", g.dot)} />
-                  <span className="text-sm font-medium text-white">{g.label}</span>
-                </span>
-                <span className={cn("text-sm font-semibold tabular-nums", g.text)}>{counts[g.label]}</span>
-              </div>
+          <div className="relative mt-4 grid aspect-[16/9] max-h-64 w-full place-items-center rounded-control border border-line bg-surface-sunken">
+            {(["left-3 top-3 border-l-2 border-t-2 rounded-tl-[6px]", "right-3 top-3 border-r-2 border-t-2 rounded-tr-[6px]", "left-3 bottom-3 border-l-2 border-b-2 rounded-bl-[6px]", "right-3 bottom-3 border-r-2 border-b-2 rounded-br-[6px]"] as const).map((c) => (
+              <span key={c} className={cn("absolute h-6 w-6 border-accent", c)} aria-hidden />
             ))}
+            <div className="flex flex-col items-center px-6 text-center">
+              <Barcode className="h-9 w-9 text-fg-muted" strokeWidth={1.5} aria-hidden />
+              <p className="mt-2 text-meta text-fg-muted">Point your camera at the barcode</p>
+              <button onClick={() => setScanning(true)} disabled={loading} className="btn-primary mt-4 min-h-11">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <ScanLine className="h-4 w-4" aria-hidden />}
+                {loading ? "Looking up…" : "Open scanner"}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* History */}
-      {totalScans > 0 && (
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <h2 className="font-medium text-white">Recent scans</h2>
-            <button onClick={wipeHistory} className="text-xs text-slate-500 hover:text-rose-400">
-              <Trash2 className="mr-1 inline h-3.5 w-3.5" /> Clear
+          <form
+            className="mt-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitManualBarcode();
+            }}
+          >
+            <label htmlFor="barcode" className="label">
+              Or type the barcode
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="barcode"
+                value={manualBarcode}
+                onChange={(e) => setManualBarcode(e.target.value)}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="e.g. 3337875597197"
+                aria-invalid={error === "A barcode is 6–14 digits." ? true : undefined}
+                aria-describedby={error ? "scan-error" : undefined}
+                className="input flex-1"
+              />
+              <button type="submit" disabled={loading} className="btn-secondary min-h-11">
+                Look up
+              </button>
+            </div>
+          </form>
+
+          {error && (
+            <p id="scan-error" role="alert" className="mt-2 text-meta text-score-moderate">
+              {error}
+            </p>
+          )}
+          {notFoundCode && (
+            <a
+              href={`https://world.openbeautyfacts.org/cgi/product.pl?type=add&code=${notFoundCode}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-[13.5px] font-medium text-accent-strong hover:underline"
+            >
+              Add this product to the open database →
+            </a>
+          )}
+
+          {/* Paste ingredients (manual / fallback) */}
+          <div className="mt-5 border-t border-line-subtle pt-4">
+            <button
+              type="button"
+              onClick={() => setShowPaste((v) => !v)}
+              aria-expanded={showPaste}
+              aria-controls="paste-panel"
+              className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
+            >
+              <span className="text-sm font-semibold text-fg">No barcode? Paste the ingredients</span>
+              <ChevronDown
+                className={cn("h-4 w-4 shrink-0 text-fg-muted transition-transform duration-150", showPaste && "rotate-180")}
+                aria-hidden
+              />
             </button>
+            {showPaste && (
+              <div id="paste-panel" className="mt-3 space-y-2">
+                <label htmlFor="paste-name" className="sr-only">
+                  Product name (optional)
+                </label>
+                <input
+                  id="paste-name"
+                  value={pasteName}
+                  onChange={(e) => setPasteName(e.target.value)}
+                  placeholder="Product name (optional)"
+                  className="input"
+                />
+                <label htmlFor="paste-text" className="label !mb-0 pt-1">
+                  Ingredient list
+                </label>
+                <textarea
+                  id="paste-text"
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  rows={5}
+                  placeholder="Aqua, Glycerin, Cetearyl Alcohol, Parfum…"
+                  className="input min-h-[120px] resize-y"
+                />
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button onClick={() => analysePasted(pasteName)} disabled={!pasteText.trim()} className="btn-primary">
+                    <ScanLine className="h-4 w-4" aria-hidden /> Score ingredients
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPasteText(EXAMPLE);
+                      setPasteName("Example lotion");
+                    }}
+                    className="btn-ghost"
+                  >
+                    <Sparkles className="h-4 w-4" aria-hidden /> Try an example
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="mt-2 flex items-center gap-1.5 text-meta text-fg-muted">
+              <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Ingredient analysis runs on your device. The list never leaves your phone.
+            </p>
           </div>
-          <ul className="mt-4 space-y-2">
-            {[...history].reverse().slice(0, 12).map((s) => {
-              // Fall back gracefully: a band from an older stored record must
-              // never take the whole page down.
-              const meta = gradeMeta.find((g) => g.label === s.band) ?? {
-                label: s.band,
-                dot: "bg-slate-500",
-                text: "text-slate-300",
-              };
-              return (
-                <li
-                  key={s.at}
-                  className="flex items-center gap-3 rounded-control border border-lab-border bg-lab-bg px-3 py-2.5"
-                >
-                  {s.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg bg-white/5 object-contain p-0.5" />
-                  ) : (
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-500/10 text-brand-300">
-                      <ScanLine className="h-4 w-4" />
+        </section>
+
+        {/* Grading overview */}
+        <section className="card flex flex-col" aria-labelledby="overview-title">
+          <h2 id="overview-title" className="card-title">
+            Grading overview
+          </h2>
+          <p className="mt-0.5 text-meta text-fg-muted">
+            {totalScans} scan{totalScans === 1 ? "" : "s"} on your account
+          </p>
+          {!historyLoaded ? (
+            <div className="mt-5 h-3 animate-pulse rounded-full bg-surface-active" aria-hidden />
+          ) : totalScans === 0 ? (
+            <EmptyState
+              icon={ScanLine}
+              title="Nothing scanned yet"
+              body="Your grades add up here as you scan."
+              className="mt-5 flex-1"
+            />
+          ) : (
+            <>
+              <div
+                className="mt-5 flex h-3 w-full gap-0.5 overflow-hidden rounded-full"
+                role="img"
+                aria-label={GRADES.map((g) => `${g.label} ${counts[g.label]}`).join(", ")}
+              >
+                {GRADES.filter((g) => counts[g.label] > 0).map((g) => (
+                  <span
+                    key={g.label}
+                    style={{ flexGrow: counts[g.label], backgroundColor: SCORE_COLOR[g.level] }}
+                    className="h-full"
+                  />
+                ))}
+              </div>
+              <ul className="mt-5 space-y-1">
+                {GRADES.map((g) => (
+                  <li key={g.label} className="flex min-h-9 items-center justify-between text-sm">
+                    <span className="flex items-center gap-2.5 text-fg-secondary">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: SCORE_COLOR[g.level] }} aria-hidden />
+                      {g.label}
                     </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">{s.name ?? "Unnamed product"}</p>
-                    <p className="truncate text-xs text-slate-500">
-                      {s.brand ?? (s.code ? `#${s.code}` : "Pasted ingredients")}
-                    </p>
-                  </div>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
-                    <span className="text-sm font-semibold tabular-nums text-white">{s.score}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                    <span className="font-mono tabular-nums text-fg">
+                      {counts[g.label]}
+                      <span className="ml-2 text-fg-muted">
+                        {Math.round((counts[g.label] / totalScans) * 100)}%
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      </div>
+
+      {/* Recent scans */}
+      {totalScans > 0 && (
+        <section className="card !px-0 !pb-2" aria-labelledby="recent-title">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6">
+            <h2 id="recent-title" className="card-title">
+              Recent scans
+            </h2>
+            <div className="flex items-center gap-2">
+              <SegmentedControl
+                label="Filter scans"
+                size="sm"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "food", label: "Food" },
+                  { value: "cosmetic", label: "Skincare" },
+                ]}
+              />
+              <button onClick={wipeHistory} className="btn-ghost min-h-9 px-2.5 text-[13px]">
+                <Trash2 className="h-3.5 w-3.5" aria-hidden /> Clear
+              </button>
+            </div>
+          </div>
+          {grouped.length === 0 ? (
+            <p className="px-5 py-8 text-center text-meta text-fg-muted sm:px-6">
+              No {filter === "food" ? "food" : "skincare"} scans yet.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line-subtle border-t border-line-subtle">
+              {grouped.slice(0, 20).map(({ latest: s, count }) => {
+                const band = GRADES.find((g) => g.label === s.band);
+                return (
+                  <li key={s.at}>
+                    <ListRow
+                      className="sm:px-6"
+                      leading={
+                        s.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={s.imageUrl}
+                            alt=""
+                            className="h-10 w-10 rounded-[8px] border border-line bg-surface-sunken object-contain p-0.5"
+                          />
+                        ) : (
+                          <span className="grid h-10 w-10 place-items-center rounded-[8px] border border-line bg-surface-sunken text-fg-muted">
+                            <ScanLine className="h-4 w-4" aria-hidden />
+                          </span>
+                        )
+                      }
+                      title={s.name ?? "Unnamed product"}
+                      meta={
+                        <span className="flex items-center gap-2">
+                          <span className="truncate">{s.brand ?? (s.code ? `#${s.code}` : "Pasted ingredients")}</span>
+                          {count > 1 && <span className="shrink-0">· Scanned {count}×</span>}
+                        </span>
+                      }
+                      trailing={
+                        <>
+                          {s.kind && (
+                            <Tag className="hidden sm:inline-flex">{s.kind === "food" ? "Food" : "Skincare"}</Tag>
+                          )}
+                          <ScoreBadge
+                            level={band ? band.level : toneLevel(s.tone)}
+                            value={s.score}
+                            label={band ? s.band : null}
+                            size="sm"
+                          />
+                        </>
+                      }
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       )}
 
-      <p className="text-xs leading-relaxed text-slate-500">
-        Educational scores — skincare rated for sensitive / eczema-prone skin, food &amp; drink
-        rated on nutrition. Not a safety verdict or medical advice. Product data comes from Open
-        Beauty Facts, Open Products Facts &amp; Open Food Facts, community-run databases that can be
+      <p className="text-meta leading-relaxed text-fg-muted">
+        Educational scores, not a safety verdict or medical advice. Product data comes from Open
+        Beauty Facts, Open Products Facts and Open Food Facts, community-run databases that can be
         incomplete or out of date, so always check the physical pack.
       </p>
     </div>

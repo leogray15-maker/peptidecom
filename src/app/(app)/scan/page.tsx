@@ -8,8 +8,9 @@ export default function ScanPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Skin tools"
         title="Product scanner"
-        subtitle="Scan any barcode — skincare gets a 0–100 score for sensitive, eczema-prone skin (irritants vs barrier-friendly ingredients); food & drink get a nutrition score (Nutri-Score, additives, the good stuff). No barcode? Paste the ingredients instead."
+        subtitle="Scan a barcode for a 0–100 score: skincare on irritants versus barrier-friendly ingredients, food and drink on nutrition."
       />
       <ScanClient />
       <PeerSupportNote />

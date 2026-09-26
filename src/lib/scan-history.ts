@@ -28,6 +28,8 @@ export interface ScanRecord {
   score: number;
   band: ScoreBand["label"];
   tone: ScoreBand["tone"];
+  /** Which scorer graded it. Absent on scans saved before this was recorded. */
+  kind?: "food" | "cosmetic";
 }
 
 /** What a scan looks like inside the synced store: the record minus the fields
@@ -42,7 +44,15 @@ const LEGACY_KEY = "arcane.scan.history";
 const toEntry = (r: ScanRecord): SyncedEntry<ScanDetail> => ({
   at: r.at,
   score: r.score,
-  detail: { code: r.code, name: r.name, brand: r.brand, imageUrl: r.imageUrl, band: r.band, tone: r.tone },
+  detail: {
+    code: r.code,
+    name: r.name,
+    brand: r.brand,
+    imageUrl: r.imageUrl,
+    band: r.band,
+    tone: r.tone,
+    ...(r.kind ? { kind: r.kind } : {}),
+  },
 });
 
 const toRecord = (e: SyncedEntry<ScanDetail>): ScanRecord => ({
@@ -116,4 +126,25 @@ export function gradingCounts(scans: ScanRecord[]): GradingCounts {
     if (s.band in counts) counts[s.band] += 1;
   }
   return counts;
+}
+
+export interface GroupedScan {
+  latest: ScanRecord;
+  count: number;
+}
+
+/** Collapse repeat scans of the same product (same barcode, or same name and
+ * brand for pasted lists) into one row, newest first. */
+export function groupScans(scans: ScanRecord[]): GroupedScan[] {
+  const groups = new Map<string, GroupedScan>();
+  for (const s of scans) {
+    const key = s.code ? `code:${s.code}` : `name:${(s.name ?? "").toLowerCase()}|${(s.brand ?? "").toLowerCase()}`;
+    const g = groups.get(key);
+    if (!g) groups.set(key, { latest: s, count: 1 });
+    else {
+      g.count += 1;
+      if (s.at > g.latest.at) g.latest = s;
+    }
+  }
+  return [...groups.values()].sort((a, b) => b.latest.at.localeCompare(a.latest.at));
 }
