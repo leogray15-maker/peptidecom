@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-[calc(100vh-2rem)]">
+    <div className="min-h-screen">
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:py-6">
         {/* Sidebar */}
         <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-64 shrink-0 flex-col justify-between rounded-2xl border border-lab-border bg-lab-card p-4 lg:flex">

@@ -7,6 +7,7 @@ import {
   SYRINGE_TYPES,
   calculateReconstitution,
 } from "@/lib/peptides";
+import { color } from "@/lib/tokens";
 
 /** "2500 mcg" reads awkwardly for compounds dosed in milligrams — show mg at
  * or above 1000 mcg. */
@@ -321,18 +322,18 @@ function SyringeVisual({
     <svg viewBox="0 0 420 74" className="w-full" role="img" aria-label={`Syringe filled to ${Math.round(fillFraction * unitsPerMl * 10) / 10} of ${unitsPerMl} units`}>
       <defs>
         <linearGradient id="syringe-fill" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#9a7bff" />
-          <stop offset="100%" stopColor="#6a44f5" />
+          <stop offset="0%" stopColor={color.accentStrong} />
+          <stop offset="100%" stopColor={color.primary} />
         </linearGradient>
       </defs>
 
       {/* Needle */}
-      <line x1="6" y1="31" x2="38" y2="31" stroke="#475069" strokeWidth="2" />
+      <line x1="6" y1="31" x2="38" y2="31" stroke={color.borderStrong} strokeWidth="2" />
       {/* Hub */}
-      <path d="M38 25 L52 21 L52 41 L38 37 Z" fill="#1b1b28" stroke="#2c2c3d" strokeWidth="1.5" />
+      <path d="M38 25 L52 21 L52 41 L38 37 Z" fill={color.surfaceActive} stroke={color.borderStrong} strokeWidth="1.5" />
 
       {/* Barrel */}
-      <rect x={barrelX} y={barrelY} width={barrelW} height={barrelH} rx="5" fill="#0b0b10" stroke="#2c2c3d" strokeWidth="1.5" />
+      <rect x={barrelX} y={barrelY} width={barrelW} height={barrelH} rx="5" fill={color.bg} stroke={color.borderStrong} strokeWidth="1.5" />
 
       {/* Fill */}
       {fillW > 0 && (
@@ -340,18 +341,18 @@ function SyringeVisual({
       )}
 
       {/* Plunger seal at the draw mark + rod out the back */}
-      <rect x={plungerX - 1.5} y={barrelY + 1.5} width="5" height={barrelH - 3} rx="1.5" fill="#e2e8f0" />
-      <line x1={plungerX + 4} y1="31" x2="404" y2="31" stroke="#475069" strokeWidth="4" />
-      <rect x="404" y="20" width="6" height="22" rx="2" fill="#475069" />
+      <rect x={plungerX - 1.5} y={barrelY + 1.5} width="5" height={barrelH - 3} rx="1.5" fill={color.text} />
+      <line x1={plungerX + 4} y1="31" x2="404" y2="31" stroke={color.borderStrong} strokeWidth="4" />
+      <rect x="404" y="20" width="6" height="22" rx="2" fill={color.borderStrong} />
 
       {/* Graduations */}
       {majors.map((i) => {
         const x = barrelX + (i / 10) * barrelW;
         return (
           <g key={i}>
-            <line x1={x} y1={barrelY + 1.5} x2={x} y2={barrelY + (i % 2 === 0 ? 12 : 8)} stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
+            <line x1={x} y1={barrelY + 1.5} x2={x} y2={barrelY + (i % 2 === 0 ? 12 : 8)} stroke={color.textActive} strokeOpacity="0.25" strokeWidth="1" />
             {i > 0 && (
-              <text x={x} y={barrelY + barrelH + 14} textAnchor="middle" fontSize="9" fill="#6b6b7b">
+              <text x={x} y={barrelY + barrelH + 14} textAnchor="middle" fontSize="9" fill={color.textMuted}>
                 {Math.round((i / 10) * unitsPerMl)}
               </text>
             )}
@@ -363,7 +364,7 @@ function SyringeVisual({
         .filter((i) => i % 5 !== 0)
         .map((i) => {
           const x = barrelX + (i / 50) * barrelW;
-          return <line key={i} x1={x} y1={barrelY + 1.5} x2={x} y2={barrelY + 6} stroke="#ffffff" strokeOpacity="0.12" strokeWidth="0.75" />;
+          return <line key={i} x1={x} y1={barrelY + 1.5} x2={x} y2={barrelY + 6} stroke={color.textActive} strokeOpacity="0.12" strokeWidth="0.75" />;
         })}
     </svg>
   );

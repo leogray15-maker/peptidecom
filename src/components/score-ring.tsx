@@ -1,10 +1,11 @@
 import type { ScoreTone } from "@/lib/product-score";
+import { color, score } from "@/lib/tokens";
 
 export const RING_TONE_HEX: Record<ScoreTone, string> = {
-  emerald: "#34d399",
-  green: "#84cc16",
-  orange: "#fb923c",
-  rose: "#fb7185",
+  emerald: score.excellent,
+  green: score.good,
+  orange: score.poor,
+  rose: score.bad,
 };
 
 export const TONE_TEXT: Record<ScoreTone, string> = {
@@ -23,7 +24,7 @@ export function ScoreRing({ score, tone }: { score: number; tone: ScoreTone }) {
   return (
     <div className="relative grid h-24 w-24 shrink-0 place-items-center">
       <svg viewBox="0 0 80 80" className="h-24 w-24 -rotate-90">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#20202b" strokeWidth="7" />
+        <circle cx="40" cy="40" r={r} fill="none" stroke={color.border} strokeWidth="7" />
         <circle
           cx="40"
           cy="40"

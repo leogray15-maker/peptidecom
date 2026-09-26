@@ -172,7 +172,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
       {level >= 7 && (
         <Link
           href="/support"
-          className="card group flex items-center gap-4 !rounded-3xl border-brand-500/30 bg-[#16122a] transition hover:border-brand-500"
+          className="card group flex items-center gap-4 !rounded-3xl border-brand-500/30 bg-surface-active transition hover:border-brand-500"
         >
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-500/20 text-brand-300">
             <LifeBuoy className="h-5 w-5" />

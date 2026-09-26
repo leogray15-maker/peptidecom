@@ -14,6 +14,7 @@ import {
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { RESEARCH_GOALS, dateKey, goalEmoji, goalLabel } from "@/lib/tsw";
 import { cn, formatDate } from "@/lib/utils";
+import { color } from "@/lib/tokens";
 
 export interface JournalItem {
   id: string;
@@ -25,10 +26,10 @@ export interface JournalItem {
 }
 
 const tooltipStyle = {
-  background: "#0f0f15",
-  border: "1px solid #20202b",
+  background: color.surface,
+  border: `1px solid ${color.border}`,
   borderRadius: 12,
-  color: "#e2e8f0",
+  color: color.text,
 } as const;
 
 export function JournalClient({ initialEntries }: { initialEntries: JournalItem[] }) {
@@ -273,12 +274,12 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
           <div className="mt-4 h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={ratingData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#20202b" />
-                <XAxis dataKey="date" stroke="#6b6b7b" fontSize={11} tickLine={false} />
-                <YAxis domain={[0, 10]} stroke="#6b6b7b" fontSize={11} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={color.border} />
+                <XAxis dataKey="date" stroke={color.textMuted} fontSize={11} tickLine={false} />
+                <YAxis domain={[0, 10]} stroke={color.textMuted} fontSize={11} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 {/* Show dots on sparse data — a 1-2 point line is invisible without them */}
-                <Line type="monotone" dataKey="rating" name="Progress (1–10)" stroke="#7c5cff" strokeWidth={2} dot={ratingData.length < 5 ? { r: 3, fill: "#7c5cff" } : false} activeDot={{ r: 4 }} />
+                <Line type="monotone" dataKey="rating" name="Progress (1–10)" stroke={color.accent} strokeWidth={2} dot={ratingData.length < 5 ? { r: 3, fill: color.accent } : false} activeDot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -326,11 +327,11 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
           <div className="mt-4 h-40 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={ratingData} margin={{ top: 5, right: 10, left: -12, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#20202b" />
-                <XAxis dataKey="date" stroke="#6b6b7b" fontSize={11} tickLine={false} />
-                <YAxis domain={["auto", "auto"]} stroke="#6b6b7b" fontSize={11} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={color.border} />
+                <XAxis dataKey="date" stroke={color.textMuted} fontSize={11} tickLine={false} />
+                <YAxis domain={["auto", "auto"]} stroke={color.textMuted} fontSize={11} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#0d9488" strokeWidth={2} dot={ratingData.filter((d) => d.weight != null).length < 5 ? { r: 3, fill: "#0d9488" } : false} activeDot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke={color.textSecondary} strokeWidth={2} dot={ratingData.filter((d) => d.weight != null).length < 5 ? { r: 3, fill: color.textSecondary } : false} activeDot={{ r: 4 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>

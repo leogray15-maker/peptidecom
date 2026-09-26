@@ -34,7 +34,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)]">
+    <div className="relative min-h-screen">
       {/* Ambient violet glow behind the top of every screen. */}
       <div className="app-glow" aria-hidden />
 

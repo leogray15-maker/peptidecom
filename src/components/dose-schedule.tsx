@@ -96,7 +96,7 @@ export function DoseScheduleSection({
     <div className="space-y-6">
       {/* Today */}
       {dueCount > 0 && (
-        <div className="card border-brand-500/30 bg-[#16122a]">
+        <div className="card border-brand-500/30 bg-surface-active">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-semibold text-white">Today&apos;s schedule</p>

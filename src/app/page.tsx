@@ -148,7 +148,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_55%_at_50%_0%,rgba(124,92,255,0.12),transparent)]" />
         <div className="container-lab py-24 sm:py-32">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="badge border border-brand-500/30 bg-[#16122a] font-mono text-[11px] uppercase tracking-[0.12em] text-brand-200">
+            <span className="badge border border-brand-500/30 bg-surface-active font-mono text-[11px] uppercase tracking-[0.12em] text-brand-200">
               <Users className="h-3.5 w-3.5" /> Private membership · Skin recovery
             </span>
             <h1 className="mt-7 text-[2.75rem] font-medium leading-[1] tracking-[-0.03em] text-white sm:text-7xl">
@@ -239,7 +239,7 @@ export default function LandingPage() {
       <section id="trust" className="border-t border-lab-border py-24">
         <div className="container-lab grid items-center gap-14 lg:grid-cols-2">
           <div>
-            <span className="badge border border-brand-500/30 bg-[#16122a] text-brand-200">
+            <span className="badge border border-brand-500/30 bg-surface-active text-brand-200">
               <ShieldCheck className="h-3.5 w-3.5" /> Built on trust
             </span>
             <h2 className="mt-6 text-4xl font-medium text-white">
@@ -317,7 +317,7 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="border-t border-lab-border py-24">
         <div className="container-lab">
-          <div className="card bg-[#16122a] py-14 text-center">
+          <div className="card bg-surface-active py-14 text-center">
             <h2 className="text-4xl font-medium text-white">Start your record today</h2>
             <p className="mx-auto mt-4 max-w-xl leading-relaxed text-slate-300">
               £11.99/month or £70/year (over 50% off) — cancel anytime. Every tool and the full

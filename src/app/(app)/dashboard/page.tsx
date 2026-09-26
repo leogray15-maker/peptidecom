@@ -410,7 +410,7 @@ export default async function DashboardPage({
         <div className="space-y-4">
           <Link
             href="/support"
-            className="card group flex items-center gap-4 !p-4 border-brand-500/30 bg-[#16122a] transition hover:border-brand-500 sm:!p-5"
+            className="card group flex items-center gap-4 !p-4 border-brand-500/30 bg-surface-active transition hover:border-brand-500 sm:!p-5"
           >
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/20 text-brand-300">
               <LifeBuoy className="h-5 w-5" />

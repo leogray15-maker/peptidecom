@@ -20,21 +20,22 @@ import {
   pearson,
 } from "@/lib/insights";
 import { type DailyLog, dateKey, daysBetween } from "@/lib/tsw";
+import { color, score } from "@/lib/tokens";
 
-// Chart palette validated for the dark card surface (#0f0f15):
-// OKLCH lightness band, chroma, CVD separation and contrast all pass.
-const SEVERITY_COLOR = "#7c5cff";
-const TREND_COLOR = "#a996ff";
-const SLEEP_COLOR = "#0d9488";
-const MOOD_COLOR = "#d97706";
-const GRID = "#20202b";
-const AXIS = "#6b6b7b";
+// Chart palette comes from the design tokens (lib/tokens.ts):
+// accent for the series, secondary grey and amber for the overlays.
+const SEVERITY_COLOR = color.accent;
+const TREND_COLOR = color.accentStrong;
+const SLEEP_COLOR = color.textSecondary;
+const MOOD_COLOR = score.moderate;
+const GRID = color.border;
+const AXIS = color.textMuted;
 
 const tooltipStyle = {
-  background: "#0f0f15",
-  border: "1px solid #20202b",
+  background: color.surface,
+  border: `1px solid ${color.border}`,
   borderRadius: 12,
-  color: "#e2e8f0",
+  color: color.text,
 } as const;
 
 export function InsightsClient({ logs }: { logs: DailyLog[] }) {

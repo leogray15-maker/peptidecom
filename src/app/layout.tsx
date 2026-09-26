@@ -1,33 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
-import { DisclaimerBar } from "@/components/disclaimer-bar";
+import { color } from "@/lib/tokens";
 
 const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Arcane Track";
 
-// "Nocturne" type: a soft serif for headings and the numbers that matter, a
-// clean grotesk for everything you tap, a mono for small eyebrow labels.
-// Self-hosted by next/font at build, so no runtime request to Google.
-const display = Fraunces({
+// Type: Geist for UI and body, Geist Mono for numbers and eyebrows, and
+// Instrument Serif for page titles only. Self-hosted by next/font at build,
+// so no runtime request to Google.
+const display = Instrument_Serif({
   subsets: ["latin"],
-  axes: ["opsz"],
-  style: ["normal", "italic"],
+  weight: "400",
   variable: "--font-display",
   display: "swap",
 });
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const mono = Geist_Mono({
   subsets: ["latin"],
-  weight: ["500"],
+  weight: ["400", "500"],
   variable: "--font-mono",
   display: "swap",
 });
 
-// Colors the phone status bar / browser chrome. #0d0c14 is the disclaimer
-// bar's color (lab-sunken), so the status bar blends into the top of every
-// page instead of showing up white.
+// Colors the phone status bar / browser chrome to match the page background.
 export const viewport: Viewport = {
-  themeColor: "#0d0c14",
+  themeColor: color.bg,
   colorScheme: "dark",
 };
 
@@ -61,7 +58,6 @@ export default function RootLayout({
       className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
     >
       <body>
-        <DisclaimerBar />
         {children}
       </body>
     </html>

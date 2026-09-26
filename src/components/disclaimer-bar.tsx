@@ -1,14 +1,10 @@
-import { HeartHandshake } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function DisclaimerBar() {
+/** The one quiet disclaimer line at the bottom of every page. */
+export function DisclaimerLine({ className }: { className?: string }) {
   return (
-    <div className="w-full border-b border-lab-line bg-lab-sunken px-3 py-1.5 text-center font-mono text-[9.5px] font-medium tracking-[0.04em] text-slate-400 sm:text-[11px] sm:tracking-[0.12em]">
-      <span className="inline-flex items-center gap-1.5">
-        <HeartHandshake className="h-3 w-3 shrink-0" />
-        <span className="text-balance">
-          PEER SUPPORT &amp; EDUCATION COMMUNITY · NOT MEDICAL ADVICE
-        </span>
-      </span>
-    </div>
+    <p className={cn("text-meta text-fg-muted", className)}>
+      Peer support &amp; education community · Not medical advice
+    </p>
   );
 }

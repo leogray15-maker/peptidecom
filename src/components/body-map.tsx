@@ -138,9 +138,9 @@ function DiagramSvg({
     >
       {/* Backdrop: solid silhouette so the figure always reads as a whole body. */}
       <g>
-        {renderShapes(diagram.structure, "fill-[#20202e]")}
+        {renderShapes(diagram.structure, "fill-surface-active")}
         {diagram.regions.map((r) => (
-          <g key={`bg-${r.zone}`}>{renderShapes(r.shapes, "fill-[#20202e]")}</g>
+          <g key={`bg-${r.zone}`}>{renderShapes(r.shapes, "fill-surface-active")}</g>
         ))}
       </g>
 

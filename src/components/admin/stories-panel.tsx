@@ -18,6 +18,7 @@ import {
 import { CONDITIONS, conditionLabel } from "@/lib/conditions";
 import type { StoryPrompts, StoryStatus } from "@/lib/tsw-db";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
+import { color } from "@/lib/tokens";
 
 export interface AdminStory {
   id: string;
@@ -399,16 +400,16 @@ function StoryCardGenerator({ story }: { story: AdminStory }) {
     const ctx = canvas.getContext("2d")!;
 
     // Background — matches the app's dark lab theme.
-    ctx.fillStyle = "#0f0f15";
+    ctx.fillStyle = color.surface;
     ctx.fillRect(0, 0, CARD_W, CARD_H);
     let g = ctx.createRadialGradient(160, 260, 0, 160, 260, 900);
-    g.addColorStop(0, "rgba(124, 92, 255, 0.28)");
-    g.addColorStop(1, "rgba(124, 92, 255, 0)");
+    g.addColorStop(0, `${color.accent}47`);
+    g.addColorStop(1, `${color.accent}00`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, CARD_W, CARD_H);
     g = ctx.createRadialGradient(CARD_W - 120, CARD_H - 300, 0, CARD_W - 120, CARD_H - 300, 800);
-    g.addColorStop(0, "rgba(212, 175, 55, 0.16)");
-    g.addColorStop(1, "rgba(212, 175, 55, 0)");
+    g.addColorStop(0, `${color.gold}29`);
+    g.addColorStop(1, `${color.gold}00`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, CARD_W, CARD_H);
 
@@ -427,7 +428,7 @@ function StoryCardGenerator({ story }: { story: AdminStory }) {
         const gap = CARD_W - 80 * 2 - pw * 2;
         drawCover(ctx, before, 80, y, pw, ph, 28);
         drawCover(ctx, after, 80 + pw + gap, y, pw, ph, 28);
-        ctx.fillStyle = "#e2e8f0";
+        ctx.fillStyle = color.text;
         ctx.font = "600 34px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("THEN", 80 + pw / 2, y + ph + 54);
@@ -442,11 +443,11 @@ function StoryCardGenerator({ story }: { story: AdminStory }) {
 
     // Quote.
     ctx.textAlign = "left";
-    ctx.fillStyle = "#7c5cff";
+    ctx.fillStyle = color.accent;
     ctx.font = "700 160px Georgia, serif";
     ctx.fillText("“", 64, y + 60);
     y += 110;
-    ctx.fillStyle = "#f8fafc";
+    ctx.fillStyle = color.textActive;
     ctx.font = "600 58px Georgia, serif";
     const lines = wrapText(ctx, quoteText, CARD_W - 180, hasPhotos ? 7 : 10);
     for (const line of lines) {
@@ -456,21 +457,21 @@ function StoryCardGenerator({ story }: { story: AdminStory }) {
 
     // Attribution.
     y += 40;
-    ctx.fillStyle = "#a78bfa";
+    ctx.fillStyle = color.accentStrong;
     ctx.font = "600 40px system-ui, sans-serif";
     const who = story.authorName?.split(" ")[0] ?? "A member";
     const months = story.monthsIn != null ? ` · ${story.monthsIn} months in` : "";
     ctx.fillText(`— ${who}${months}`, 96, y);
-    ctx.fillStyle = "#64748b";
+    ctx.fillStyle = color.textMuted;
     ctx.font = "400 32px system-ui, sans-serif";
     ctx.fillText(`${conditionLabel(story.condition)} recovery, tracked in the lab`, 96, y + 52);
 
     // Footer brand.
-    ctx.fillStyle = "#d4af37";
+    ctx.fillStyle = color.gold;
     ctx.font = "700 40px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("T H E   A R C A N E   L A B", CARD_W / 2, CARD_H - 110);
-    ctx.fillStyle = "#475069";
+    ctx.fillStyle = color.borderStrong;
     ctx.font = "400 28px system-ui, sans-serif";
     ctx.fillText("Real member story, shared with permission", CARD_W / 2, CARD_H - 60);
 

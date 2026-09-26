@@ -35,7 +35,7 @@ export async function ResultsSection() {
               <TestimonialQuote key={t.id} testimonial={t} />
             ))}
 
-            <div className="card flex flex-1 flex-col justify-center bg-[#16122a]">
+            <div className="card flex flex-1 flex-col justify-center bg-surface-active">
               <h3 className="text-lg font-semibold text-white">
                 Your before-and-after belongs here too
               </h3>

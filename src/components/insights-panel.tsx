@@ -116,7 +116,7 @@ export function InsightsPanel({
       </div>
       <div className="mt-4 grid gap-3 sm:gap-4 lg:grid-cols-2">
         {personal && (
-          <div className="card border-brand-500/30 bg-[#16122a]">
+          <div className="card border-brand-500/30 bg-surface-active">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-brand-300">
                 <Sparkles className="h-4 w-4" />

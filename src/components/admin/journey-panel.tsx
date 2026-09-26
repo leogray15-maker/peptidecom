@@ -29,6 +29,7 @@ import {
 import type { CustomerJourney } from "@/lib/admin-journey";
 import { goalLabel } from "@/lib/tsw";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
+import { color } from "@/lib/tokens";
 
 const TABS = [
   { id: "skin", label: "Skin & tracking", icon: Activity },
@@ -204,41 +205,41 @@ function SkinTab({ journey }: { journey: CustomerJourney }) {
               >
                 <defs>
                   <linearGradient id="severity-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7c5cff" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#7c5cff" stopOpacity={0} />
+                    <stop offset="0%" stopColor={color.accent} stopOpacity={0.5} />
+                    <stop offset="100%" stopColor={color.accent} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="#20202b" />
+                <CartesianGrid vertical={false} stroke={color.border} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#64748b", fontSize: 10 }}
+                  tick={{ fill: color.textMuted, fontSize: 10 }}
                   tickLine={false}
-                  axisLine={{ stroke: "#20202b" }}
+                  axisLine={{ stroke: color.border }}
                   interval="preserveStartEnd"
                   tickFormatter={(d: string) => formatDate(d, { year: undefined })}
                 />
                 <YAxis
                   domain={[0, 10]}
-                  tick={{ fill: "#64748b", fontSize: 10 }}
+                  tick={{ fill: color.textMuted, fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
                   width={38}
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "#0f0f15",
-                    border: "1px solid #20202b",
+                    background: color.surface,
+                    border: `1px solid ${color.border}`,
                     borderRadius: 12,
                     fontSize: 12,
-                    color: "#e2e8f0",
+                    color: color.text,
                   }}
-                  labelStyle={{ color: "#94a3b8", marginBottom: 4 }}
+                  labelStyle={{ color: color.textSecondary, marginBottom: 4 }}
                   formatter={(value: number | string) => [value, "Severity"]}
                 />
                 <Area
                   type="monotone"
                   dataKey="severity"
-                  stroke="#7c5cff"
+                  stroke={color.accent}
                   strokeWidth={2}
                   fill="url(#severity-fill)"
                 />

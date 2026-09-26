@@ -1,5 +1,10 @@
 import type { Config } from "tailwindcss";
+import { color as c, score } from "./src/lib/tokens";
 
+// Every colour below comes from src/lib/tokens.ts. The semantic names
+// (canvas, surface, line, fg, primary, accent, score) are what new code uses;
+// the older ramps (lab, slate, brand, gold, and the emerald→rose status hues)
+// are kept as aliases onto the same tokens so no screen drifts off-palette.
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,63 +14,128 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Arcane Peptides palette: vivid violet accent on near-black.
+        white: c.textActive,
+        black: c.ink,
+        ink: c.ink,
+
+        canvas: c.bg,
+        sidebar: c.sidebar,
+        surface: {
+          DEFAULT: c.surface,
+          sunken: c.surfaceSunken,
+          active: c.surfaceActive,
+        },
+        line: {
+          DEFAULT: c.border,
+          subtle: c.borderSubtle,
+          strong: c.borderStrong,
+        },
+        fg: {
+          DEFAULT: c.text,
+          active: c.textActive,
+          secondary: c.textSecondary,
+          muted: c.textMuted,
+          faint: c.textFaint,
+        },
+        primary: { DEFAULT: c.primary, hover: c.primaryHover },
+        accent: { DEFAULT: c.accent, strong: c.accentStrong },
+        chip: { DEFAULT: c.chipSelected },
+        score: {
+          excellent: score.excellent,
+          good: score.good,
+          moderate: score.moderate,
+          "moderate-bg": score.moderateBg,
+          poor: score.poor,
+          bad: score.bad,
+        },
+
+        // ── Legacy aliases ──────────────────────────────────────────────
         brand: {
-          50: "#f4f2ff",
-          100: "#eae6ff",
-          200: "#d7ccff",
-          300: "#b9a7ff",
-          400: "#9a7bff",
-          500: "#7c5cff",
-          600: "#6a44f5",
-          700: "#5a33da",
-          800: "#4a2bae",
-          900: "#3d2889",
-          950: "#241858",
+          50: c.textActive,
+          100: c.textActive,
+          200: c.accentStrong,
+          300: c.accentStrong,
+          400: c.accent,
+          500: c.primary,
+          600: c.primary,
+          700: c.primaryHover,
+          800: c.primaryHover,
+          900: c.chipSelected,
+          950: c.surfaceActive,
         },
-        // "Nocturne" surfaces: ink-dark, faintly violet, layered by lightness
-        // rather than by shadow. sunken < bg-adjacent chrome, card < raised.
         lab: {
-          bg: "#0a0911",
-          sunken: "#0d0c14",
-          card: "#121019",
-          raised: "#1a1724",
-          border: "#25212f",
-          line: "#1f1c2a",
+          bg: c.bg,
+          sunken: c.surfaceSunken,
+          card: c.surface,
+          raised: c.surfaceActive,
+          border: c.border,
+          line: c.borderSubtle,
         },
-        // Violet-tinted neutrals in place of Tailwind's blue-grey slate, so
-        // every existing text-slate-* class sits on the ink palette. Also a
-        // contrast fix: slate-500 on a card is ~5.6:1 here (was ~3.9:1).
         slate: {
-          50: "#f8f7fc",
-          100: "#f4f2fa",
-          200: "#e3dfee",
-          300: "#ccc6db",
-          400: "#a8a2ba",
-          500: "#8e88a3",
-          600: "#6e6882",
-          700: "#4a4559",
-          800: "#2e2a3a",
-          900: "#1a1724",
-          950: "#0d0c14",
+          50: c.textActive,
+          100: c.text,
+          200: c.text,
+          300: c.textSecondary,
+          400: c.textSecondary,
+          500: c.textMuted,
+          600: c.textFaint,
+          700: c.borderStrong,
+          800: c.borderStrong,
+          900: c.surfaceActive,
+          950: c.surfaceSunken,
         },
-        // Subtle gold — used sparingly for milestones & The Archives.
         gold: {
-          200: "#f7e6b5",
-          300: "#f0d68e",
-          400: "#e6bf5f",
-          500: "#d4a437",
-          600: "#b98a24",
+          DEFAULT: c.gold,
+          line: c.goldBorder,
+          200: c.gold,
+          300: c.gold,
+          400: c.gold,
+          500: c.gold,
+          600: c.goldBorder,
         },
+        emerald: flat(score.excellent),
+        green: flat(score.excellent),
+        lime: flat(score.good),
+        amber: flat(score.moderate),
+        yellow: flat(score.moderate),
+        orange: flat(score.poor),
+        rose: flat(score.bad),
+        red: flat(score.bad),
+        sky: flat(c.accent),
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Georgia", "serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
+      fontSize: {
+        "page-title": ["44px", { lineHeight: "1.05", letterSpacing: "-0.01em" }],
+        meta: ["12.5px", { lineHeight: "1.45" }],
+        label: ["11px", { lineHeight: "1.3", letterSpacing: "0.08em" }],
+      },
+      borderRadius: {
+        card: "14px",
+        control: "10px",
+        nav: "8px",
+      },
+      spacing: {
+        "4.5": "1.125rem",
+        sidebar: "248px",
+        topbar: "64px",
+      },
+      transitionDuration: { DEFAULT: "150ms" },
+      transitionTimingFunction: { DEFAULT: "cubic-bezier(0, 0, 0.2, 1)" },
     },
   },
   plugins: [],
 };
+
+/** One hue for every shade of a status ramp, with a dark 950 for text on it. */
+function flat(hex: string) {
+  const ramp: Record<string, string> = {};
+  for (const k of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]) ramp[k] = hex;
+  ramp[950] = c.ink;
+  return ramp;
+}
 
 export default config;

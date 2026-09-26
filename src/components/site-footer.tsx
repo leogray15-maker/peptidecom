@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { DisclaimerLine } from "@/components/disclaimer-bar";
 
 const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Arcane Track";
 
@@ -48,6 +49,7 @@ export function SiteFooter() {
             research purposes only and not for human consumption. Nothing on this
             site is medical advice.
           </p>
+          <DisclaimerLine className="mt-2" />
         </div>
       </div>
     </footer>

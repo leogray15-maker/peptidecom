@@ -21,19 +21,40 @@ body {
 
 body {
   @apply bg-lab-bg font-sans text-slate-100 antialiased;
-  font-feature-settings: "ss01", "cv11";
+  font-size: 14.5px;
 }
 
-/* Headings speak in the display serif. Weight is left to each heading's own
- * utility classes; tighter tracking suits the serif at size. */
-h1,
-h2 {
-  @apply font-display tracking-tight;
-  font-optical-sizing: auto;
+/* Page titles only speak in the display serif (see PageHeader). Everything
+ * else — card titles, section headings — stays in Geist. */
+h1 {
+  @apply font-display font-normal;
+}
+
+/* Numbers never jitter: tabular figures everywhere a stat can tick. */
+.tabular,
+table {
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
-  @apply bg-brand-500/40 text-white;
+  @apply bg-primary/40 text-white;
+}
+
+/* One focus ring for every interactive element: 2px accent. */
+:focus-visible {
+  outline: 2px solid theme("colors.accent.DEFAULT");
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer components {
@@ -41,85 +62,93 @@ h2 {
     @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
-  /* Surfaces separate by lightness and a hairline, not by drop shadow — on
-   * an ink background shadows just read as mud. */
+  /* Surfaces separate by a hairline border, never by drop shadow. */
   .card {
-    @apply rounded-[1.25rem] border border-lab-border bg-lab-card p-5 sm:p-6;
+    @apply rounded-card border border-line bg-surface p-5 sm:p-6;
   }
 
-  /* Grouped list: one card, rows divided by hairlines (iOS inset-grouped). */
+  .card-title {
+    @apply font-sans text-[15px] font-semibold leading-snug text-fg;
+  }
+
+  /* Grouped list: one card, rows divided by hairlines. */
   .list-group {
-    @apply divide-y divide-lab-line overflow-hidden rounded-[1.25rem] border border-lab-border bg-lab-card;
+    @apply divide-y divide-line-subtle overflow-hidden rounded-card border border-line bg-surface;
   }
 
-  /* Small mono label above a heading or value. */
+  /* 11px uppercase section label / eyebrow. */
   .eyebrow {
-    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500;
+    @apply font-mono text-label font-medium uppercase text-fg-muted;
   }
 
-  /* Big serif figure for stats — tabular so ticking numbers don't jitter. */
+  .section-label {
+    @apply text-label font-medium uppercase text-fg-muted;
+  }
+
+  /* Stat figures: Geist Mono, tabular so ticking numbers don't jitter. */
   .stat-num {
-    @apply font-display font-medium leading-none tabular-nums text-white;
+    @apply font-mono font-medium leading-none tabular-nums text-fg;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-lab-bg disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-control px-4 py-2 text-sm font-semibold transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  /* brand-600 (not 500) under white text: 500 misses 4.5:1. */
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-500;
+    @apply btn bg-primary text-white hover:bg-primary-hover;
   }
 
+  /* Secondary is an outline button. */
   .btn-secondary {
-    @apply btn border border-lab-border bg-lab-raised text-slate-100 hover:border-brand-500/40 hover:bg-lab-raised/70;
+    @apply btn border border-line-strong bg-transparent text-fg hover:border-accent/50 hover:bg-surface-active;
   }
 
   .btn-ghost {
-    @apply btn text-slate-300 hover:bg-white/5;
+    @apply btn text-fg-secondary hover:bg-surface-active hover:text-fg;
   }
 
-  /* The loud one: a filled pill in the light end of the brand ramp with dark
-   * text. Reserved for the single most important action on a screen. */
+  /* Legacy names: the loud / quiet pair now map onto primary / secondary. */
   .btn-accent {
-    @apply btn rounded-2xl bg-brand-300 px-6 py-4 text-base font-bold text-lab-bg hover:bg-brand-200;
+    @apply btn-primary min-h-11 px-5 text-[15px];
   }
 
-  /* Quiet twin of .btn-accent, for the secondary action under it. */
   .btn-accent-ghost {
-    @apply btn rounded-2xl border border-lab-border bg-lab-card px-6 py-3.5 text-sm font-semibold text-slate-300 hover:border-brand-500/40 hover:text-brand-200;
+    @apply btn-secondary min-h-11 px-5;
   }
 
-  /* Full-width tappable row — the app's list primitive. One row = one choice,
-   * thumb-sized, with the state indicator pinned right. */
+  /* Full-width tappable row. One row = one choice, state pinned right. */
   .tap-row {
-    @apply flex w-full items-center gap-3 rounded-2xl border border-transparent bg-lab-card px-4 py-3.5 text-left transition;
+    @apply flex min-h-11 w-full items-center gap-3 rounded-control border border-transparent bg-surface px-4 py-3 text-left transition-colors duration-150 ease-out;
   }
 
   .tap-row-idle {
-    @apply tap-row border-lab-border bg-lab-raised text-slate-200 hover:border-brand-500/40 hover:bg-brand-500/5;
+    @apply tap-row border-line bg-surface text-fg hover:border-line-strong hover:bg-surface-active;
   }
 
   .tap-row-on {
-    @apply tap-row border-brand-500 bg-brand-500/15 text-white;
+    @apply tap-row border-primary bg-chip text-white;
   }
 
-  /* Circular icon button — back chevrons, close buttons. */
+  /* Square icon button — back chevrons, close buttons. */
   .icon-circle {
-    @apply grid h-11 w-11 shrink-0 place-items-center rounded-full border border-lab-border bg-lab-card text-slate-300 transition hover:border-brand-500/50 hover:text-brand-200;
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-control border border-line bg-surface text-fg-secondary transition-colors duration-150 ease-out hover:border-line-strong hover:text-fg;
   }
 
-  /* Big rounded tile behind the icon at the top of a gate / empty state. */
+  /* Tile behind the icon at the top of a gate / empty state. */
   .icon-tile {
-    @apply grid h-16 w-16 place-items-center rounded-3xl bg-brand-500/10 text-brand-300 ring-1 ring-inset ring-brand-500/20;
+    @apply grid h-12 w-12 place-items-center rounded-control border border-line bg-surface-active text-accent-strong;
   }
 
   .input {
-    @apply min-h-11 w-full rounded-xl border border-lab-border bg-lab-sunken px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-[3px] focus:ring-brand-500/25;
+    @apply min-h-11 w-full rounded-control border border-line bg-surface-sunken px-3.5 py-2.5 text-sm text-fg placeholder:text-fg-muted focus:border-primary focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-accent/40 aria-[invalid=true]:border-score-bad;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-slate-300;
+    @apply mb-1.5 block text-[13px] font-medium text-fg-secondary;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-meta text-score-bad;
   }
 
   .badge {
@@ -127,20 +156,9 @@ h2 {
   }
 }
 
-/* Ambient violet glow behind the top of every member screen. Purely
- * decorative, so it's pointer-transparent and hidden from assistive tech. */
+/* Kept for markup that still references it; the ambient glow is retired. */
 .app-glow {
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: 60vh;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    80% 55% at 50% -10%,
-    rgba(124, 92, 255, 0.14) 0%,
-    rgba(124, 92, 255, 0.05) 45%,
-    transparent 75%
-  );
+  display: none;
 }
 
 /* Slow breathing guide on the flare-day support page. */
