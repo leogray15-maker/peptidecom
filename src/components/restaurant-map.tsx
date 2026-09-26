@@ -8,12 +8,13 @@
 // map here is plain <img> tiles positioned in a div: pan by dragging, zoom with
 // the buttons or the wheel, and score pins drawn on top.
 //
-// Tiles come from CARTO's dark basemap, rendered from OpenStreetMap data —
-// attribution is required and rendered in the corner. No cookies, no API key,
-// and the only thing the tile server learns is the area being looked at.
+// Tiles come from whichever provider lib/map-tiles.ts picks (a keyed dark
+// basemap when one is configured, otherwise OpenStreetMap). Attribution is
+// required and rendered in the corner.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Crosshair, Minus, Plus, Search } from "lucide-react";
+import { tileProvider } from "@/lib/map-tiles";
 import type { ScoreTone } from "@/lib/product-score";
 import { cn } from "@/lib/utils";
 
@@ -68,11 +69,13 @@ export interface MapPoint {
 }
 
 const PIN_COLOR: Record<ScoreTone, string> = {
-  emerald: "bg-emerald-500 text-emerald-950",
-  green: "bg-lime-500 text-lime-950",
-  orange: "bg-orange-500 text-orange-950",
-  rose: "bg-rose-500 text-rose-950",
+  emerald: "bg-score-excellent text-ink",
+  green: "bg-score-good text-ink",
+  orange: "bg-score-poor text-ink",
+  rose: "bg-score-bad text-ink",
 };
+
+const TILES = tileProvider();
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -87,11 +90,14 @@ export function RestaurantMap({
   radiusM,
   points,
   selectedId,
+  hoveredId = null,
   onSelect,
   onSearchArea,
   busy = false,
   className,
 }: {
+  /** A venue being hovered in the list; its pin is highlighted. */
+  hoveredId?: string | null;
   center: { lat: number; lon: number };
   radiusM: number;
   points: MapPoint[];
@@ -199,12 +205,9 @@ export function RestaurantMap({
       for (let y = minY; y <= maxY; y++) {
         // The world wraps horizontally; the poles don't.
         const wrapped = ((x % count) + count) % count;
-        const sub = "abc"[Math.abs(wrapped + y) % 3];
         out.push({
           key: `${view.zoom}/${x}/${y}`,
-          url: `https://${sub}.basemaps.cartocdn.com/dark_all/${view.zoom}/${wrapped}/${y}${
-            retina ? "@2x" : ""
-          }.png`,
+          url: TILES.url(view.zoom, wrapped, y, retina),
           left: x * TILE_SIZE - topLeft.x,
           top: y * TILE_SIZE - topLeft.y,
         });
@@ -228,9 +231,13 @@ export function RestaurantMap({
   const ordered = useMemo(
     () =>
       [...points].sort((a, b) =>
-        a.id === selectedId ? 1 : b.id === selectedId ? -1 : a.score - b.score
+        a.id === selectedId || a.id === hoveredId
+          ? 1
+          : b.id === selectedId || b.id === hoveredId
+            ? -1
+            : a.score - b.score
       ),
-    [points, selectedId]
+    [points, selectedId, hoveredId]
   );
 
   const searchCenter = toScreen(center.lat, center.lon);
@@ -246,7 +253,7 @@ export function RestaurantMap({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-card border border-lab-border bg-lab-card",
+        "relative overflow-hidden rounded-card border border-line bg-surface-sunken",
         className
       )}
     >
@@ -271,10 +278,15 @@ export function RestaurantMap({
               alt=""
               aria-hidden
               draggable={false}
+              onError={(e) => {
+                // A tile that fails to load leaves plain map background rather
+                // than a broken-image icon.
+                e.currentTarget.style.visibility = "hidden";
+              }}
               width={TILE_SIZE}
               height={TILE_SIZE}
-              className="absolute max-w-none opacity-90"
-              style={{ left: t.left, top: t.top, width: TILE_SIZE, height: TILE_SIZE }}
+              className="absolute max-w-none"
+              style={{ left: t.left, top: t.top, width: TILE_SIZE, height: TILE_SIZE, filter: TILES.filter }}
             />
           ))}
         </div>
@@ -282,7 +294,7 @@ export function RestaurantMap({
         {/* Search radius + centre */}
         <div
           aria-hidden
-          className="pointer-events-none absolute rounded-full border border-brand-400/30 bg-brand-500/5"
+          className="pointer-events-none absolute rounded-full border border-accent/40 bg-accent/5"
           style={{
             left: searchCenter.left - radiusPx,
             top: searchCenter.top - radiusPx,
@@ -292,7 +304,7 @@ export function RestaurantMap({
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute h-3 w-3 rounded-full border-2 border-white/80 bg-brand-500 shadow"
+          className="pointer-events-none absolute h-3 w-3 rounded-full border-2 border-white bg-primary"
           style={{ left: searchCenter.left - 6, top: searchCenter.top - 6 }}
         />
 
@@ -303,6 +315,7 @@ export function RestaurantMap({
             return null;
           }
           const selected = p.id === selectedId;
+          const hovered = p.id === hoveredId;
           return (
             <button
               key={p.id}
@@ -312,11 +325,13 @@ export function RestaurantMap({
               aria-label={`${p.label} — health score ${p.score} out of 100`}
               aria-pressed={selected}
               className={cn(
-                "absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-[11px] font-bold transition",
+                "absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full font-mono text-[11px] font-semibold tabular-nums transition-transform duration-150 ease-out",
                 PIN_COLOR[p.tone],
                 selected
                   ? "z-20 scale-125 ring-2 ring-white"
-                  : "ring-1 ring-black/40 hover:scale-110"
+                  : hovered
+                    ? "z-10 scale-125 ring-2 ring-accent"
+                    : "ring-1 ring-ink/60 hover:scale-110"
               )}
               style={{ left: pos.left, top: pos.top }}
             >
@@ -327,13 +342,13 @@ export function RestaurantMap({
       </div>
 
       {/* Zoom controls */}
-      <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-control border border-lab-border bg-lab-bg/90">
+      <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-control border border-line bg-surface">
         <button
           type="button"
           onClick={() => zoomBy(1)}
           disabled={view.zoom >= MAX_ZOOM}
           aria-label="Zoom in"
-          className="grid h-9 w-9 place-items-center text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
+          className="grid h-10 w-10 place-items-center text-fg-secondary transition-colors hover:bg-surface-active hover:text-fg disabled:opacity-40"
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -342,7 +357,7 @@ export function RestaurantMap({
           onClick={() => zoomBy(-1)}
           disabled={view.zoom <= MIN_ZOOM}
           aria-label="Zoom out"
-          className="grid h-9 w-9 place-items-center border-t border-lab-border text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
+          className="grid h-10 w-10 place-items-center border-t border-line text-fg-secondary transition-colors hover:bg-surface-active hover:text-fg disabled:opacity-40"
         >
           <Minus className="h-4 w-4" />
         </button>
@@ -352,7 +367,7 @@ export function RestaurantMap({
             setView({ lat: center.lat, lon: center.lon, zoom: zoomForRadius(radiusM) })
           }
           aria-label="Back to the search area"
-          className="grid h-9 w-9 place-items-center border-t border-lab-border text-slate-300 transition hover:bg-white/10"
+          className="grid h-10 w-10 place-items-center border-t border-line text-fg-secondary transition-colors hover:bg-surface-active hover:text-fg"
         >
           <Crosshair className="h-4 w-4" />
         </button>
@@ -365,7 +380,7 @@ export function RestaurantMap({
             type="button"
             onClick={() => onSearchArea?.({ lat: view.lat, lon: view.lon })}
             disabled={busy}
-            className="btn rounded-full border border-brand-500/40 bg-lab-bg/95 px-4 py-2 text-xs font-semibold text-brand-200 hover:bg-brand-500/15"
+            className="btn min-h-9 rounded-full border border-line-strong bg-surface px-4 text-[13px] text-fg hover:bg-surface-active"
           >
             <Search className="h-3.5 w-3.5" />
             Search this area
@@ -374,8 +389,8 @@ export function RestaurantMap({
       )}
 
       {/* Required attribution for the tiles and the underlying data. */}
-      <p className="pointer-events-none absolute bottom-0 right-0 rounded-tl-lg bg-lab-bg/80 px-2 py-0.5 text-[9px] text-slate-500">
-        © OpenStreetMap contributors © CARTO
+      <p className="absolute bottom-0 right-0 rounded-tl-[6px] bg-surface/90 px-2 py-0.5 text-[10px] text-fg-muted">
+        {TILES.attribution}
       </p>
     </div>
   );

@@ -8,8 +8,9 @@ export default function RestaurantsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Skin tools"
         title="Healthy places to eat"
-        subtitle="Every restaurant, café and takeaway around you, scored 0–100 for how healthy eating there is likely to be — on a map, healthiest first. Built from open map data, so it works anywhere in the world."
+        subtitle="Every restaurant, café and takeaway around you, scored 0–100 for how healthy eating there is likely to be. Built from open map data, so it works anywhere."
       />
       <RestaurantsClient />
       <PeerSupportNote />

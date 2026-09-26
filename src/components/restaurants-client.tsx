@@ -24,14 +24,8 @@ import {
 } from "lucide-react";
 import { FeatureGate } from "@/components/feature-gate";
 import { type MapPoint, RestaurantMap } from "@/components/restaurant-map";
-import { TONE_TEXT } from "@/components/score-ring";
-import {
-  CONFIDENCE_LABEL,
-  KIND_LABEL,
-  TONE_BG,
-  TONE_BORDER,
-  type VenueKind,
-} from "@/lib/restaurant-score";
+import { Chip, ScoreBadge, SegmentedControl, Tag, toneLevel } from "@/components/ui";
+import { CONFIDENCE_LABEL, KIND_LABEL, type VenueKind } from "@/lib/restaurant-score";
 import {
   DEFAULT_RADIUS_M,
   RADIUS_OPTIONS,
@@ -47,12 +41,17 @@ import { cn } from "@/lib/utils";
 type Sort = "healthiest" | "nearest";
 type KindFilter = "all" | VenueKind;
 
-const KIND_FILTERS: { id: KindFilter; label: string }[] = [
-  { id: "all", label: "Everywhere" },
-  { id: "restaurant", label: "Restaurants" },
-  { id: "cafe", label: "Cafés" },
-  { id: "fast_food", label: "Fast food" },
+const KIND_FILTERS: { value: KindFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "restaurant", label: "Restaurants" },
+  { value: "cafe", label: "Cafés" },
+  { value: "fast_food", label: "Fast food" },
 ];
+
+const cuisineLabel = (c: string) => {
+  const t = c.replace(/_/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
 
 /** Where the member last searched, so the screen opens where they left it. */
 const LAST_SEARCH_KEY = "arcane.restaurants.last";
@@ -87,6 +86,7 @@ export function RestaurantsClient() {
   const [kind, setKind] = useState<KindFilter>("all");
   const [veganOnly, setVeganOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const rowRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   /** One search. Either coordinates or a place name — the route resolves both
@@ -208,97 +208,67 @@ export function RestaurantsClient() {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
+      {/* Search + Near me, one bar */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (query.trim()) void search({ q: query.trim() });
         }}
-        className="flex flex-col gap-2 sm:flex-row"
+        role="search"
+        className="flex items-center gap-1.5 rounded-control border border-line bg-surface p-1.5 focus-within:border-primary"
       >
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Town, postcode or street"
-            aria-label="Search for a place"
-            className="input pl-9"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button type="submit" disabled={loading || !query.trim()} className="btn-primary flex-1 sm:flex-none">
-            Search
-          </button>
-          <button
-            type="button"
-            onClick={locate}
-            disabled={loading}
-            className="btn-secondary flex-1 sm:flex-none"
-          >
-            <LocateFixed className="h-4 w-4" />
-            Near me
-          </button>
-        </div>
+        <Search className="ml-2 h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+        <label htmlFor="place-search" className="sr-only">
+          Search for a place
+        </label>
+        <input
+          id="place-search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Town, postcode or street"
+          className="min-h-10 min-w-0 flex-1 bg-transparent px-1 text-sm text-fg placeholder:text-fg-muted focus:outline-none focus-visible:outline-none"
+        />
+        <button type="submit" disabled={loading || !query.trim()} className="btn-primary min-h-10 px-3.5">
+          Search
+        </button>
+        <button type="button" onClick={locate} disabled={loading} className="btn-secondary min-h-10 px-3" aria-label="Near me">
+          <LocateFixed className="h-4 w-4" aria-hidden />
+          <span className="hidden sm:inline">Near me</span>
+        </button>
       </form>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-control border border-lab-border p-0.5">
-          {RADIUS_OPTIONS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => changeRadius(r)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-                radiusM === r ? "bg-brand-500/20 text-brand-200" : "text-slate-400 hover:text-slate-200"
-              )}
+      {/* Filters — one row, scrolls sideways on small screens */}
+      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+        <SegmentedControl
+          label="Distance"
+          size="sm"
+          value={String(radiusM)}
+          onChange={(v) => changeRadius(Number(v))}
+          options={RADIUS_OPTIONS.map((r) => ({ value: String(r), label: `${r / 1000} km` }))}
+        />
+        <SegmentedControl label="Type of place" size="sm" value={kind} onChange={setKind} options={KIND_FILTERS} />
+        <Chip selected={veganOnly} onToggle={() => setVeganOnly((v) => !v)} className="shrink-0">
+          Plant-based
+        </Chip>
+        <label className="ml-auto flex shrink-0 items-center gap-2 text-meta text-fg-muted">
+          <span className="whitespace-nowrap">Sort</span>
+          <span className="relative">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as Sort)}
+              className="min-h-9 appearance-none rounded-control border border-line bg-surface-sunken py-1 pl-3 pr-8 text-[13px] text-fg focus:border-primary focus:outline-none"
             >
-              {r / 1000} km
-            </button>
-          ))}
-        </div>
-        <div className="flex rounded-control border border-lab-border p-0.5">
-          {KIND_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setKind(f.id)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-                kind === f.id ? "bg-brand-500/20 text-brand-200" : "text-slate-400 hover:text-slate-200"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => setVeganOnly((v) => !v)}
-          aria-pressed={veganOnly}
-          className={cn(
-            "rounded-control border px-3 py-2 text-xs font-semibold transition",
-            veganOnly
-              ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-200"
-              : "border-lab-border text-slate-400 hover:text-slate-200"
-          )}
-        >
-          Plant-based only
-        </button>
-        <button
-          type="button"
-          onClick={() => setSort((s) => (s === "healthiest" ? "nearest" : "healthiest"))}
-          className="ml-auto rounded-control border border-lab-border px-3 py-2 text-xs font-semibold text-slate-300 transition hover:text-white"
-        >
-          {sort === "healthiest" ? "Healthiest first" : "Closest first"}
-        </button>
+              <option value="healthiest">Healthiest first</option>
+              <option value="nearest">Closest first</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-muted" aria-hidden />
+          </span>
+        </label>
       </div>
 
       {error && (
-        <p className="flex items-start gap-2 rounded-control border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-sm text-rose-200">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <p role="alert" className="flex items-start gap-2 rounded-control border border-score-bad/40 bg-score-bad/5 px-3.5 py-3 text-sm text-fg">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-score-bad" aria-hidden />
           {error}
         </p>
       )}
@@ -309,8 +279,8 @@ export function RestaurantsClient() {
           title="Where are you eating?"
           description="Share your location — or type a town, postcode or street — and we'll score every restaurant, café and takeaway around it so the healthiest ones stand out."
           action={
-            <button type="button" onClick={locate} className="btn-accent w-full">
-              <LocateFixed className="h-5 w-5" />
+            <button type="button" onClick={locate} className="btn-primary min-h-11 w-full">
+              <LocateFixed className="h-4 w-4" aria-hidden />
               Use my location
             </button>
           }
@@ -318,61 +288,69 @@ export function RestaurantsClient() {
       )}
 
       {loading && !result && (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-400">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Looking at what&rsquo;s around you…
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]" aria-busy="true" aria-label="Loading places">
+          <div className="h-[22rem] animate-pulse rounded-card bg-surface lg:h-[34rem]" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className="h-16 animate-pulse rounded-control bg-surface" />
+            ))}
+          </div>
         </div>
       )}
 
       {result && (
         <>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm text-slate-400">
-              {visible.length} of {result.count} place{result.count === 1 ? "" : "s"} within{" "}
-              {result.radiusM / 1000} km
+            <p className="text-meta text-fg-muted">
+              <span className="font-mono tabular-nums text-fg">{visible.length}</span> of {result.count} place
+              {result.count === 1 ? "" : "s"} within {result.radiusM / 1000} km
               {result.center.label && <> of {result.center.label}</>}
             </p>
             {loading && (
-              <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="flex items-center gap-1.5 text-meta text-fg-muted">
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                 Updating
               </span>
             )}
           </div>
 
-          <RestaurantMap
-            center={result.center}
-            radiusM={result.radiusM}
-            points={points}
-            selectedId={selectedId}
-            onSelect={selectVenue}
-            onSearchArea={(c) => void search({ lat: c.lat, lon: c.lon })}
-            busy={loading}
-            className="h-[22rem] sm:h-[26rem]"
-          />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <RestaurantMap
+              center={result.center}
+              radiusM={result.radiusM}
+              points={points}
+              selectedId={selectedId}
+              hoveredId={hoveredId}
+              onSelect={selectVenue}
+              onSearchArea={(c) => void search({ lat: c.lat, lon: c.lon })}
+              busy={loading}
+              className="h-[22rem] sm:h-[26rem] lg:sticky lg:top-[88px] lg:h-[34rem]"
+            />
 
-          {visible.length === 0 ? (
-            <div className="card text-center text-sm text-slate-400">
-              Nothing matches those filters here. Try a wider radius, or turn a filter off.
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {visible.map((r, i) => (
-                <VenueRow
-                  key={r.id}
-                  rowRef={(el) => {
-                    rowRefs.current[r.id] = el;
-                  }}
-                  venue={r}
-                  rank={sort === "healthiest" ? i + 1 : null}
-                  open={selectedId === r.id}
-                  onToggle={() => selectVenue(selectedId === r.id ? null : r.id)}
-                />
-              ))}
-            </ul>
-          )}
+            {visible.length === 0 ? (
+              <div className="card text-center text-meta text-fg-muted">
+                Nothing matches those filters here. Try a wider radius, or turn a filter off.
+              </div>
+            ) : (
+              <ul className="list-group self-start" onMouseLeave={() => setHoveredId(null)}>
+                {visible.map((r, i) => (
+                  <VenueRow
+                    key={r.id}
+                    rowRef={(el) => {
+                      rowRefs.current[r.id] = el;
+                    }}
+                    venue={r}
+                    rank={sort === "healthiest" ? i + 1 : null}
+                    open={selectedId === r.id}
+                    onHover={() => setHoveredId(r.id)}
+                    onToggle={() => selectVenue(selectedId === r.id ? null : r.id)}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
 
-          <p className="pt-2 text-center text-xs leading-relaxed text-slate-500">
+          <p className="pt-2 text-meta leading-relaxed text-fg-muted">
             Scores are our own estimate from open map data — the venue&rsquo;s category, its listed
             cuisines and its diet tags — not an analysis of the actual menu. Treat them as a
             starting point, and check the menu before you order.
@@ -390,78 +368,62 @@ function VenueRow({
   venue,
   rank,
   open,
+  onHover,
   onToggle,
 }: {
   rowRef: (el: HTMLLIElement | null) => void;
   venue: ScoredRestaurant;
   rank: number | null;
   open: boolean;
+  onHover: () => void;
   onToggle: () => void;
 }) {
   const { analysis } = venue;
+  const cuisine = venue.cuisines[0];
   return (
-    <li
-      ref={rowRef}
-      className={cn(
-        "overflow-hidden rounded-card border bg-lab-card transition",
-        open ? TONE_BORDER[analysis.band.tone] : "border-lab-border"
-      )}
-    >
+    <li ref={rowRef} onMouseEnter={onHover} onFocus={onHover} className={cn(open && "bg-surface-active/60")}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 p-3.5 text-left"
+        className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-active"
       >
-        <span
-          className={cn(
-            "grid h-11 w-11 shrink-0 place-items-center rounded-control text-sm font-extrabold text-black/80",
-            TONE_BG[analysis.band.tone]
-          )}
-        >
-          {analysis.score}
-        </span>
+        <ScoreBadge level={toneLevel(analysis.band.tone)} value={analysis.score} label={null} />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
-            {rank !== null && <span className="text-xs font-semibold text-slate-600">#{rank}</span>}
-            <span className="truncate font-semibold text-white">{venue.name}</span>
+            {rank !== null && <span className="font-mono text-[11.5px] tabular-nums text-fg-muted">#{rank}</span>}
+            <span className="truncate text-sm font-medium text-fg">{venue.name}</span>
           </span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
-            <span className={cn("font-semibold", TONE_TEXT[analysis.band.tone])}>
-              {analysis.band.label}
-            </span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-fg-muted">
+            <span>{analysis.band.label}</span>
             <span aria-hidden>·</span>
-            <span>{KIND_LABEL[venue.kind]}</span>
+            {cuisine ? <Tag className="py-0 text-[11.5px]">{cuisineLabel(cuisine)}</Tag> : <span>{KIND_LABEL[venue.kind]}</span>}
             <span aria-hidden>·</span>
-            <span>{formatDistance(venue.distanceM)}</span>
+            <span className="font-mono tabular-nums">{formatDistance(venue.distanceM)}</span>
             {analysis.confidence === "low" && (
               <>
                 <span aria-hidden>·</span>
-                <span className="text-slate-500">{CONFIDENCE_LABEL.low}</span>
+                <span>{CONFIDENCE_LABEL.low}</span>
               </>
             )}
           </span>
-          {analysis.tags.length > 0 && (
-            <span className="mt-1.5 flex flex-wrap gap-1">
-              {analysis.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-lab-border px-2 py-0.5 text-[10px] text-slate-400"
-                >
-                  {t}
-                </span>
-              ))}
-            </span>
-          )}
         </span>
         <ChevronDown
-          className={cn("h-4 w-4 shrink-0 text-slate-500 transition", open && "rotate-180")}
+          className={cn("h-4 w-4 shrink-0 text-fg-muted transition-transform duration-150", open && "rotate-180")}
+          aria-hidden
         />
       </button>
 
       {open && (
-        <div className="border-t border-lab-border px-3.5 py-4">
-          <p className="text-sm text-slate-300">{analysis.band.blurb}</p>
+        <div className="border-t border-line-subtle px-4 py-4">
+          <p className="text-sm text-fg-secondary">{analysis.band.blurb}</p>
+          {analysis.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {analysis.tags.map((t) => (
+                <Tag key={t}>{t}</Tag>
+              ))}
+            </div>
+          )}
 
           {analysis.positives.length > 0 && (
             <FindingList title="What's good here" tone="emerald" findings={analysis.positives} />
@@ -470,27 +432,27 @@ function VenueRow({
             <FindingList title="What to watch" tone="rose" findings={analysis.negatives} />
           )}
 
-          <dl className="mt-4 space-y-1.5 text-xs text-slate-400">
+          <dl className="mt-4 space-y-1.5 text-meta text-fg-secondary">
             {venue.address && (
               <div className="flex gap-2">
                 <dt className="sr-only">Address</dt>
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-fg-muted" aria-hidden />
                 <dd>{venue.address}</dd>
               </div>
             )}
             {venue.openingHours && (
               <div className="flex gap-2">
                 <dt className="sr-only">Opening hours</dt>
-                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-fg-muted" aria-hidden />
                 <dd>{venue.openingHours}</dd>
               </div>
             )}
             {venue.phone && (
               <div className="flex gap-2">
                 <dt className="sr-only">Phone</dt>
-                <Phone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <Phone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-fg-muted" aria-hidden />
                 <dd>
-                  <a href={`tel:${venue.phone.replace(/\s+/g, "")}`} className="hover:text-slate-200">
+                  <a href={`tel:${venue.phone.replace(/\s+/g, "")}`} className="hover:text-fg">
                     {venue.phone}
                   </a>
                 </dd>
@@ -499,23 +461,13 @@ function VenueRow({
           </dl>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <a
-              href={directionsUrl(venue)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary text-xs"
-            >
-              <Navigation className="h-3.5 w-3.5" />
+            <a href={directionsUrl(venue)} target="_blank" rel="noopener noreferrer" className="btn-secondary min-h-9 text-[13px]">
+              <Navigation className="h-3.5 w-3.5" aria-hidden />
               Directions
             </a>
             {venue.website && (
-              <a
-                href={venue.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost text-xs"
-              >
-                <Globe className="h-3.5 w-3.5" />
+              <a href={venue.website} target="_blank" rel="noopener noreferrer" className="btn-ghost min-h-9 text-[13px]">
+                <Globe className="h-3.5 w-3.5" aria-hidden />
                 Menu / website
               </a>
             )}
@@ -537,8 +489,8 @@ function FindingList({
 }) {
   return (
     <div className="mt-4">
-      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
-        <UtensilsCrossed className="h-3.5 w-3.5" />
+      <p className="section-label mb-2 flex items-center gap-1.5">
+        <UtensilsCrossed className="h-3.5 w-3.5" aria-hidden />
         {title}
       </p>
       <ul className="space-y-1.5">
@@ -548,12 +500,12 @@ function FindingList({
               aria-hidden
               className={cn(
                 "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                tone === "emerald" ? "bg-emerald-400" : "bg-rose-400"
+                tone === "emerald" ? "bg-score-excellent" : "bg-score-bad"
               )}
             />
             <span>
-              <span className="font-medium text-slate-200">{f.label}</span>{" "}
-              <span className="text-slate-500">— {f.note}</span>
+              <span className="font-medium text-fg">{f.label}</span>{" "}
+              <span className="text-fg-muted">— {f.note}</span>
             </span>
           </li>
         ))}
