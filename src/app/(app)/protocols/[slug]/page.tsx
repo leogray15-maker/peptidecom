@@ -48,7 +48,7 @@ export default async function ProtocolArticlePage({
         <Markdown content={article.body} />
       </article>
 
-      <p className="mt-4 rounded-xl border border-lab-border bg-lab-card/50 p-3 text-xs text-slate-500">
+      <p className="mt-4 rounded-control border border-lab-border bg-lab-card/50 p-3 text-xs text-slate-500">
         For research &amp; educational purposes only. Nothing here is medical advice. Products
         discussed are not for human consumption.
       </p>

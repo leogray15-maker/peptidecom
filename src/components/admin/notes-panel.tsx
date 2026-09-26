@@ -79,7 +79,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
           <div
             key={n.id}
             className={cn(
-              "rounded-xl border p-3",
+              "rounded-control border p-3",
               n.pinned ? "border-brand-500/40 bg-brand-950/30" : "border-lab-border bg-lab-bg"
             )}
           >

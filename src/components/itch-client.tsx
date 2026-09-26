@@ -101,7 +101,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
   return (
     <div className="space-y-4">
       {/* The scale */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <p className="text-center text-sm text-slate-400">How bad is the itch right now?</p>
         <p className="mt-2 text-center text-6xl font-extrabold leading-none tabular-nums text-white">
           {level}
@@ -119,7 +119,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
               aria-label={`Itch level ${n}`}
               aria-pressed={level === n}
               className={cn(
-                "rounded-xl py-3 text-sm font-semibold tabular-nums transition",
+                "rounded-control py-3 text-sm font-semibold tabular-nums transition",
                 level === n
                   ? "bg-brand-400 text-lab-bg"
                   : "bg-lab-bg text-slate-400 hover:bg-brand-500/10 hover:text-brand-200"
@@ -172,9 +172,9 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
       {level >= 7 && (
         <Link
           href="/support"
-          className="card group flex items-center gap-4 !rounded-3xl border-brand-500/30 bg-surface-active transition hover:border-brand-500"
+          className="card group flex items-center gap-4 border-brand-500/30 bg-surface-active transition hover:border-brand-500"
         >
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-500/20 text-brand-300">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-brand-500/20 text-brand-300">
             <LifeBuoy className="h-5 w-5" />
           </div>
           <div>
@@ -187,7 +187,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
       )}
 
       {/* Today */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <div className="flex items-baseline justify-between">
           <p className="font-semibold text-white">Today</p>
           <p className="text-xs text-slate-500">
@@ -200,7 +200,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
             { label: "Peak", value: summary.todayPeak },
             { label: "7-day avg", value: summary.weekAvg },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-2xl bg-lab-bg py-3">
+            <div key={stat.label} className="rounded-card bg-lab-bg py-3">
               <p className="text-xl font-bold tabular-nums text-white">
                 {stat.value ?? "—"}
               </p>
@@ -247,7 +247,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
       </div>
 
       {/* Last 7 days */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <p className="font-semibold text-white">Last 7 days</p>
         <div className="mt-4 flex h-28 items-end justify-between gap-2">
           {summary.week.map((d) => (

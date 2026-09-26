@@ -498,7 +498,7 @@ function StoryCardGenerator({ story }: { story: AdminStory }) {
           ref={canvasRef}
           width={CARD_W}
           height={CARD_H}
-          className="w-full max-w-[280px] rounded-xl border border-lab-border bg-lab-bg"
+          className="w-full max-w-[280px] rounded-control border border-lab-border bg-lab-bg"
         />
       </div>
       <div className="space-y-3">

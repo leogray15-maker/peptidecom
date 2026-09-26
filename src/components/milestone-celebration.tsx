@@ -49,8 +49,8 @@ export function MilestoneCelebration({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-3xl border border-gold-500/30 bg-lab-card p-8 text-center shadow-2xl shadow-brand-950/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="relative w-full max-w-md rounded-card border border-gold-500/30 bg-lab-card p-8 text-center">
         <button
           onClick={close}
           className="absolute right-4 top-4 text-slate-500 hover:text-slate-300"
@@ -59,7 +59,7 @@ export function MilestoneCelebration({
           <X className="h-5 w-5" />
         </button>
 
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-brand-500/30 to-gold-500/30">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-gold-line bg-surface-active text-gold">
           <Sparkles className="h-7 w-7 text-gold-300" />
         </div>
 
@@ -79,7 +79,7 @@ export function MilestoneCelebration({
           <Link
             href="/won?share=1"
             onClick={close}
-            className="mt-5 block rounded-2xl border border-brand-500/40 bg-brand-500/10 p-4 text-left transition hover:border-brand-400"
+            className="mt-5 block rounded-card border border-brand-500/40 bg-brand-500/10 p-4 text-left transition hover:border-brand-400"
           >
             <p className="text-sm font-semibold text-brand-200">
               Your story could carry someone through their worst week
@@ -91,7 +91,7 @@ export function MilestoneCelebration({
         )}
 
         {/* The bridge — after the congratulations, never instead of it */}
-        <div className="mt-6 rounded-2xl border border-lab-border bg-lab-bg p-4 text-left">
+        <div className="mt-6 rounded-card border border-lab-border bg-lab-bg p-4 text-left">
           <p className="text-xs font-semibold uppercase tracking-widest text-gold-400/90">
             Your next chapter
           </p>

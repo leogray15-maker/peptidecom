@@ -40,7 +40,7 @@ export function PricingPlans() {
   const selected = PLAN_LIST.find((p) => p.id === plan)!;
 
   return (
-    <div className="card !rounded-3xl">
+    <div className="card">
       <div className="space-y-3">
         {PLAN_LIST.map((p) => {
           const active = p.id === plan;
@@ -50,7 +50,7 @@ export function PricingPlans() {
               type="button"
               onClick={() => setPlan(p.id)}
               className={cn(
-                "flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition",
+                "flex w-full items-center gap-4 rounded-card border p-4 text-left transition",
                 active
                   ? "border-brand-500 bg-brand-500/10 ring-1 ring-brand-500/40"
                   : "border-lab-border hover:border-brand-600/60"

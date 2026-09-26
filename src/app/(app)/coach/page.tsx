@@ -88,7 +88,7 @@ export default async function CoachPage() {
 
       {/* Today */}
       <section>
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="text-sm text-slate-400">
             {firstName}, you&apos;ve tracked{" "}
             <span className="font-semibold text-white">{stats.daysTracked} days</span>
@@ -109,7 +109,7 @@ export default async function CoachPage() {
       {/* Today's plan */}
       <h2 className="mt-6 text-lg font-medium text-white">Today&apos;s plan</h2>
       {actions.length === 0 ? (
-        <div className="card mt-3 !rounded-3xl text-sm text-slate-400">
+        <div className="card mt-3 text-sm text-slate-400">
           Nothing outstanding — today is logged, your photo and POEM are current and conditions are
           quiet. That is genuinely the whole list.
         </div>
@@ -119,9 +119,9 @@ export default async function CoachPage() {
             <Link
               key={action.id}
               href={action.href}
-              className="card group flex items-start gap-4 !rounded-3xl transition hover:border-brand-500/60"
+              className="card group flex items-start gap-4 transition hover:border-brand-500/60"
             >
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
                 <ClipboardList className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -138,14 +138,14 @@ export default async function CoachPage() {
       {/* What your data says */}
       <h2 className="mt-8 text-lg font-medium text-white">What your data says</h2>
       {observations.length === 0 && !insight ? (
-        <div className="card mt-3 !rounded-3xl text-sm text-slate-400">
+        <div className="card mt-3 text-sm text-slate-400">
           Not enough logged yet to say anything honest. Give it a couple of weeks of days and
           triggers — patterns show up faster than you&apos;d think.
         </div>
       ) : (
         <div className="mt-3 space-y-3">
           {insight && (
-            <div className="card !rounded-3xl border-brand-500/30">
+            <div className="card border-brand-500/30">
               <p className="flex items-center gap-2 font-semibold text-white">
                 <Lightbulb className="h-4.5 w-4.5 shrink-0 text-brand-300" />
                 {insight.headline}
@@ -154,7 +154,7 @@ export default async function CoachPage() {
             </div>
           )}
           {observations.map((o) => (
-            <div key={o.headline} className="card !rounded-3xl">
+            <div key={o.headline} className="card">
               <p className="font-semibold text-white">{o.headline}</p>
               <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{o.detail}</p>
             </div>

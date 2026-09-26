@@ -16,10 +16,10 @@ export function PageHeader({
   back,
   className,
 }: {
-  title: string;
+  title: React.ReactNode;
   subtitle?: React.ReactNode;
   /** Small mono label above the title (a date, a section name). */
-  eyebrow?: string;
+  eyebrow?: React.ReactNode;
   /** Right-hand actions (buttons, a search box). */
   action?: React.ReactNode;
   actions?: React.ReactNode;

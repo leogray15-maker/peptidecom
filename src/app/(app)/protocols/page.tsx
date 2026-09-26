@@ -18,7 +18,7 @@ export default function ProtocolsPage() {
 
       <div className="card border-gold-500/25">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold-500/10 text-gold-300">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-gold-500/10 text-gold-300">
             <BookOpen className="h-5 w-5" />
           </div>
           <p className="text-sm font-semibold text-white">

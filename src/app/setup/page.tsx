@@ -160,7 +160,7 @@ export default async function SetupPage() {
         </p>
 
         <div
-          className={`mt-4 rounded-xl border p-3 text-sm ${
+          className={`mt-4 rounded-control border p-3 text-sm ${
             allOk
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
               : "border-amber-500/30 bg-amber-500/10 text-amber-200"

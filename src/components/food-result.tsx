@@ -67,17 +67,17 @@ export function FoodResult({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <div className="flex items-center gap-4">
           {product.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={product.imageUrl}
               alt={product.name ?? "Product"}
-              className="h-20 w-20 shrink-0 rounded-2xl bg-white/5 object-contain p-1"
+              className="h-20 w-20 shrink-0 rounded-card bg-white/5 object-contain p-1"
             />
           ) : (
-            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-brand-500/10 text-brand-300">
+            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-card bg-brand-500/10 text-brand-300">
               <Utensils className="h-7 w-7" />
             </div>
           )}
@@ -118,7 +118,7 @@ export function FoodResult({
 
       {/* Negatives */}
       {(analysis.negatives.length > 0 || analysis.additives.length > 0) && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-rose-300" />
@@ -169,7 +169,7 @@ export function FoodResult({
 
       {/* Positives */}
       {analysis.positives.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Leaf className="h-4 w-4 text-emerald-300" />
@@ -187,7 +187,7 @@ export function FoodResult({
 
       {/* Ingredients (foods list them too) */}
       {product.ingredientsText && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-brand-300" />
             <h2 className="font-medium text-white">Ingredients</h2>

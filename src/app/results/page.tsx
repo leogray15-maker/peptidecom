@@ -22,7 +22,7 @@ export default async function ResultsPage() {
       <SiteHeader />
 
       <section className="relative overflow-hidden border-b border-lab-border">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(212,175,55,0.14),transparent)]" />
+        <div className="absolute inset-0" />
         <div className="container-lab py-20 text-center">
           <span className="badge border border-gold-500/40 bg-gold-500/10 text-gold-300">
             <Sparkles className="h-3.5 w-3.5" /> Published with permission

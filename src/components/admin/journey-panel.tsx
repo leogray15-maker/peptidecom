@@ -157,7 +157,7 @@ function Metric({
   tone?: "good" | "bad";
 }) {
   return (
-    <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+    <div className="rounded-control border border-lab-border bg-lab-bg p-3">
       <p className="flex items-center gap-1.5 text-xs text-slate-500">
         <Icon className="h-3.5 w-3.5 text-brand-300" />
         {label}
@@ -452,7 +452,7 @@ function PeptidesTab({ journey }: { journey: CustomerJourney }) {
         </h3>
         <Row label="Entries" value={journey.journalCount} />
         {journey.latestJournalNote && (
-          <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+          <div className="rounded-control border border-lab-border bg-lab-bg p-3">
             <p className="text-xs text-slate-500">
               {formatDate(journey.latestJournalNote.date)} ·{" "}
               {goalLabel(journey.latestJournalNote.goal) ?? journey.latestJournalNote.goal} ·{" "}
@@ -473,7 +473,7 @@ function PeptidesTab({ journey }: { journey: CustomerJourney }) {
 function PhotosTab({ journey }: { journey: CustomerJourney }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-xl border border-lab-border bg-lab-bg p-3">
+      <div className="flex items-start gap-3 rounded-control border border-lab-border bg-lab-bg p-3">
         <Lock className="mt-0.5 h-4 w-4 shrink-0 text-brand-300" />
         <p className="text-xs leading-relaxed text-slate-400">
           A member&apos;s photo timeline is private to them, so this shows the record — when they
@@ -591,7 +591,7 @@ function ProgressTab({ journey }: { journey: CustomerJourney }) {
         ) : (
           <div className="mt-2 space-y-2">
             {journey.stories.map((s) => (
-              <div key={s.id} className="rounded-xl border border-lab-border bg-lab-bg p-3">
+              <div key={s.id} className="rounded-control border border-lab-border bg-lab-bg p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Trophy className="h-3.5 w-3.5 shrink-0 text-gold-400" />
                   <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">

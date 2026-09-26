@@ -32,7 +32,7 @@ export default async function CheckoutSuccessPage({
     // The payment is safe — logging back in picks the membership up.
     return (
       <Shell
-        title="Payment received 🎉"
+        title="Payment received"
         body="Log back in and your membership will be waiting for you."
         action={{ href: "/login?callbackUrl=/dashboard", label: "Log in" }}
       />

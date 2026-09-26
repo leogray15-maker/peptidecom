@@ -203,7 +203,7 @@ export default async function AdminOverviewPage() {
                 <Link
                   key={u.id}
                   href={`/admin/customers/${u.id}`}
-                  className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/5"
+                  className="flex items-center gap-3 rounded-control px-2 py-2 transition hover:bg-white/5"
                 >
                   <Avatar name={u.name} image={u.image} />
                   <div className="min-w-0 flex-1">
@@ -232,7 +232,7 @@ export default async function AdminOverviewPage() {
           ) : (
             <div className="space-y-1">
               {dueTasks.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 rounded-xl px-2 py-2">
+                <div key={t.id} className="flex items-center gap-3 rounded-control px-2 py-2">
                   <PriorityBadge priority={t.priority} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-white">{t.title}</p>

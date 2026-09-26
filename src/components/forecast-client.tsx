@@ -182,7 +182,7 @@ export function ForecastClient({
       {/* Today's risk — the number the whole screen exists for. */}
       <div
         className={cn(
-          "card !rounded-3xl border text-center",
+          "card border text-center",
           risk ? TONE_RING[risk.tone] : "border-lab-border"
         )}
       >
@@ -211,7 +211,7 @@ export function ForecastClient({
 
       {/* Today's tips */}
       {risk && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="flex items-center gap-2 font-semibold text-white">
             <Lightbulb className="h-4.5 w-4.5 text-brand-300" /> Today&apos;s tips
           </p>
@@ -228,7 +228,7 @@ export function ForecastClient({
 
       {/* What's driving it */}
       {risk && risk.factors.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="font-semibold text-white">What&apos;s driving it</p>
           <div className="mt-3 space-y-2">
             {risk.factors.map((f) => (
@@ -251,7 +251,7 @@ export function ForecastClient({
 
       {/* Local conditions */}
       {data && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="flex items-center gap-2 font-semibold text-white">
             <Thermometer className="h-4.5 w-4.5 text-brand-300" /> Local conditions
           </p>
@@ -299,13 +299,13 @@ export function ForecastClient({
           className="btn-accent-ghost w-full"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          {savedToday ? "Today's forecast saved ✓" : "Save today's forecast"}
+          {savedToday ? "Today's forecast saved" : "Save today's forecast"}
         </button>
       </div>
 
       {/* History */}
       {history.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="font-semibold text-white">Recent days</p>
           <p className="mt-1 text-sm text-slate-500">
             Saved forecasts, so a rough week can be read back against the weather that came with it.

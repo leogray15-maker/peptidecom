@@ -65,7 +65,7 @@ export function TasksPanel({
     <div
       key={t.id}
       className={cn(
-        "flex items-start gap-3 rounded-xl border border-lab-border bg-lab-bg p-3",
+        "flex items-start gap-3 rounded-control border border-lab-border bg-lab-bg p-3",
         t.status === "DONE" && "opacity-60"
       )}
     >
@@ -136,7 +136,7 @@ export function TasksPanel({
 
       {open && (
         <form
-          className="mb-4 space-y-3 rounded-xl border border-lab-border bg-lab-bg p-3"
+          className="mb-4 space-y-3 rounded-control border border-lab-border bg-lab-bg p-3"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!form.title.trim()) return;

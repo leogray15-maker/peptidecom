@@ -41,19 +41,19 @@ export default function LibraryPage() {
             )}
 
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+              <div className="rounded-control border border-lab-border bg-lab-bg p-3">
                 <dt className="flex items-center gap-1.5 text-xs text-slate-500">
                   <Clock className="h-3 w-3" /> Half-life
                 </dt>
                 <dd className="mt-1 font-medium text-slate-200">{p.halfLife ?? "—"}</dd>
               </div>
-              <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+              <div className="rounded-control border border-lab-border bg-lab-bg p-3">
                 <dt className="flex items-center gap-1.5 text-xs text-slate-500">
                   <Syringe className="h-3 w-3" /> Route
                 </dt>
                 <dd className="mt-1 font-medium text-slate-200">{p.route ?? "—"}</dd>
               </div>
-              <div className="col-span-2 rounded-xl border border-lab-border bg-lab-bg p-3">
+              <div className="col-span-2 rounded-control border border-lab-border bg-lab-bg p-3">
                 <dt className="text-xs text-slate-500">Typical research range</dt>
                 <dd className="mt-1 font-medium text-slate-200">
                   {fmtDose(p.typicalDoseMcg[0])}–{fmtDose(p.typicalDoseMcg[1])} · {p.frequency}

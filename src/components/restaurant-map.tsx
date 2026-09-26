@@ -246,7 +246,7 @@ export function RestaurantMap({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-lab-border bg-lab-card",
+        "relative overflow-hidden rounded-card border border-lab-border bg-lab-card",
         className
       )}
     >
@@ -312,7 +312,7 @@ export function RestaurantMap({
               aria-label={`${p.label} — health score ${p.score} out of 100`}
               aria-pressed={selected}
               className={cn(
-                "absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-[11px] font-bold shadow-lg shadow-black/40 transition",
+                "absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-[11px] font-bold transition",
                 PIN_COLOR[p.tone],
                 selected
                   ? "z-20 scale-125 ring-2 ring-white"
@@ -327,7 +327,7 @@ export function RestaurantMap({
       </div>
 
       {/* Zoom controls */}
-      <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-xl border border-lab-border bg-lab-bg/90 backdrop-blur">
+      <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-control border border-lab-border bg-lab-bg/90">
         <button
           type="button"
           onClick={() => zoomBy(1)}
@@ -365,7 +365,7 @@ export function RestaurantMap({
             type="button"
             onClick={() => onSearchArea?.({ lat: view.lat, lon: view.lon })}
             disabled={busy}
-            className="btn rounded-full border border-brand-500/40 bg-lab-bg/95 px-4 py-2 text-xs font-semibold text-brand-200 shadow-lg backdrop-blur hover:bg-brand-500/15"
+            className="btn rounded-full border border-brand-500/40 bg-lab-bg/95 px-4 py-2 text-xs font-semibold text-brand-200 hover:bg-brand-500/15"
           >
             <Search className="h-3.5 w-3.5" />
             Search this area

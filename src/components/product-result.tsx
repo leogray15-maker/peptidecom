@@ -34,17 +34,17 @@ export function ProductResult({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <div className="flex items-center gap-4">
           {product.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={product.imageUrl}
               alt={product.name ?? "Product"}
-              className="h-20 w-20 shrink-0 rounded-2xl bg-white/5 object-contain p-1"
+              className="h-20 w-20 shrink-0 rounded-card bg-white/5 object-contain p-1"
             />
           ) : (
-            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-brand-500/10 text-brand-300">
+            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-card bg-brand-500/10 text-brand-300">
               <Sparkles className="h-7 w-7" />
             </div>
           )}
@@ -74,7 +74,7 @@ export function ProductResult({
 
       {/* Negatives */}
       {analysis.negatives.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 text-rose-300" />
             <h2 className="font-medium text-white">Negatives</h2>
@@ -107,7 +107,7 @@ export function ProductResult({
 
       {/* Positives */}
       {analysis.positives.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center gap-2">
             <Leaf className="h-4 w-4 text-emerald-300" />
             <h2 className="font-medium text-white">Positives</h2>
@@ -131,7 +131,7 @@ export function ProductResult({
       )}
 
       {analysis.negatives.length === 0 && analysis.positives.length === 0 && (
-        <div className="card !rounded-3xl text-sm text-slate-400">
+        <div className="card text-sm text-slate-400">
           None of this product&apos;s ingredients matched our watch list or our skin-friendly list.
           That often means a simple formula — but always patch-test something new.
         </div>
@@ -139,7 +139,7 @@ export function ProductResult({
 
       {/* Full breakdown */}
       {analysis.breakdown.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <button
             onClick={() => setShowAll((v) => !v)}
             className="flex w-full items-center justify-between"

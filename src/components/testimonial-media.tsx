@@ -26,7 +26,7 @@ function Tile({
 
   if (failed) {
     return (
-      <figure className="flex flex-col overflow-hidden rounded-xl border border-dashed border-lab-border bg-lab-bg">
+      <figure className="flex flex-col overflow-hidden rounded-control border border-dashed border-lab-border bg-lab-bg">
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
           <ImageOff className="h-5 w-5 text-slate-600" />
           <span className="text-[11px] leading-relaxed text-slate-500">
@@ -38,7 +38,7 @@ function Tile({
   }
 
   return (
-    <figure className="overflow-hidden rounded-xl border border-lab-border bg-lab-bg">
+    <figure className="overflow-hidden rounded-control border border-lab-border bg-lab-bg">
       <button
         type="button"
         onClick={onOpen}
@@ -85,7 +85,7 @@ function Lightbox({ image, onClose }: { image: TestimonialImage; onClose: () => 
       aria-modal="true"
       aria-label={image.alt}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
     >
       <button
         type="button"
@@ -100,7 +100,7 @@ function Lightbox({ image, onClose }: { image: TestimonialImage; onClose: () => 
         <img
           src={image.src}
           alt={image.alt}
-          className="mx-auto max-h-[80vh] w-auto max-w-full rounded-xl"
+          className="mx-auto max-h-[80vh] w-auto max-w-full rounded-control"
         />
         {image.caption && (
           <figcaption className="mt-3 text-center text-sm text-slate-400">{image.caption}</figcaption>

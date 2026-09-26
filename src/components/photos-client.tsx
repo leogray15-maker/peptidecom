@@ -345,12 +345,12 @@ export function PhotosClient({
       {/* Compare overlay */}
       {overlayOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/85"
           onClick={closeCompare}
         >
           <div className="flex min-h-full items-center justify-center p-4">
             <div
-              className="w-full max-w-5xl rounded-3xl border border-lab-border bg-lab-card p-4 sm:p-5"
+              className="w-full max-w-5xl rounded-card border border-lab-border bg-lab-card p-4 sm:p-5"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
@@ -359,7 +359,7 @@ export function PhotosClient({
                 </p>
                 <button
                   onClick={closeCompare}
-                  className="grid h-9 w-9 place-items-center rounded-xl text-slate-400 hover:bg-white/5 hover:text-white"
+                  className="grid h-9 w-9 place-items-center rounded-control text-slate-400 hover:bg-white/5 hover:text-white"
                   aria-label="Close compare"
                 >
                   <X className="h-5 w-5" />
@@ -376,7 +376,7 @@ export function PhotosClient({
                 {selected.map((p, i) => (
                   <figure key={p.id}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.imageData} alt={p.caption ?? `Photo from ${p.takenAt}`} className="w-full rounded-2xl object-cover" />
+                    <img src={p.imageData} alt={p.caption ?? `Photo from ${p.takenAt}`} className="w-full rounded-card object-cover" />
                     <figcaption className="mt-2 text-center text-xs text-slate-400 sm:text-sm">
                       <span className="font-medium text-slate-200">
                         {i === 0 ? "Then" : i === selected.length - 1 ? "Now" : formatDate(p.takenAt)}
@@ -399,7 +399,7 @@ export function PhotosClient({
           phones; it sits low on desktop where there isn't one. */}
       {compareMode && !overlayOpen && (
         <div className="fixed inset-x-0 bottom-28 z-40 flex justify-center px-4 lg:bottom-6">
-          <div className="flex items-center gap-2 rounded-2xl border border-lab-border bg-lab-card/95 p-2 shadow-xl shadow-black/40 backdrop-blur">
+          <div className="flex items-center gap-2 rounded-card border border-lab-border bg-lab-card/95 p-2">
             <span className="px-2 text-sm font-medium text-slate-300">
               {compare.length}/{MAX_COMPARE} picked
             </span>
@@ -463,7 +463,7 @@ export function PhotosClient({
         />
 
         {compareMode && (
-          <p className="mt-3 rounded-xl bg-brand-900/40 px-4 py-2 text-sm text-brand-200">
+          <p className="mt-3 rounded-control bg-brand-900/40 px-4 py-2 text-sm text-brand-200">
             Tap 2–4 photos below, then hit Compare to see them side by side.
           </p>
         )}
@@ -472,7 +472,7 @@ export function PhotosClient({
           <div className="mt-5 grid gap-4 sm:grid-cols-[160px,1fr]">
             <div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Preview" className="h-40 w-40 rounded-2xl object-cover" />
+              <img src={preview} alt="Preview" className="h-40 w-40 rounded-card object-cover" />
               {estimating ? (
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
                   <Loader2 className="h-3 w-3 animate-spin" /> Estimating…

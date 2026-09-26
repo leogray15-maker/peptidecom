@@ -244,7 +244,7 @@ export function RestaurantsClient() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-xl border border-lab-border p-0.5">
+        <div className="flex rounded-control border border-lab-border p-0.5">
           {RADIUS_OPTIONS.map((r) => (
             <button
               key={r}
@@ -259,7 +259,7 @@ export function RestaurantsClient() {
             </button>
           ))}
         </div>
-        <div className="flex rounded-xl border border-lab-border p-0.5">
+        <div className="flex rounded-control border border-lab-border p-0.5">
           {KIND_FILTERS.map((f) => (
             <button
               key={f.id}
@@ -279,7 +279,7 @@ export function RestaurantsClient() {
           onClick={() => setVeganOnly((v) => !v)}
           aria-pressed={veganOnly}
           className={cn(
-            "rounded-xl border px-3 py-2 text-xs font-semibold transition",
+            "rounded-control border px-3 py-2 text-xs font-semibold transition",
             veganOnly
               ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-200"
               : "border-lab-border text-slate-400 hover:text-slate-200"
@@ -290,14 +290,14 @@ export function RestaurantsClient() {
         <button
           type="button"
           onClick={() => setSort((s) => (s === "healthiest" ? "nearest" : "healthiest"))}
-          className="ml-auto rounded-xl border border-lab-border px-3 py-2 text-xs font-semibold text-slate-300 transition hover:text-white"
+          className="ml-auto rounded-control border border-lab-border px-3 py-2 text-xs font-semibold text-slate-300 transition hover:text-white"
         >
           {sort === "healthiest" ? "Healthiest first" : "Closest first"}
         </button>
       </div>
 
       {error && (
-        <p className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-sm text-rose-200">
+        <p className="flex items-start gap-2 rounded-control border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-sm text-rose-200">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </p>
@@ -403,7 +403,7 @@ function VenueRow({
     <li
       ref={rowRef}
       className={cn(
-        "overflow-hidden rounded-2xl border bg-lab-card transition",
+        "overflow-hidden rounded-card border bg-lab-card transition",
         open ? TONE_BORDER[analysis.band.tone] : "border-lab-border"
       )}
     >
@@ -415,7 +415,7 @@ function VenueRow({
       >
         <span
           className={cn(
-            "grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-extrabold text-black/80",
+            "grid h-11 w-11 shrink-0 place-items-center rounded-control text-sm font-extrabold text-black/80",
             TONE_BG[analysis.band.tone]
           )}
         >

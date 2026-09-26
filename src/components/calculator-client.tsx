@@ -263,7 +263,7 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
               </div>
 
               {result.errors.length > 0 && (
-                <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+                <div className="mt-4 flex items-start gap-2 rounded-control border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                   <div>
                     {result.errors.map((e) => (
@@ -274,7 +274,7 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
               )}
             </>
           ) : (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+            <div className="mt-4 flex items-start gap-2 rounded-control border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
                 {result.errors.map((e) => (
@@ -372,7 +372,7 @@ function SyringeVisual({
 
 function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
-    <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+    <div className="rounded-control border border-lab-border bg-lab-bg p-3">
       <p className="text-xs text-slate-500">{label}</p>
       <p className={big ? "mt-1 text-2xl font-bold text-white" : "mt-1 text-lg font-semibold text-white"}>
         {value}

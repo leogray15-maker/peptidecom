@@ -16,16 +16,16 @@ import { trackEvent } from "@/lib/analytics";
 function PrivacyModal({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-3xl border border-lab-border bg-lab-card p-6 shadow-2xl sm:p-8"
+        className="relative w-full max-w-lg rounded-card border border-lab-border bg-lab-card p-6 sm:p-8"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-xl text-slate-400 hover:bg-white/5 hover:text-white"
+          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-control text-slate-400 hover:bg-white/5 hover:text-white"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
@@ -74,7 +74,7 @@ function NumbersDetail({ personal }: { personal: PersonalInsight }) {
     ["Minimum to show this card", `${MIN_PERSONAL_SAMPLE} day-pairs`],
   ];
   return (
-    <div className="mt-3 rounded-2xl border border-lab-border bg-lab-bg/60 p-4">
+    <div className="mt-3 rounded-card border border-lab-border bg-lab-bg/60 p-4">
       <dl className="space-y-1.5">
         {rows.map(([term, value]) => (
           <div key={term} className="flex items-start justify-between gap-4 text-xs">
@@ -134,7 +134,7 @@ export function InsightsPanel({
               </button>
             </div>
             <p
-              className="mt-3 cursor-pointer font-display text-xl leading-snug text-white"
+              className="mt-3 cursor-pointer text-[16px] font-semibold leading-snug text-white"
               onClick={() => trackEvent("insight_card_tap")}
             >
               {personal.headline}

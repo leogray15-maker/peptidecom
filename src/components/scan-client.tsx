@@ -216,9 +216,9 @@ export function ScanClient() {
       )}
 
       {/* Scan CTA */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <div className="flex flex-col items-center py-6 text-center">
-          <div className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
+          <div className="grid h-16 w-16 place-items-center rounded-card bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
             <Barcode className="h-8 w-8" />
           </div>
           <p className="mt-4 text-lg font-semibold text-white">Scan a product barcode</p>
@@ -264,7 +264,7 @@ export function ScanClient() {
       </div>
 
       {/* Paste ingredients (manual / fallback) */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         {!showPaste ? (
           <button
             onClick={() => setShowPaste(true)}
@@ -317,12 +317,12 @@ export function ScanClient() {
 
       {/* Grading overview */}
       {totalScans > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <h2 className="font-medium text-white">Grading overview</h2>
           <p className="mt-0.5 text-sm text-slate-400">{totalScans} product{totalScans === 1 ? "" : "s"} scanned on your account</p>
           <div className="mt-4 space-y-2">
             {gradeMeta.map((g) => (
-              <div key={g.label} className="flex items-center justify-between rounded-xl border border-lab-border bg-lab-bg px-4 py-2.5">
+              <div key={g.label} className="flex items-center justify-between rounded-control border border-lab-border bg-lab-bg px-4 py-2.5">
                 <span className="flex items-center gap-3">
                   <span className={cn("h-2.5 w-2.5 rounded-full", g.dot)} />
                   <span className="text-sm font-medium text-white">{g.label}</span>
@@ -336,7 +336,7 @@ export function ScanClient() {
 
       {/* History */}
       {totalScans > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center justify-between">
             <h2 className="font-medium text-white">Recent scans</h2>
             <button onClick={wipeHistory} className="text-xs text-slate-500 hover:text-rose-400">
@@ -355,7 +355,7 @@ export function ScanClient() {
               return (
                 <li
                   key={s.at}
-                  className="flex items-center gap-3 rounded-xl border border-lab-border bg-lab-bg px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-control border border-lab-border bg-lab-bg px-3 py-2.5"
                 >
                   {s.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

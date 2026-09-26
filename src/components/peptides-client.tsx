@@ -157,7 +157,7 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
               <option value="">—</option>
               {RESEARCH_GOALS.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.emoji} {g.label}
+                  {g.label}
                 </option>
               ))}
             </select>

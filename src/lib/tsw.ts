@@ -175,7 +175,7 @@ export interface MilestoneDef {
 export const MILESTONE_DEFS: Record<string, MilestoneDef> = {
   first_log: {
     key: "first_log",
-    title: "First log ✦",
+    title: "First log",
     message:
       "You just did something most people never do: you started paying attention on purpose. Every entry from here builds a picture only you can see.",
     bridge:

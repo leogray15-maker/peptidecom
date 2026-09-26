@@ -39,9 +39,9 @@ export default function PrivacySourcesPage() {
 
       <div className="space-y-6">
         {/* Posture */}
-        <section className="card !rounded-3xl">
+        <section className="card">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-500/15 text-brand-300">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-brand-500/15 text-brand-300">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <h2 className="text-lg font-medium text-white">Processed on your device</h2>
@@ -74,7 +74,7 @@ export default function PrivacySourcesPage() {
         </section>
 
         {/* Consent toggles */}
-        <section className="card !rounded-3xl">
+        <section className="card">
           <h2 className="text-lg font-medium text-white">Optional features</h2>
           <p className="mt-1 text-sm text-slate-400">
             All on by default. Switch any of them off — the choice is saved to your account, so it
@@ -86,25 +86,25 @@ export default function PrivacySourcesPage() {
         </section>
 
         {/* Policies */}
-        <section className="card !rounded-3xl">
+        <section className="card">
           <h2 className="text-lg font-medium text-white">Policies</h2>
           <div className="mt-4 space-y-1">
-            <Link href="/legal/privacy" className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
+            <Link href="/legal/privacy" className="flex items-center gap-3 rounded-control px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
               <FileText className="h-4 w-4" /> Privacy Policy
             </Link>
-            <Link href="/legal/disclaimer" className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
+            <Link href="/legal/disclaimer" className="flex items-center gap-3 rounded-control px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
               <FileText className="h-4 w-4" /> Medical disclaimer
             </Link>
-            <Link href="/support" className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
+            <Link href="/support" className="flex items-center gap-3 rounded-control px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
               <LifeBuoy className="h-4 w-4" /> Support
             </Link>
           </div>
         </section>
 
         {/* Sources */}
-        <section className="card !rounded-3xl">
+        <section className="card">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-500/15 text-brand-300">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-brand-500/15 text-brand-300">
               <BookOpen className="h-5 w-5" />
             </div>
             <h2 className="text-lg font-medium text-white">Sources &amp; citations</h2>

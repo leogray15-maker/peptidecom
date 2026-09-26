@@ -41,9 +41,9 @@ export function AiGradingConsentGate({ onAccepted }: { onAccepted: () => void })
   }
 
   return (
-    <div className="card !rounded-3xl">
+    <div className="card">
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-500/12 text-gold-300 ring-1 ring-inset ring-gold-500/20">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-gold-500/12 text-gold-300 ring-1 ring-inset ring-gold-500/20">
           <ShieldAlert className="h-5 w-5" />
         </div>
         <div className="min-w-0">

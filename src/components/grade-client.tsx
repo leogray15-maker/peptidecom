@@ -180,7 +180,7 @@ export function GradeClient({
 
   // ── Before the device-level switch is known (server render + first paint) ─
   if (allowed === null) {
-    return <div className="card !rounded-3xl h-64 animate-pulse" aria-hidden />;
+    return <div className="card h-64 animate-pulse" aria-hidden />;
   }
 
   // ── One-time disclaimer, blocking, explicit affirmative action ───────────
@@ -193,7 +193,7 @@ export function GradeClient({
   // ── Opted out ────────────────────────────────────────────────────────────
   if (!allowed) {
     return (
-      <div className="card !rounded-3xl py-10 text-center">
+      <div className="card py-10 text-center">
         <ShieldCheck className="mx-auto h-8 w-8 text-brand-300" />
         <p className="mt-3 font-semibold text-white">Photo grading is switched off</p>
         <p className="mx-auto mt-2 max-w-sm text-sm text-slate-400">
@@ -221,10 +221,10 @@ export function GradeClient({
   return (
     <div className="space-y-5">
       {/* Capture */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         {!preview ? (
           <div className="flex flex-col items-center py-6 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
+            <div className="grid h-16 w-16 place-items-center rounded-card bg-brand-500/12 text-brand-300 ring-1 ring-inset ring-brand-500/20">
               <ScanEye className="h-8 w-8" />
             </div>
             <p className="mt-4 text-lg font-semibold text-white">Photograph an itchy patch</p>
@@ -265,7 +265,7 @@ export function GradeClient({
             <img
               src={preview}
               alt="The photo being graded"
-              className="h-40 w-40 shrink-0 rounded-2xl object-cover"
+              className="h-40 w-40 shrink-0 rounded-card object-cover"
             />
             <div className="min-w-0 flex-1 text-center sm:text-left">
               {working ? (
@@ -312,7 +312,7 @@ export function GradeClient({
                 {estimate && (
                   <button onClick={saveToTimeline} disabled={saving || saved} className="btn-primary">
                     {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {saved ? "Saved to timeline ✓" : "Save to my timeline"}
+                    {saved ? "Saved to timeline" : "Save to my timeline"}
                   </button>
                 )}
               </div>
@@ -349,7 +349,7 @@ export function GradeClient({
 
       {/* What went into the number */}
       {estimate && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <h2 className="font-medium text-white">What the estimate looked at</h2>
           <ul className="mt-3 space-y-2">
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
@@ -402,7 +402,7 @@ export function GradeClient({
 
       {/* Calibration against the member's own ratings */}
       {agreement && (
-        <div className="card !rounded-3xl !py-4">
+        <div className="card !py-4">
           <p className="flex items-start gap-2 text-sm text-slate-400">
             <ScanEye className="mt-0.5 h-4 w-4 shrink-0 text-brand-300" />
             <span>

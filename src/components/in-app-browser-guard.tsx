@@ -60,7 +60,7 @@ export function InAppBrowserNotice({ appName }: { appName: string }) {
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+    <div className="mt-6 rounded-control border border-amber-500/30 bg-amber-500/10 p-4">
       <p className="flex items-center gap-2 text-sm font-semibold text-amber-200">
         <ExternalLink className="h-4 w-4 shrink-0" />
         Google sign-in doesn&apos;t work inside {appName}

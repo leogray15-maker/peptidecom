@@ -155,13 +155,13 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
                   type="button"
                   onClick={() => setForm({ ...form, goal: g.id })}
                   className={cn(
-                    "rounded-xl border px-3.5 py-2 text-sm font-medium transition",
+                    "rounded-control border px-3.5 py-2 text-sm font-medium transition",
                     form.goal === g.id
                       ? "border-brand-500 bg-brand-500/20 text-brand-200"
                       : "border-lab-border text-slate-400 hover:border-brand-700 hover:text-slate-200"
                   )}
                 >
-                  {g.emoji} {g.label}
+                  {g.label}
                 </button>
               ))}
             </div>
@@ -256,7 +256,7 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
                   : "border-lab-border text-slate-400 hover:text-slate-200"
               )}
             >
-              {g.emoji} {g.label}
+              {g.label}
             </button>
           ))}
         </div>
@@ -294,7 +294,7 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
           <p className="font-semibold text-white">Weight</p>
           {weightStats && (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-md">
-              <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+              <div className="rounded-control border border-lab-border bg-lab-bg p-3">
                 <p className="text-xs text-slate-500">Latest</p>
                 <p className="mt-0.5 text-2xl font-bold text-white">
                   {weightStats.latest}
@@ -302,7 +302,7 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
                 </p>
                 <p className="text-[11px] text-slate-500">{formatDate(weightStats.latestDate)}</p>
               </div>
-              <div className="rounded-xl border border-lab-border bg-lab-bg p-3">
+              <div className="rounded-control border border-lab-border bg-lab-bg p-3">
                 <p className="text-xs text-slate-500">Change</p>
                 <p
                   className={cn(

@@ -125,7 +125,7 @@ export default async function WonPage({
       ) : (
         <div className="space-y-4">
           {stories.map((s) => (
-            <article key={s.id} className="card border-l-4 border-l-gold-500/60">
+            <article key={s.id} className="card">
               <div className="flex flex-wrap items-center gap-2">
                 <Trophy className="h-4 w-4 text-gold-400" />
                 <h2 className="font-medium text-white">{s.title}</h2>
@@ -149,7 +149,7 @@ export default async function WonPage({
                   )
                     .filter(([, src]) => !!src)
                     .map(([label, src]) => (
-                      <figure key={label} className="overflow-hidden rounded-xl border border-lab-border">
+                      <figure key={label} className="overflow-hidden rounded-control border border-lab-border">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={src!}

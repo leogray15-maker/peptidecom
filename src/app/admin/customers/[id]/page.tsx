@@ -191,7 +191,7 @@ export default async function CustomerDetailPage({
                   <Link
                     key={p.id}
                     href={`/community/${p.id}`}
-                    className="block rounded-xl border border-lab-border bg-lab-bg p-3 transition hover:border-brand-600"
+                    className="block rounded-control border border-lab-border bg-lab-bg p-3 transition hover:border-brand-600"
                   >
                     <p className="truncate text-sm font-medium text-white">{p.title}</p>
                     <p className="mt-0.5 text-xs text-slate-500">{timeAgo(p.createdAt)}</p>

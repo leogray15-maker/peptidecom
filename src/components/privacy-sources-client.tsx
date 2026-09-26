@@ -76,7 +76,7 @@ export function PrivacySourcesToggles() {
       {TOGGLES.map((t) => (
         <div
           key={t.key}
-          className="flex items-start justify-between gap-4 rounded-2xl border border-lab-border bg-lab-bg p-4"
+          className="flex items-start justify-between gap-4 rounded-card border border-lab-border bg-lab-bg p-4"
         >
           <div>
             <p className="font-semibold text-white">{t.title}</p>

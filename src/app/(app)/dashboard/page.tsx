@@ -1,38 +1,44 @@
 import Link from "next/link";
 import {
-  BookOpen,
-  Calculator,
+  Camera,
+  Check,
+  ChevronRight,
   ClipboardCheck,
   ClipboardList,
-  ChevronRight,
   CloudSun,
   Compass,
+  Flame,
   Hand,
   LifeBuoy,
-  LineChart,
   ListChecks,
-  Map,
   MessageCircle,
-  Plus,
   Ruler,
   ScanEye,
   ScanLine,
-  Syringe,
-  TrendingUp,
   UtensilsCrossed,
 } from "lucide-react";
 import { ConditionPickerModal } from "@/components/condition-picker";
-import {
-  FeatureBadgePill,
-  FeatureCard,
-  type FeatureCardProps,
-} from "@/components/feature-card";
+import { ContinueProtocol } from "@/components/dashboard/continue-protocol";
+import { Greeting, TodayEyebrow } from "@/components/dashboard/greeting";
+import { SeverityTrend } from "@/components/dashboard/severity-trend";
+import { FeatureBadgePill, type FeatureBadge } from "@/components/feature-card";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PageHeader } from "@/components/page-header";
 import { StageSheet } from "@/components/stage-sheet";
 import { WelcomeBanner } from "@/components/welcome-banner";
+import {
+  ButtonLink,
+  CardHeader,
+  EmptyState,
+  ProgressBar,
+  SCORE_COLOR,
+  ScoreBadge,
+  StatCard,
+  toneLevel,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { anyStageName, getCondition } from "@/lib/conditions";
+import { riskBand } from "@/lib/forecast";
 import {
   buildCohortStatements,
   computePersonalInsight,
@@ -40,135 +46,66 @@ import {
   weeksSinceStart,
 } from "@/lib/insights";
 import { getLatestAggregates } from "@/lib/insights-db";
+import { POEM_MAX, poemBand } from "@/lib/poem";
 import { prisma } from "@/lib/prisma";
+import { LIBRARY } from "@/lib/protocols";
 import { safe } from "@/lib/safe-db";
-import { type DailyLog, computeStats, dateKey, summariseItch } from "@/lib/tsw";
+import { score, severityLevel, severityWord } from "@/lib/tokens";
+import { type DailyLog, computeStats, dateKey, daysBetween, summariseItch } from "@/lib/tsw";
 import {
   type ItchLog,
   type SavedForecast,
+  type StoredHistoryEntry,
   type TriggerLog,
   type TswProfile,
   getForecast,
+  getHistory,
   getProfile,
+  lastPhotoDate,
   listItchLogs,
   listLogs,
   listTriggers,
   tswKey,
 } from "@/lib/tsw-db";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn, sentenceCase, timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
-// The skin toolkit, split by how much the numbers can be trusted.
-//
-// The split is the point: EASI and POEM are published, validated instruments a
-// clinician recognises, while flare grading and the scanner are our own
-// heuristics. Mixing them in one grid quietly borrows the credibility of the
-// first group for the second, so they get separate headings and separate
-// badges — VALIDATED vs EXPERIMENTAL.
-const clinicalTools: FeatureCardProps[] = [
+// The skin toolkit, split by how much the numbers can be trusted: EASI and
+// POEM are published, validated instruments; the rest are our own heuristics.
+// Kept visibly apart so the second group never borrows the first's credibility.
+const TOOLKIT: { title: string; badge: "VALIDATED" | "EXPERIMENTAL"; blurb: string; tools: { href: string; title: string; icon: React.ElementType; badge?: FeatureBadge }[] }[] = [
   {
-    href: "/easi",
-    title: "EASI calculator",
-    icon: Ruler,
+    title: "Validated clinical measures",
     badge: "VALIDATED",
-    description:
-      "Score your Eczema Area & Severity Index — the published measure dermatologists use.",
+    blurb: "Published instruments your clinician will recognise.",
+    tools: [
+      { href: "/easi", title: "EASI calculator", icon: Ruler },
+      { href: "/poem", title: "POEM weekly score", icon: ClipboardCheck },
+    ],
   },
   {
-    href: "/poem",
-    title: "POEM weekly score",
-    icon: ClipboardCheck,
-    badge: "VALIDATED",
-    description:
-      "The validated 7-question weekly measure. Track your week-on-week trend and share it with your clinician.",
-  },
-];
-
-const experimentalTools: FeatureCardProps[] = [
-  {
-    href: "/coach",
-    title: "Coach",
-    icon: Compass,
-    badge: "NEW",
-    description:
-      "Today's plan, built from your own logs — what's worth doing now and what your data is saying.",
-  },
-  {
-    href: "/forecast",
-    title: "Flare forecast",
-    icon: CloudSun,
-    badge: "NEW",
-    description:
-      "Local humidity, cold, wind and pollen scored against your condition, with today's tips.",
-  },
-  {
-    href: "/itch",
-    title: "Itch check-in",
-    icon: Hand,
-    badge: "NEW",
-    description:
-      "One tap whenever it bites. Over a week it shows you the hour your itch actually peaks.",
-  },
-  {
-    href: "/grade",
-    title: "AI Flare Grading",
-    icon: ScanEye,
-    badge: "BETA",
-    description:
-      "Photograph an itchy patch for an on-device estimate of how inflamed it looks — to help you describe a flare to a clinician. An estimate, not a diagnosis.",
-  },
-  {
-    href: "/restaurants",
-    title: "Healthy places to eat",
-    icon: UtensilsCrossed,
-    badge: "NEW",
-    description:
-      "Every restaurant, café and takeaway near you on a map, scored 0–100 for how healthy eating there is likely to be.",
-  },
-  {
-    href: "/scan",
-    title: "Product scanner",
-    icon: ScanLine,
+    title: "Experimental tools",
     badge: "EXPERIMENTAL",
-    description:
-      "Scan any barcode — skincare scored for sensitive skin, food & drink scored on nutrition. Our own scoring, not a clinical measure.",
+    blurb: "Our own estimates. Not validated measures, never a diagnosis.",
+    tools: [
+      { href: "/coach", title: "Coach", icon: Compass, badge: "NEW" },
+      { href: "/forecast", title: "Flare forecast", icon: CloudSun, badge: "NEW" },
+      { href: "/grade", title: "AI flare grading", icon: ScanEye, badge: "BETA" },
+      { href: "/scan", title: "Ingredient scanner", icon: ScanLine },
+      { href: "/restaurants", title: "Healthy places to eat", icon: UtensilsCrossed, badge: "NEW" },
+    ],
   },
 ];
 
-const trackingTools: FeatureCardProps[] = [
-  {
-    href: "/tracker",
-    title: "Daily tracker",
-    icon: ClipboardList,
-    description: "20 seconds. Body map, severity, symptoms, sleep and mood — done.",
-  },
-  {
-    href: "/timeline",
-    title: "Where am I in this?",
-    icon: Map,
-    description: "Your recovery journey mapped, stage by stage, so this place can meet you there.",
-  },
-  {
-    href: "/insights",
-    title: "Your trends",
-    icon: TrendingUp,
-    description: "Severity, sleep and patterns surfaced gently from your own logged data.",
-  },
-  {
-    href: "/triggers",
-    title: "Triggers",
-    icon: ListChecks,
-    description: "Log products, foods, weather and stress — and catch what flares you.",
-  },
-];
+function shiftKey(today: string, days: number) {
+  const [y, m, d] = today.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - days)).toISOString().slice(0, 10);
+}
 
-const labLinks = [
-  { href: "/peptides", label: "Peptide tracker", icon: Syringe },
-  { href: "/calculator", label: "Calculator", icon: Calculator },
-  { href: "/library", label: "Peptide library", icon: BookOpen },
-  { href: "/progress", label: "Progress", icon: LineChart },
-];
+function mean(xs: number[]) {
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -190,415 +127,390 @@ export default async function DashboardPage({
 
   const uid = user ? tswKey(user) : null;
   const today = dateKey();
-  const [recentPosts, logs, profile, triggers, aggregates, itchLogs, forecast] = await Promise.all([
-    safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
-    uid ? safe(() => listLogs(uid), [] as DailyLog[]) : Promise.resolve([] as DailyLog[]),
-    uid ? safe(() => getProfile(uid), {} as TswProfile) : Promise.resolve({} as TswProfile),
-    uid ? safe(() => listTriggers(uid), [] as TriggerLog[]) : Promise.resolve([] as TriggerLog[]),
-    safe(getLatestAggregates, null),
-    uid ? safe(() => listItchLogs(uid, 60), [] as ItchLog[]) : Promise.resolve([] as ItchLog[]),
-    uid
-      ? safe(() => getForecast(uid, today), null as SavedForecast | null)
-      : Promise.resolve(null as SavedForecast | null),
-  ]);
+  const none = <T,>(v: T) => Promise.resolve(v);
+  const [recentPosts, logs, profile, triggers, aggregates, itchLogs, forecast, poemHistory, lastPhoto] =
+    await Promise.all([
+      safe(getRecentPosts, [] as Awaited<ReturnType<typeof getRecentPosts>>),
+      uid ? safe(() => listLogs(uid), [] as DailyLog[]) : none([] as DailyLog[]),
+      uid ? safe(() => getProfile(uid), {} as TswProfile) : none({} as TswProfile),
+      uid ? safe(() => listTriggers(uid), [] as TriggerLog[]) : none([] as TriggerLog[]),
+      safe(getLatestAggregates, null),
+      uid ? safe(() => listItchLogs(uid, 60), [] as ItchLog[]) : none([] as ItchLog[]),
+      uid ? safe(() => getForecast(uid, today), null as SavedForecast | null) : none(null as SavedForecast | null),
+      uid ? safe(() => getHistory(uid, "poem"), [] as StoredHistoryEntry[]) : none([] as StoredHistoryEntry[]),
+      uid ? safe(() => lastPhotoDate(uid), null as string | null) : none(null as string | null),
+    ]);
 
   const stats = computeStats(logs);
   const condition = getCondition(profile.condition);
   const stage = anyStageName(profile.recoveryStage, profile.condition);
-  const todayLogged = logs.some((l) => l.date === today);
+  const todayLog = logs.find((l) => l.date === today) ?? null;
   const itch = summariseItch(itchLogs, today);
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
+  // 7-day average vs the 7 days before it (lower severity is better).
+  const inWindow = (from: number, to: number) =>
+    logs
+      .filter((l) => l.date >= shiftKey(today, to) && l.date <= shiftKey(today, from))
+      .map((l) => l.severity);
+  const avgThis = mean(inWindow(0, 6));
+  const avgPrev = mean(inWindow(7, 13));
+  const avgDelta = avgThis != null && avgPrev != null ? Math.round((avgThis - avgPrev) * 10) / 10 : null;
+
+  const latestPoem = poemHistory.length ? poemHistory[poemHistory.length - 1] : null;
+  const poem = latestPoem ? { score: latestPoem.score, band: poemBand(latestPoem.score), at: latestPoem.at } : null;
+
+  // Top triggers: things logged as having flared the member, last 90 days.
+  const flareCounts = new Map<string, number>();
+  for (const t of triggers) {
+    if (t.effect === -1 && daysBetween(t.date, today) <= 90) {
+      const key = t.name.trim();
+      flareCounts.set(key, (flareCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const topTriggers = [...flareCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topMax = topTriggers[0]?.[1] ?? 1;
+
+  const checklist = [
+    {
+      href: "/itch",
+      label: "Itch check-in",
+      icon: Hand,
+      done: itch.todayPeak != null,
+      meta: itch.todayPeak != null ? `Peak ${itch.todayPeak}/10 today` : "One tap, any time it bites",
+    },
+    {
+      href: "/tracker",
+      label: "Daily tracker",
+      icon: ClipboardList,
+      done: !!todayLog,
+      meta: todayLog ? `${todayLog.severity}/10 · ${severityWord(todayLog.severity)}` : "About 20 seconds",
+    },
+    {
+      href: "/photos",
+      label: "Progress photo",
+      icon: Camera,
+      done: !!lastPhoto && lastPhoto.slice(0, 10) === today,
+      meta: lastPhoto ? `Last photo ${timeAgo(lastPhoto)}` : "Same light, same angle",
+    },
+  ];
+  const doneCount = checklist.filter((c) => c.done).length;
+
   // Insights: the member's own strongest pattern + rotating cohort stats
   // (aggregated nightly, never per-request — see /api/cron/aggregate).
-  const personalInsight = computePersonalInsight(logs, triggers, dateKey());
+  const personalInsight = computePersonalInsight(logs, triggers, today);
   const cohortStatements = aggregates
     ? rotateStatements(
         buildCohortStatements(aggregates, {
           stage: profile.recoveryStage,
-          weeksSinceStart: weeksSinceStart(logs, profile, dateKey()),
+          weeksSinceStart: weeksSinceStart(logs, profile, today),
           condition: profile.condition,
         }),
         personalInsight ? 3 : 4
       )
     : [];
 
-  // The ring fills toward the next streak milestone, so it always has
-  // somewhere to go — a full ring at 7 would have nothing to say at 8.
-  const ringValue = stats.streak > 0 ? stats.streak : stats.daysTracked;
-  const nextMilestone = STREAK_MILESTONES.find((m) => m > ringValue) ?? ringValue;
-  const ringFraction = ringValue > 0 ? ringValue / nextMilestone : 0;
+  const risk = forecast ? riskBand(forecast.score) : null;
+  const protocolTitles = Object.fromEntries(
+    LIBRARY.map((a) => [a.slug, { title: sentenceCase(a.title), category: a.category }])
+  );
 
   return (
     <div>
-      {/* One-time onboarding: adapts the whole app to the member's condition.
-          Existing (pre-multi-condition) accounts see TSW pre-selected. */}
+      {/* One-time onboarding: adapts the whole app to the member's condition. */}
       {user && !profile.condition && (
         <ConditionPickerModal hasLoggedBefore={logs.length > 0 || !!profile.recoveryStage} />
       )}
       {justSubscribed && <WelcomeBanner name={user?.name?.split(" ")[0]} />}
+
       <PageHeader
-        eyebrow={profile.condition ? condition.label : undefined}
-        title={`Welcome back, ${firstName}.`}
-        subtitle="However your skin is today, showing up here counts. Here's where you stand."
+        eyebrow={<TodayEyebrow />}
+        title={<Greeting name={firstName} />}
+        subtitle="However your skin is today, showing up here counts."
+        actions={
+          <>
+            <ButtonLink href="/grade" variant="secondary" icon={ScanEye}>
+              Grade a flare
+            </ButtonLink>
+            <ButtonLink href="/tracker">{todayLog ? "Edit today" : "Log today"}</ButtonLink>
+          </>
+        }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-4">
-          {/* Today — the streak and the three things that change hour to hour,
-              each a shortcut to the screen that owns them. */}
-          <section aria-label="Today" className="card !rounded-3xl">
-            <div className="flex items-center gap-5">
-              <StreakRing
-                fraction={ringFraction}
-                value={ringValue}
-                label={
-                  stats.streak > 0
-                    ? `day streak`
-                    : stats.daysTracked > 0
-                      ? `day${stats.daysTracked === 1 ? "" : "s"} logged`
-                      : "start here"
-                }
-                gold={stats.streak > 0}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-slate-400">Today</p>
-                <p className="mt-0.5 text-lg font-semibold text-white">
-                  {todayLogged ? "Logged — nicely done" : "Not logged yet"}
-                </p>
-                {stats.streakUsedGrace && (
-                  <p className="mt-0.5 text-xs text-gold-300">Flare-day pass kept it alive ✦</p>
-                )}
-                <Link
-                  href="/tracker"
-                  className={cn(
-                    "btn mt-3 w-full rounded-2xl sm:w-auto sm:px-6",
-                    todayLogged
-                      ? "border border-lab-border bg-lab-raised text-slate-100 hover:border-brand-500/40"
-                      : "bg-brand-300 font-bold text-lab-bg hover:bg-brand-200"
-                  )}
-                >
-                  {todayLogged ? (
-                    <>Edit today&apos;s log</>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4" strokeWidth={2.6} />
-                      {stats.daysTracked === 0 ? "Log your first day" : "Log today · 20 sec"}
-                    </>
-                  )}
-                </Link>
-              </div>
-            </div>
+      {/* Headline numbers. Never a fake figure: a missing value says so. */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatCard
+          label="Today's severity"
+          value={todayLog ? todayLog.severity : "—"}
+          unit={todayLog ? "/10" : undefined}
+          dotColor={todayLog ? SCORE_COLOR[severityLevel(todayLog.severity)] : undefined}
+          meta={todayLog ? severityWord(todayLog.severity) : <Link href="/tracker" className="text-accent-strong hover:underline">Not logged yet</Link>}
+        />
+        <StatCard
+          label="7-day average"
+          value={avgThis != null ? avgThis.toFixed(1) : "—"}
+          unit={avgThis != null ? "/10" : undefined}
+          delta={
+            avgDelta != null
+              ? { text: `${avgDelta > 0 ? "+" : avgDelta < 0 ? "−" : "±"}${Math.abs(avgDelta).toFixed(1)}`, good: avgDelta < 0 ? true : avgDelta > 0 ? false : null }
+              : undefined
+          }
+          meta={avgDelta != null ? "vs the week before" : avgThis != null ? "Not enough history to compare" : "No logs this week"}
+        />
+        <StatCard
+          label="POEM score"
+          value={poem ? poem.score : "—"}
+          unit={poem ? `/${POEM_MAX}` : undefined}
+          dotColor={poem ? SCORE_COLOR[toneLevel(poem.band.tone)] : undefined}
+          meta={poem ? `${poem.band.label} · ${timeAgo(poem.at)}` : <Link href="/poem" className="text-accent-strong hover:underline">Take this week&apos;s POEM</Link>}
+        />
+        <StatCard
+          label="Logging streak"
+          value={stats.streak}
+          unit={stats.streak === 1 ? "day" : "days"}
+          icon={Flame}
+          meta={
+            stats.streakUsedGrace
+              ? "A flare-day pass kept it alive"
+              : todayLog
+                ? `${stats.daysTracked} days tracked in total`
+                : "Log today to keep it going"
+          }
+        />
+      </div>
 
-            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-lab-line pt-4 sm:gap-4">
-              <Link href="/itch" className="group min-w-0 rounded-xl">
-                <p className="text-xs text-slate-400">Itch peak</p>
-                <p className="mt-1 text-xl font-semibold tabular-nums text-white">
-                  {itch.todayPeak != null ? (
-                    <>
-                      {itch.todayPeak}
-                      <span className="text-sm font-medium text-slate-500">/10</span>
-                    </>
-                  ) : (
-                    <span className="text-base text-brand-300 group-hover:text-brand-200">
-                      Check in
-                    </span>
-                  )}
-                </p>
-                {itch.todayPeak != null && (
-                  <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-lab-border">
-                    <span
-                      className={cn(
-                        "block h-full rounded-full",
-                        itch.todayPeak >= 7 ? "bg-orange-400" : "bg-brand-400"
-                      )}
-                      style={{ width: `${itch.todayPeak * 10}%` }}
-                    />
-                  </span>
-                )}
-              </Link>
-              <Link href="/forecast" className="group min-w-0 rounded-xl">
-                <p className="text-xs text-slate-400">Flare risk</p>
-                {forecast ? (
-                  <>
-                    <p className="mt-1 text-xl font-semibold tabular-nums text-white">
-                      {forecast.score}
-                    </p>
-                    <p
-                      className={cn(
-                        "mt-0.5 flex items-center gap-1.5 truncate text-xs font-medium capitalize",
-                        forecast.score >= 50 ? "text-orange-300" : "text-emerald-300"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "h-1.5 w-1.5 shrink-0 rounded-full",
-                          forecast.score >= 50 ? "bg-orange-300" : "bg-emerald-300"
-                        )}
-                      />
-                      {forecast.band}
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-1 text-base font-semibold text-brand-300 group-hover:text-brand-200">
-                    Check
-                  </p>
-                )}
-              </Link>
-              <div className="min-w-0">
-                <p className="text-xs text-slate-400">Stage</p>
-                {stage ? (
-                  <StageSheet
-                    stages={condition.stages}
-                    currentStageId={profile.recoveryStage ?? null}
-                    currentStageName={stage}
-                  />
-                ) : (
-                  <Link
-                    href="/timeline"
-                    className="mt-1 inline-block text-base font-semibold text-brand-300 hover:text-brand-200"
-                  >
-                    Mark it
-                  </Link>
-                )}
+      {/* Trend (2) + forecast (1) */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <SeverityTrend
+          points={logs.filter((l) => l.date >= shiftKey(today, 364)).map((l) => ({ date: l.date, severity: l.severity }))}
+          today={today}
+        />
+        <section className="card flex flex-col" aria-labelledby="forecast-title">
+          <CardHeader
+            title={<span id="forecast-title">Flare forecast</span>}
+            subtitle={forecast?.place ?? "Weather and pollen, scored for your skin"}
+            action={<CloudSun className="h-4 w-4 text-accent-strong" strokeWidth={1.75} aria-hidden />}
+          />
+          {forecast && risk ? (
+            <div className="flex flex-1 flex-col">
+              <div className="flex items-baseline gap-2">
+                <span className="stat-num text-[40px]">{forecast.score}</span>
+                <span className="font-mono text-meta text-fg-muted">/100 risk</span>
               </div>
-            </div>
-          </section>
-
-          {/* Recovery stats. A bare "0 days" is the single most demoralising
-              thing this screen could say to someone mid-flare, so zero never
-              renders as a number. */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="card !p-4 sm:!p-5">
-              <p className="text-xs text-slate-400 sm:text-sm">Days tracked</p>
-              {stats.daysTracked > 0 ? (
-                <p className="stat-num mt-2 text-3xl sm:text-4xl">{stats.daysTracked}</p>
-              ) : (
-                <Link
-                  href="/tracker"
-                  className="mt-2 inline-block text-sm font-medium text-brand-300 hover:text-brand-200"
-                >
-                  Start today →
-                </Link>
+              <ScoreBadge level={toneLevel(risk.tone)} label={sentenceCase(risk.label)} className="mt-3 self-start" />
+              {forecast.factors.length > 0 && (
+                <ul className="mt-4 space-y-2 text-[13.5px] text-fg-secondary">
+                  {forecast.factors.slice(0, 3).map((f) => (
+                    <li key={f} className="flex gap-2">
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-fg-muted" aria-hidden />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               )}
+              <Link href="/forecast" className="mt-auto pt-4 text-[13.5px] font-medium text-accent-strong hover:underline">
+                Full forecast and tips →
+              </Link>
             </div>
-            <div className="card !p-4 sm:!p-5">
-              <p className="text-xs text-slate-400 sm:text-sm">Since last bad flare</p>
-              <p className="mt-2">
-                {stats.daysSinceBadFlare != null ? (
-                  <>
-                    <span className="stat-num text-3xl sm:text-4xl">{stats.daysSinceBadFlare}</span>
-                    <span className="text-sm text-slate-500">
-                      {" "}
-                      day{stats.daysSinceBadFlare === 1 ? "" : "s"}
-                    </span>
-                  </>
-                ) : stats.daysTracked > 0 ? (
-                  <span className="font-display text-xl text-white">None logged ✦</span>
-                ) : (
-                  <span className="stat-num text-3xl text-slate-600">—</span>
-                )}
-              </p>
-            </div>
-          </div>
+          ) : (
+            <EmptyState
+              icon={CloudSun}
+              title="No forecast yet today"
+              body="Check the local conditions that tend to flare skin."
+              action={<ButtonLink href="/forecast" size="sm" variant="secondary">Check forecast</ButtonLink>}
+              className="flex-1"
+            />
+          )}
+        </section>
+      </div>
 
-          {/* Cohort + personal insights */}
-          <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
-        </div>
-
-        {/* Right rail on wide screens; flows under the stats on phones. */}
-        <div className="space-y-4">
-          <Link
-            href="/support"
-            className="card group flex items-center gap-4 !p-4 border-brand-500/30 bg-surface-active transition hover:border-brand-500 sm:!p-5"
-          >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/20 text-brand-300">
-              <LifeBuoy className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-white">Today is bad?</span>
-              <span className="block text-sm text-slate-400">
-                Calming tools, itch coping and the community — no judgement.
+      {/* Checklist · triggers · protocol */}
+      <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <section className="card" aria-labelledby="checklist-title">
+          <CardHeader
+            title={<span id="checklist-title">Today</span>}
+            action={
+              <span className="font-mono text-meta tabular-nums text-fg-muted">
+                {doneCount}/{checklist.length}
               </span>
-            </span>
-            <ChevronRight className="h-5 w-5 shrink-0 text-slate-600 transition group-hover:text-brand-300" />
-          </Link>
+            }
+          />
+          <ul className="-mx-2 space-y-1">
+            {checklist.map((c) => (
+              <li key={c.href}>
+                <Link
+                  href={c.href}
+                  className="flex min-h-12 items-center gap-3 rounded-control px-2 py-2 transition-colors hover:bg-surface-active"
+                >
+                  <span
+                    className={cn(
+                      "grid h-6 w-6 shrink-0 place-items-center rounded-full border",
+                      c.done ? "border-primary bg-primary text-white" : "border-line-strong text-transparent"
+                    )}
+                    aria-hidden
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={cn("block text-sm font-medium", c.done ? "text-fg-secondary" : "text-fg")}>
+                      {c.label}
+                      <span className="sr-only">{c.done ? " (done)" : " (to do)"}</span>
+                    </span>
+                    <span className="block truncate text-meta text-fg-muted">{c.meta}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-fg-faint" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-          <section className="card !p-4 sm:!p-5">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-medium text-white">Latest discussion</h2>
-              <Link
-                href="/community"
-                className="text-sm font-medium text-brand-300 hover:text-brand-200"
-              >
+        <section className="card flex flex-col" aria-labelledby="triggers-title">
+          <CardHeader
+            title={<span id="triggers-title">Top triggers</span>}
+            subtitle="Logged as flaring you · last 90 days"
+          />
+          {topTriggers.length === 0 ? (
+            <EmptyState
+              icon={ListChecks}
+              title="No flare triggers logged"
+              body="Log products, foods and weather to see what flares you."
+              action={<ButtonLink href="/triggers" size="sm" variant="secondary">Log a trigger</ButtonLink>}
+              className="flex-1 py-6"
+            />
+          ) : (
+            <ul className="space-y-3.5">
+              {topTriggers.map(([name, count]) => (
+                <li key={name}>
+                  <div className="mb-1.5 flex justify-between gap-3 text-[13.5px]">
+                    <span className="truncate text-fg">{name}</span>
+                    <span className="shrink-0 font-mono tabular-nums text-fg-muted">{count}×</span>
+                  </div>
+                  <ProgressBar value={count} max={topMax} label={`${name}: ${count} flares`} color={score.poor} />
+                </li>
+              ))}
+              <li>
+                <Link href="/triggers" className="text-[13.5px] font-medium text-accent-strong hover:underline">
+                  All triggers →
+                </Link>
+              </li>
+            </ul>
+          )}
+        </section>
+
+        <ContinueProtocol titles={protocolTitles} />
+      </div>
+
+      {/* Stage · support · discussion */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <section className="card" aria-labelledby="stage-title">
+          <CardHeader title={<span id="stage-title">Where you are</span>} subtitle={profile.condition ? condition.label : undefined} />
+          {stage ? (
+            <StageSheet
+              stages={condition.stages}
+              currentStageId={profile.recoveryStage ?? null}
+              currentStageName={stage}
+            />
+          ) : (
+            <p className="text-sm text-fg-secondary">
+              Mark your stage so the app can meet you there.{" "}
+              <Link href="/timeline" className="font-medium text-accent-strong hover:underline">
+                Mark it
+              </Link>
+            </p>
+          )}
+          <p className="mt-4 text-meta text-fg-muted">
+            {stats.daysSinceBadFlare != null
+              ? `${stats.daysSinceBadFlare} day${stats.daysSinceBadFlare === 1 ? "" : "s"} since your last bad flare`
+              : stats.daysTracked > 0
+                ? "No bad flares logged"
+                : "Bad-flare-free days are counted once you start logging"}
+          </p>
+        </section>
+
+        <Link
+          href="/support"
+          className="card group flex items-center gap-4 transition-colors hover:border-line-strong hover:bg-surface-active"
+        >
+          <span className="icon-tile shrink-0">
+            <LifeBuoy className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="card-title block">Today is bad?</span>
+            <span className="mt-0.5 block text-meta text-fg-muted">
+              Calming tools, itch coping and the community. No judgement.
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-fg-faint" aria-hidden />
+        </Link>
+
+        <section className="card" aria-labelledby="discussion-title">
+          <CardHeader
+            title={<span id="discussion-title">Latest discussion</span>}
+            action={
+              <Link href="/community" className="text-[13px] font-medium text-accent-strong hover:underline">
                 View all
               </Link>
-            </div>
-            {recentPosts.length === 0 ? (
-              <p className="py-2 text-sm text-slate-400">
-                No posts yet. Be the first to{" "}
-                <Link href="/community" className="text-brand-300 hover:text-brand-200">
-                  start a discussion
-                </Link>
-                .
-              </p>
-            ) : (
-              <ul className="divide-y divide-lab-line">
-                {recentPosts.map((post) => (
-                  <li key={post.id}>
-                    <Link
-                      href={`/community/${post.id}`}
-                      className="group flex items-center justify-between gap-3 py-3"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-white group-hover:text-brand-100">
-                          {post.title}
-                        </span>
-                        <span className="mt-0.5 block truncate text-xs text-slate-500">
-                          {post.category?.name ?? "General"} · {post.author.name} ·{" "}
-                          {timeAgo(post.createdAt)}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-1 text-xs text-slate-500">
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        {post._count.comments}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-      </div>
-
-      {/* Skin toolkit — validated instruments kept visibly apart from our own
-          experimental scoring. */}
-      <ToolSection
-        title="Validated clinical measures"
-        badge="VALIDATED"
-        blurb="Published instruments your clinician will recognise, used here as self-tracking tools."
-        tools={clinicalTools}
-      />
-      <ToolSection
-        title="Experimental tools"
-        badge="EXPERIMENTAL"
-        blurb="Our own estimates, built to help you describe what you're seeing. Not validated measures, and never a diagnosis."
-        tools={experimentalTools}
-      />
-      <ToolSection title="Day-to-day tracking" tools={trackingTools} />
-
-      {/* The lab tools */}
-      <h2 className="mt-10 text-xl font-medium text-white">The lab</h2>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {labLinks.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className="card group flex items-center gap-3 !p-4 transition hover:border-brand-500/50 hover:bg-lab-raised/60"
-          >
-            <l.icon className="h-4.5 w-4.5 shrink-0 text-brand-300" />
-            <span className="text-sm font-medium text-slate-200">{l.label}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
-
-/** Progress ring with the figure set in the display serif. Gold only while a
- * streak is alive — gold is reserved for milestones across the app. */
-function StreakRing({
-  fraction,
-  value,
-  label,
-  gold,
-}: {
-  fraction: number;
-  value: number;
-  label: string;
-  gold: boolean;
-}) {
-  const r = 40;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference * (1 - Math.min(1, Math.max(0, fraction)));
-  return (
-    <div className="relative h-[5.75rem] w-[5.75rem] shrink-0">
-      <svg viewBox="0 0 92 92" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="46" cy="46" r={r} fill="none" strokeWidth="7" className="stroke-lab-border" />
-        {fraction > 0 && (
-          <circle
-            cx="46"
-            cy="46"
-            r={r}
-            fill="none"
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            className={gold ? "stroke-gold-400" : "stroke-brand-400"}
+            }
           />
-        )}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {value > 0 ? (
-          <span className="stat-num text-3xl">{value}</span>
-        ) : (
-          <span className="font-display text-2xl leading-none text-brand-300">✦</span>
-        )}
-        <span className="mt-1 text-[11px] text-slate-400">{label}</span>
+          {recentPosts.length === 0 ? (
+            <p className="text-meta text-fg-muted">
+              No posts yet.{" "}
+              <Link href="/community" className="text-accent-strong hover:underline">
+                Start a discussion
+              </Link>
+            </p>
+          ) : (
+            <ul className="-mx-2">
+              {recentPosts.slice(0, 3).map((post) => (
+                <li key={post.id}>
+                  <Link
+                    href={`/community/${post.id}`}
+                    className="flex min-h-12 items-center justify-between gap-3 rounded-control px-2 py-2 hover:bg-surface-active"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-fg">{post.title}</span>
+                      <span className="block truncate text-meta text-fg-muted">
+                        {post.category?.name ?? "General"} · {timeAgo(post.createdAt)}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 font-mono text-meta tabular-nums text-fg-muted">
+                      <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                      {post._count.comments}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <InsightsPanel personal={personalInsight} cohort={cohortStatements} />
+
+      {/* Skin toolkit — validated instruments kept visibly apart. */}
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+        {TOOLKIT.map((group) => (
+          <section key={group.title} className="card" aria-label={group.title}>
+            <CardHeader title={group.title} subtitle={group.blurb} action={<FeatureBadgePill badge={group.badge} />} />
+            <ul className="-mx-2">
+              {group.tools.map((tool) => (
+                <li key={tool.href}>
+                  <Link
+                    href={tool.href}
+                    className="flex min-h-11 items-center gap-3 rounded-control px-2 py-1.5 hover:bg-surface-active"
+                  >
+                    <tool.icon className="h-[17px] w-[17px] shrink-0 text-accent-strong" strokeWidth={1.75} aria-hidden />
+                    <span className="flex-1 text-sm text-fg">{tool.title}</span>
+                    {tool.badge && <FeatureBadgePill badge={tool.badge} />}
+                    <ChevronRight className="h-4 w-4 shrink-0 text-fg-faint" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     </div>
-  );
-}
-
-/** A toolkit section: grouped rows on phones (one card, hairline dividers),
- * a grid of cards from `sm` up where there's room for the descriptions. */
-function ToolSection({
-  title,
-  badge,
-  blurb,
-  tools,
-}: {
-  title: string;
-  badge?: "VALIDATED" | "EXPERIMENTAL";
-  blurb?: string;
-  tools: FeatureCardProps[];
-}) {
-  return (
-    <section className="mt-10">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-medium text-white">{title}</h2>
-        {badge && <FeatureBadgePill badge={badge} />}
-      </div>
-      {blurb && <p className="mt-1 text-sm text-slate-500">{blurb}</p>}
-
-      <div className="list-group mt-4 sm:hidden">
-        {tools.map((tool) => (
-          <Link key={tool.href} href={tool.href} className="flex min-h-16 items-center gap-3.5 px-4 py-3 transition active:bg-white/[0.03]">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500/10 text-brand-300">
-              <tool.icon className="h-[1.1rem] w-[1.1rem]" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-semibold text-white">{tool.title}</span>
-              <span className="line-clamp-1 text-[13px] text-slate-400">{tool.description}</span>
-            </span>
-            {tool.badge && tool.badge !== badge ? (
-              <FeatureBadgePill badge={tool.badge} />
-            ) : (
-              <ChevronRight className="h-4.5 w-4.5 shrink-0 text-slate-600" />
-            )}
-          </Link>
-        ))}
-      </div>
-
-      <div className="mt-4 hidden gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3">
-        {tools.map((tool) => (
-          <FeatureCard key={tool.href} {...tool} badge={tool.badge === badge ? null : tool.badge} />
-        ))}
-      </div>
-    </section>
   );
 }

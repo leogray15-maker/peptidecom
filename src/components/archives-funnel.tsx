@@ -23,7 +23,7 @@ export function ArchivesViewTracker() {
 export function ArchivesCta({ url }: { url: string | null }) {
   if (!url) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-xl border border-gold-500/40 bg-gold-500/10 px-5 py-3 text-sm font-medium text-gold-200">
+      <div className="inline-flex items-center gap-2 rounded-control border border-gold-500/40 bg-gold-500/10 px-5 py-3 text-sm font-medium text-gold-200">
         <Sparkles className="h-4 w-4" />
         Doors open soon — members here will be the first invited.
       </div>

@@ -106,7 +106,7 @@ export function Markdown({ content }: { content: string }) {
           src={src}
           alt={image[1] || ""}
           loading="lazy"
-          className="my-4 w-full rounded-xl border border-lab-border"
+          className="my-4 w-full rounded-control border border-lab-border"
         />
       );
       continue;

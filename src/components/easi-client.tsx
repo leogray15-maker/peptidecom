@@ -125,7 +125,7 @@ export function EasiClient() {
   return (
     <div className="space-y-6">
       {/* Live score */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-slate-400">Your EASI score</p>
@@ -141,7 +141,7 @@ export function EasiClient() {
               <RotateCcw className="h-4 w-4" /> Reset
             </button>
             <button onClick={save} className="btn-primary">
-              <Save className="h-4 w-4" /> {justSaved ? "Saved ✓" : "Save score"}
+              <Save className="h-4 w-4" /> {justSaved ? "Saved" : "Save score"}
             </button>
           </div>
         </div>
@@ -152,7 +152,7 @@ export function EasiClient() {
         const ri = input[region.id];
         const contribution = regionScore(region, ri);
         return (
-          <div key={region.id} className="card !rounded-3xl">
+          <div key={region.id} className="card">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-white">{region.label}</h2>
               <span className="text-xs text-slate-500 tabular-nums">
@@ -190,7 +190,7 @@ export function EasiClient() {
 
       {/* History */}
       {recent.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center justify-between">
             <h2 className="font-medium text-white">Your saved scores</h2>
             <button onClick={wipeHistory} className="text-xs text-slate-500 hover:text-rose-400">
@@ -210,7 +210,7 @@ export function EasiClient() {
               return (
                 <li
                   key={e.at}
-                  className="flex items-center justify-between rounded-xl border border-lab-border bg-lab-bg px-4 py-2.5 text-sm"
+                  className="flex items-center justify-between rounded-control border border-lab-border bg-lab-bg px-4 py-2.5 text-sm"
                 >
                   <span className="text-slate-400">
                     {new Date(e.at).toLocaleDateString("en-GB", {

@@ -9,6 +9,24 @@ export const SCORE_COLOR: Record<ScoreLevel, string> = {
   bad: score.bad,
 };
 
+/** The app's older tone names (forecast, POEM, product scores) → level. */
+export function toneLevel(tone: string): ScoreLevel {
+  switch (tone) {
+    case "emerald":
+    case "green":
+      return "excellent";
+    case "lime":
+      return "good";
+    case "amber":
+    case "yellow":
+      return "moderate";
+    case "orange":
+      return "poor";
+    default:
+      return "bad";
+  }
+}
+
 /** 0–100 product / food / restaurant score → level (higher is better). */
 export function gradeLevel(value: number): ScoreLevel {
   if (value >= 75) return "excellent";

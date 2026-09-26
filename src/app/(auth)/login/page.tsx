@@ -109,7 +109,7 @@ function LoginForm() {
       <p className="mt-1 text-sm text-slate-400">Log in to the lab.</p>
 
       {!firebaseEnabled && (
-        <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+        <p className="mt-4 rounded-control border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
           Firebase isn&apos;t configured. Add the NEXT_PUBLIC_FIREBASE_* env vars to enable sign-in.
         </p>
       )}

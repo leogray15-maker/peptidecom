@@ -34,14 +34,14 @@ function ConditionOptions({
           disabled={disabled}
           onClick={() => onPick(c.id)}
           className={cn(
-            "rounded-xl border px-4 py-3 text-left transition",
+            "rounded-control border px-4 py-3 text-left transition",
             value === c.id
               ? "border-brand-500 bg-brand-500/15"
               : "border-lab-border hover:border-brand-700"
           )}
         >
           <p className="text-sm font-semibold text-white">
-            {c.emoji} {c.label}
+            {c.label}
           </p>
           <p className="mt-0.5 text-xs text-slate-500">{c.blurb}</p>
         </button>
@@ -86,8 +86,8 @@ export function ConditionPickerModal({ hasLoggedBefore }: { hasLoggedBefore: boo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-3xl border border-lab-border bg-lab-card p-6 shadow-2xl sm:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="relative w-full max-w-lg rounded-card border border-lab-border bg-lab-card p-6 sm:p-8">
         <button
           onClick={dismiss}
           className="absolute right-4 top-4 text-slate-500 hover:text-slate-300"

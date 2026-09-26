@@ -84,7 +84,7 @@ export function PoemClient() {
   return (
     <div className="space-y-6">
       {/* Live score */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-slate-400">
@@ -102,7 +102,7 @@ export function PoemClient() {
               <RotateCcw className="h-4 w-4" /> Reset
             </button>
             <button onClick={save} disabled={!complete} className="btn-primary">
-              <Save className="h-4 w-4" /> {justSaved ? "Saved ✓" : "Save week"}
+              <Save className="h-4 w-4" /> {justSaved ? "Saved" : "Save week"}
             </button>
           </div>
         </div>
@@ -114,7 +114,7 @@ export function PoemClient() {
       </div>
 
       {/* Questions */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <p className="text-sm font-medium text-slate-300">
           Over the last week, on how many days has…
         </p>
@@ -149,7 +149,7 @@ export function PoemClient() {
 
       {/* History + trend */}
       {recent.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <div className="flex items-center justify-between">
             <h2 className="font-medium text-white">Your weekly trend</h2>
             <button onClick={wipeHistory} className="text-xs text-slate-500 hover:text-rose-400">
@@ -160,7 +160,7 @@ export function PoemClient() {
             <p className="mt-1 text-sm text-slate-400">
               Last saved week: <span className="font-semibold text-white">{prev}</span>
               {" · "}
-              {score < prev ? "improving 🌿" : score > prev ? "flarier this week" : "holding steady"}
+              {score < prev ? "improving" : score > prev ? "flarier this week" : "holding steady"}
             </p>
           )}
 
@@ -192,7 +192,7 @@ export function PoemClient() {
               return (
                 <li
                   key={e.at}
-                  className="flex items-center justify-between rounded-xl border border-lab-border bg-lab-bg px-4 py-2.5 text-sm"
+                  className="flex items-center justify-between rounded-control border border-lab-border bg-lab-bg px-4 py-2.5 text-sm"
                 >
                   <span className="text-slate-400">
                     {new Date(e.at).toLocaleDateString("en-GB", {

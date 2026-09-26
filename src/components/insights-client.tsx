@@ -181,7 +181,7 @@ export function InsightsClient({ logs }: { logs: DailyLog[] }) {
           </p>
         )}
         {sleepSeverity && Math.abs(sleepSeverity.r) >= 0.3 && (
-          <div className="mt-4 rounded-xl bg-lab-bg px-4 py-3 text-sm text-slate-300">
+          <div className="mt-4 rounded-control bg-lab-bg px-4 py-3 text-sm text-slate-300">
             <p>
               <span className="font-semibold text-white">
                 Sleep and your skin: {BUCKET_LABEL[correlationBucket(sleepSeverity.r)]}.

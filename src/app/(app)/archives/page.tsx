@@ -34,10 +34,8 @@ export default function ArchivesPage() {
       />
 
       <div className="card relative overflow-hidden border-gold-500/25">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-brand-500/10 blur-3xl" />
         <div className="relative">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-500/30 to-gold-500/30">
+          <div className="grid h-12 w-12 place-items-center rounded-card border border-gold-line bg-surface-active text-gold">
             <Sparkles className="h-6 w-6 text-gold-300" />
           </div>
           <h2 className="mt-5 max-w-xl text-2xl font-medium leading-snug text-white">
@@ -62,7 +60,7 @@ export default function ArchivesPage() {
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {PILLARS.map((p) => (
           <div key={p.title} className="card">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-500/10 text-gold-300">
+            <div className="grid h-10 w-10 place-items-center rounded-control bg-gold-500/10 text-gold-300">
               <p.icon className="h-5 w-5" />
             </div>
             <p className="mt-3 font-semibold text-white">{p.title}</p>

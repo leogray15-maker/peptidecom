@@ -76,7 +76,7 @@ export default function SupportPage() {
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {COPING.map((c) => (
           <div key={c.title} className="card">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-900/60 text-brand-300">
+            <div className="grid h-10 w-10 place-items-center rounded-control bg-brand-900/60 text-brand-300">
               <c.icon className="h-5 w-5" />
             </div>
             <p className="mt-3 font-semibold text-white">{c.title}</p>

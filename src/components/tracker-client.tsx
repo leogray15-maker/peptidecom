@@ -113,7 +113,7 @@ export function TrackerClient({
                 onClick={() => pickDay(d.date)}
                 title={d.log ? `Severity ${d.log.severity}/10 — tap to edit` : "Not logged — tap to fill in"}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-1.5 rounded-xl py-1.5 transition hover:bg-white/5",
+                  "flex flex-1 flex-col items-center gap-1.5 rounded-control py-1.5 transition hover:bg-white/5",
                   active && "bg-brand-500/15 ring-1 ring-brand-500/50"
                 )}
               >
@@ -297,7 +297,7 @@ function LogEditor({
   return (
     <div className="card space-y-7">
       {!isToday && (
-        <div className="flex items-center justify-between rounded-xl bg-brand-900/40 px-4 py-2.5">
+        <div className="flex items-center justify-between rounded-control bg-brand-900/40 px-4 py-2.5">
           <p className="text-sm font-medium text-brand-200">
             {log ? "Editing" : "Filling in"} {formatDate(date)}
           </p>
@@ -361,7 +361,7 @@ function LogEditor({
               type="button"
               onClick={() => toggle(symptoms, setSymptoms)(s.id)}
               className={cn(
-                "rounded-xl border px-4 py-2 text-sm font-medium transition",
+                "rounded-control border px-4 py-2 text-sm font-medium transition",
                 symptoms.includes(s.id)
                   ? "border-brand-500 bg-brand-500/20 text-brand-200"
                   : "border-lab-border text-slate-400 hover:border-brand-700 hover:text-slate-200"
@@ -387,7 +387,7 @@ function LogEditor({
                 onClick={() => setSleep(sleep === n ? null : n)}
                 aria-label={`Sleep quality ${n} of 5`}
                 className={cn(
-                  "grid h-10 w-10 place-items-center rounded-xl border transition",
+                  "grid h-10 w-10 place-items-center rounded-control border transition",
                   sleep != null && n <= sleep
                     ? "border-brand-500 bg-brand-500/20 text-brand-200"
                     : "border-lab-border text-slate-500 hover:text-slate-300"
@@ -408,7 +408,7 @@ function LogEditor({
                 onClick={() => setMood(mood === i + 1 ? null : i + 1)}
                 aria-label={`Mood ${i + 1} of 5`}
                 className={cn(
-                  "grid h-10 w-10 place-items-center rounded-xl border text-lg transition",
+                  "grid h-10 w-10 place-items-center rounded-control border text-lg transition",
                   mood === i + 1
                     ? "border-brand-500 bg-brand-500/20"
                     : "border-lab-border opacity-60 hover:opacity-100"

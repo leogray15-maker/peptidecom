@@ -102,7 +102,7 @@ export function DoseScheduleSection({
               <p className="font-semibold text-white">Today&apos;s schedule</p>
               <p className="mt-0.5 text-sm text-slate-400">
                 {doneCount} of {dueCount} dose{dueCount === 1 ? "" : "s"} logged
-                {doneCount === dueCount ? " — all done ✦" : ""}
+                {doneCount === dueCount ? " — all done" : ""}
               </p>
             </div>
             {adherence.streak > 0 && (
@@ -128,7 +128,7 @@ export function DoseScheduleSection({
                 <div
                   key={p.id}
                   className={cn(
-                    "rounded-xl border px-4 py-2.5",
+                    "rounded-control border px-4 py-2.5",
                     logged ? "border-emerald-500/30 bg-emerald-500/5" : "border-lab-border bg-lab-bg"
                   )}
                 >
@@ -311,7 +311,7 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <form onSubmit={save} className="mt-4 grid gap-4 rounded-xl border border-lab-border p-4 sm:grid-cols-2">
+    <form onSubmit={save} className="mt-4 grid gap-4 rounded-control border border-lab-border p-4 sm:grid-cols-2">
       <div>
         <label className="label">Peptide</label>
         <input
@@ -350,7 +350,7 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
             type="button"
             onClick={() => setType("daily")}
             className={cn(
-              "rounded-xl border px-4 py-2 text-sm font-medium transition",
+              "rounded-control border px-4 py-2 text-sm font-medium transition",
               type === "daily"
                 ? "border-brand-500 bg-brand-500/20 text-brand-200"
                 : "border-lab-border text-slate-400 hover:text-slate-200"
@@ -362,7 +362,7 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
             type="button"
             onClick={() => setType("weekly")}
             className={cn(
-              "rounded-xl border px-4 py-2 text-sm font-medium transition",
+              "rounded-control border px-4 py-2 text-sm font-medium transition",
               type === "weekly"
                 ? "border-brand-500 bg-brand-500/20 text-brand-200"
                 : "border-lab-border text-slate-400 hover:text-slate-200"
@@ -403,7 +403,7 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
           <option value="">—</option>
           {RESEARCH_GOALS.map((g) => (
             <option key={g.id} value={g.id}>
-              {g.emoji} {g.label}
+              {g.label}
             </option>
           ))}
         </select>

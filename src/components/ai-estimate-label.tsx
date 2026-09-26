@@ -50,7 +50,7 @@ export function AboutThisEstimate({
   if (gradedAt) rows.push(["Graded", gradedAt]);
 
   return (
-    <div className="rounded-2xl border border-lab-border bg-lab-bg/60 p-4">
+    <div className="rounded-card border border-lab-border bg-lab-bg/60 p-4">
       <p className="flex items-center gap-2 text-sm font-semibold text-white">
         <Info className="h-4 w-4 text-brand-300" /> About this estimate
       </p>

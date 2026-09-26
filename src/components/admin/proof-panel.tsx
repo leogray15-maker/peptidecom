@@ -193,7 +193,7 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
                 <div
                   key={slot + i}
                   className={cn(
-                    "rounded-xl border p-3",
+                    "rounded-control border p-3",
                     row ? "border-lab-border bg-lab-bg" : "border-dashed border-lab-border"
                   )}
                 >

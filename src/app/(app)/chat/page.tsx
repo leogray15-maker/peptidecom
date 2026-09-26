@@ -16,7 +16,7 @@ export default function ChatPage() {
       />
 
       <div className="card flex flex-col items-center py-14 text-center">
-        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#25D366]/15 text-[#25D366]">
+        <div className="grid h-14 w-14 place-items-center rounded-card bg-[#25D366]/15 text-[#25D366]">
           <MessagesSquare className="h-7 w-7" />
         </div>
         <p className="mt-5 text-lg font-semibold text-white">Join the WhatsApp community</p>
@@ -34,7 +34,7 @@ export default function ChatPage() {
             Open the invite <ArrowRight className="h-4 w-4" />
           </a>
         ) : (
-          <p className="mt-6 rounded-xl border border-lab-border bg-lab-bg px-4 py-2.5 text-sm text-slate-400">
+          <p className="mt-6 rounded-control border border-lab-border bg-lab-bg px-4 py-2.5 text-sm text-slate-400">
             The invite link is being set up — check back shortly.
           </p>
         )}

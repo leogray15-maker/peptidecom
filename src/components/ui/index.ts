@@ -3,7 +3,7 @@ export { StatCard } from "./stat-card";
 export { Button, ButtonLink, buttonClass } from "./button";
 export { SegmentedControl } from "./segmented-control";
 export { Chip, Tag, chipClass } from "./chip";
-export { ScoreBadge, SeverityBadge, SCORE_COLOR, gradeLevel } from "./score-badge";
+export { ScoreBadge, SeverityBadge, SCORE_COLOR, gradeLevel, toneLevel } from "./score-badge";
 export { ProgressBar } from "./progress-bar";
 export { EmptyState, ErrorState } from "./empty-state";
 export { Skeleton, CardSkeleton, PageSkeleton } from "./skeleton";

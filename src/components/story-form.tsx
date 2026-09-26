@@ -50,7 +50,7 @@ function PhotoSlot({
   }
 
   return (
-    <div className="rounded-xl border border-lab-border p-3">
+    <div className="rounded-control border border-lab-border p-3">
       <p className="label !mb-2 capitalize">{which}</p>
 
       {image ? (
@@ -127,7 +127,7 @@ function PhotoSlot({
                       setPicking(false);
                     })
                   }
-                  className="shrink-0 overflow-hidden rounded-xl border-2 border-transparent opacity-80 transition hover:opacity-100 focus-visible:border-brand-400"
+                  className="shrink-0 overflow-hidden rounded-control border-2 border-transparent opacity-80 transition hover:opacity-100 focus-visible:border-brand-400"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.imageData} alt={formatDate(p.takenAt)} className="h-16 w-16 object-cover" />
@@ -260,7 +260,7 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
 
       {/* Before & after — the part people scroll for. Open to everyone, not
        * gated behind marketing consent: these show on the members-only wall. */}
-      <div className="space-y-3 rounded-xl border border-lab-border p-4">
+      <div className="space-y-3 rounded-control border border-lab-border p-4">
         <div>
           <p className="text-sm font-medium text-slate-300">
             Before &amp; after <span className="text-slate-500">(optional)</span>
@@ -303,7 +303,7 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
       </div>
 
       {/* Guided prompts — optional, but they make stories land harder. */}
-      <div className="space-y-3 rounded-xl border border-lab-border p-4">
+      <div className="space-y-3 rounded-control border border-lab-border p-4">
         <p className="text-sm font-medium text-slate-300">
           A few guided questions <span className="text-slate-500">(optional — answer any)</span>
         </p>
@@ -322,7 +322,7 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
       </div>
 
       {/* Marketing consent — explicit, off by default, no tricks. */}
-      <div className="space-y-3 rounded-xl border border-lab-border p-4">
+      <div className="space-y-3 rounded-control border border-lab-border p-4">
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"

@@ -133,7 +133,7 @@ export default async function CommunityPage({
                 href={`/community/${post.id}`}
                 className="card flex gap-4 transition hover:border-brand-600"
               >
-                <div className="flex flex-col items-center justify-center rounded-xl bg-lab-bg px-3 py-2 text-center">
+                <div className="flex flex-col items-center justify-center rounded-control bg-lab-bg px-3 py-2 text-center">
                   <ArrowBigUp className="h-4 w-4 text-brand-300" />
                   <span className="text-sm font-semibold text-white">{score}</span>
                 </div>

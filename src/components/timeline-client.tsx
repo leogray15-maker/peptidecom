@@ -141,7 +141,7 @@ export function TimelineClient({
                     <div className="flex items-center gap-2">
                       <h2 className="font-medium text-white">{stage.name}</h2>
                       {isHere && (
-                        <span className="badge bg-brand-500/20 text-brand-200">You are here ✦</span>
+                        <span className="badge bg-brand-500/20 text-brand-200">You are here</span>
                       )}
                     </div>
                     <p className="mt-0.5 text-xs uppercase tracking-wider text-slate-500">{stage.timeframe}</p>

@@ -312,7 +312,7 @@ export function TriggersClient({
       </div>
 
       {open && (
-        <form onSubmit={save} className="card grid gap-4 !rounded-3xl sm:grid-cols-2">
+        <form onSubmit={save} className="card grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="label">What was it?</label>
             <input
@@ -357,7 +357,7 @@ export function TriggersClient({
                   type="button"
                   onClick={() => setForm({ ...form, effect: ef.value })}
                   className={cn(
-                    "flex-1 rounded-xl border px-2 py-2.5 text-xs font-medium transition",
+                    "flex-1 rounded-control border px-2 py-2.5 text-xs font-medium transition",
                     form.effect === ef.value
                       ? "border-brand-500 bg-brand-500/20 text-brand-200"
                       : "border-lab-border text-slate-400 hover:text-slate-200"
@@ -393,7 +393,7 @@ export function TriggersClient({
 
       {/* Most-checked */}
       {mostChecked.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="font-semibold text-white">Most-checked triggers</p>
           <div className="mt-4 space-y-2.5">
             {mostChecked.map((m) => (
@@ -416,7 +416,7 @@ export function TriggersClient({
 
       {/* Recent days */}
       {recentDays.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="font-semibold text-white">Recent days</p>
           <div className="mt-3 space-y-2.5">
             {recentDays.map(([date, names]) => (
@@ -433,7 +433,7 @@ export function TriggersClient({
 
       {/* Patterns */}
       {patterns.length > 0 && (
-        <div className="card !rounded-3xl">
+        <div className="card">
           <p className="font-semibold text-white">Your patterns</p>
           <p className="mt-1 text-sm text-slate-500">
             What your own logs suggest — patterns, not verdicts. One-off reactions happen.
@@ -442,7 +442,7 @@ export function TriggersClient({
             {patterns.map((p) => (
               <div
                 key={p.name}
-                className="flex items-center justify-between rounded-xl bg-lab-bg px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-control bg-lab-bg px-4 py-3 text-sm"
               >
                 <div>
                   <span className="font-medium text-slate-200">{p.name}</span>
@@ -467,7 +467,7 @@ export function TriggersClient({
       )}
 
       {/* Full history */}
-      <div className="card !rounded-3xl">
+      <div className="card">
         <p className="mb-3 font-semibold text-white">History</p>
 
         {initialEntries.length > 0 && (

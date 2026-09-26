@@ -62,7 +62,7 @@ export function StageSheet({
           setOpen(true);
           trackEvent("stage_sheet_open", { stage: currentStageId });
         }}
-        className="mt-1 flex items-start gap-1 text-left font-display text-lg font-medium leading-snug text-white transition hover:text-brand-200 sm:text-xl"
+        className="mt-1 flex items-start gap-1 text-left text-[15px] font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
         title="See every stage and what marks the move between them"
       >
         {currentStageName}
@@ -71,12 +71,12 @@ export function StageSheet({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/85"
           onClick={close}
         >
           <div className="flex min-h-full items-end justify-center p-0 sm:items-center sm:p-4">
             <div
-              className="w-full max-w-2xl rounded-t-3xl border border-lab-border bg-lab-card p-6 shadow-2xl sm:rounded-3xl sm:p-8"
+              className="w-full max-w-2xl rounded-t-3xl border border-lab-border bg-lab-card p-6 sm:rounded-card sm:p-8"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-4">
@@ -86,7 +86,7 @@ export function StageSheet({
                 </div>
                 <button
                   onClick={close}
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400 hover:bg-white/5 hover:text-white"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-control text-slate-400 hover:bg-white/5 hover:text-white"
                   aria-label="Close"
                 >
                   <X className="h-5 w-5" />
@@ -104,7 +104,7 @@ export function StageSheet({
                     <li
                       key={s.id}
                       className={cn(
-                        "rounded-2xl border p-4",
+                        "rounded-card border p-4",
                         current
                           ? "border-brand-500/50 bg-brand-950/30"
                           : "border-lab-border bg-lab-bg/40"

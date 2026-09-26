@@ -58,7 +58,7 @@ export function FeatureCard({
 }: FeatureCardProps) {
   const inner = (
     <>
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/10 text-brand-300 transition group-hover:bg-brand-500/20 group-hover:text-brand-200">
+      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-control bg-brand-500/10 text-brand-300 transition group-hover:bg-brand-500/20 group-hover:text-brand-200">
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">

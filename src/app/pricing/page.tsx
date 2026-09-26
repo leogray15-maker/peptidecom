@@ -149,7 +149,7 @@ export default async function PricingPage({
             {member ? (
               <div className="card text-center">
                 <p className="text-lg font-semibold text-white">
-                  You&apos;re already a member 🎉
+                  You&apos;re already a member
                 </p>
                 <p className="mt-2 text-sm text-slate-400">
                   Your membership is active. Head to your dashboard.
@@ -161,7 +161,7 @@ export default async function PricingPage({
             ) : authed ? (
               <div className="space-y-4">
                 {lapsed && (
-                  <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+                  <div className="rounded-card border border-amber-500/40 bg-amber-500/10 p-4">
                     <p className="font-semibold text-white">{lapsed.title}</p>
                     <p className="mt-1 text-sm leading-relaxed text-amber-100/80">
                       {lapsed.body}
@@ -172,7 +172,7 @@ export default async function PricingPage({
                   </div>
                 )}
                 {checkout === "cancelled" && (
-                  <p className="rounded-2xl border border-lab-border bg-lab-card p-4 text-sm text-slate-400">
+                  <p className="rounded-card border border-lab-border bg-lab-card p-4 text-sm text-slate-400">
                     Checkout was cancelled — you haven&apos;t been charged. Pick a plan
                     whenever you&apos;re ready.
                   </p>
