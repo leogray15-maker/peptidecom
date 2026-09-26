@@ -35,7 +35,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Settings" subtitle="Manage your account and membership." back="/dashboard" />
+      <PageHeader title="Settings" subtitle="Manage your account and membership." />
 
       <div className="space-y-6">
         <section className="card">

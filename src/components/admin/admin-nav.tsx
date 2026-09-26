@@ -16,22 +16,26 @@ const ITEMS = [
 
 function itemClass(active: boolean) {
   return cn(
-    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
-    active ? "bg-brand-500/15 text-brand-200" : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+    "flex h-8 items-center gap-2.5 rounded-nav px-2.5 text-[13.5px] transition-colors",
+    active ? "bg-surface-active font-medium text-fg-active" : "text-fg-secondary hover:bg-surface-active/60 hover:text-fg"
   );
 }
 
 export function AdminNav() {
   const pathname = usePathname();
   return (
-    <nav className="space-y-0.5">
+    <nav aria-label="Admin" className="space-y-px">
       {ITEMS.map((item) => {
         const active = item.exact
           ? pathname === item.href
           : pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link key={item.href} href={item.href} className={itemClass(active)}>
-            <item.icon className="h-4.5 w-4.5 shrink-0" />
+            <item.icon
+              className={cn("h-[17px] w-[17px] shrink-0", active ? "text-accent-strong" : "text-fg-muted")}
+              strokeWidth={1.75}
+              aria-hidden
+            />
             {item.label}
           </Link>
         );
@@ -44,7 +48,7 @@ export function AdminNav() {
 export function AdminMobileNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] lg:hidden">
+    <nav aria-label="Admin" className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin] lg:hidden">
       {ITEMS.map((item) => {
         const active = item.exact
           ? pathname === item.href
@@ -54,11 +58,11 @@ export function AdminMobileNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition",
-              active ? "bg-brand-500/15 text-brand-200" : "text-slate-400 hover:bg-white/5"
+              "flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors",
+              active ? "border-primary bg-chip text-fg-active" : "border-line text-fg-secondary hover:text-fg"
             )}
           >
-            <item.icon className="h-4 w-4" />
+            <item.icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             {item.label}
           </Link>
         );
@@ -71,9 +75,9 @@ export function BackToAppLink() {
   return (
     <Link
       href="/dashboard"
-      className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-slate-100"
+      className="flex h-9 items-center gap-2.5 rounded-nav px-2.5 text-[13.5px] text-fg-secondary transition-colors hover:bg-surface-active/60 hover:text-fg"
     >
-      <ArrowLeft className="h-4.5 w-4.5 shrink-0" />
+      <ArrowLeft className="h-[17px] w-[17px] shrink-0" strokeWidth={1.75} aria-hidden />
       Back to app
     </Link>
   );

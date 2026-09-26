@@ -43,7 +43,7 @@ export default async function TriggersPage() {
       <PageHeader
         title="Triggers"
         subtitle="Tick what touched your skin today. Over a few weeks your own patterns surface."
-        back="/dashboard"
+       
       />
       <TriggersClient
         initialEntries={entries.map((e) => ({

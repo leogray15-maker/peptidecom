@@ -34,7 +34,7 @@ export default function PrivacySourcesPage() {
       <PageHeader
         title="Privacy & Sources"
         subtitle="What happens to your data, and where our numbers come from."
-        back="/dashboard"
+       
       />
 
       <div className="space-y-6">

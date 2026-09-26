@@ -53,3 +53,29 @@ export function initials(name?: string | null) {
     .join("")
     .toUpperCase();
 }
+
+/**
+ * Normalise a title to sentence case ("HOW TO HEAL YOUR GUT" / "How To Heal
+ * Your Gut" → "How to heal your gut"). Words that are all caps in an
+ * otherwise mixed-case title (acronyms like EASI, UV, NAD+) are kept.
+ */
+export function sentenceCase(title: string): string {
+  const trimmed = title.trim().replace(/\.$/, "");
+  const letters = trimmed.replace(/[^A-Za-z]/g, "");
+  const shouting = letters.length > 0 && letters === letters.toUpperCase();
+  const words = trimmed.split(/(\s+)/);
+  let first = true;
+  return words
+    .map((w) => {
+      if (/^\s+$/.test(w) || !/[A-Za-z]/.test(w)) return w;
+      const isAcronym = !shouting && w.length > 1 && /^[^a-z]*[A-Z][^a-z]*$/.test(w);
+      let out = isAcronym ? w : w.toLowerCase();
+      if (/^i(['’]|$)/.test(out)) out = "I" + out.slice(1);
+      if (first) {
+        out = out.replace(/[A-Za-z]/, (c) => c.toUpperCase());
+        first = false;
+      }
+      return out;
+    })
+    .join("");
+}

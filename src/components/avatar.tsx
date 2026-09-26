@@ -23,7 +23,7 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "grid h-9 w-9 place-items-center rounded-full bg-brand-800 text-xs font-semibold text-brand-100",
+        "grid h-9 w-9 place-items-center rounded-full bg-chip text-xs font-semibold text-accent-strong",
         className
       )}
     >

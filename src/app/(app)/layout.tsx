@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
 import { getCurrentUser, hasAccess, isAdminEmail } from "@/lib/auth";
+import { getLatestDigest } from "@/lib/digest-db";
+import { LIBRARY } from "@/lib/protocols";
+import { safe } from "@/lib/safe-db";
 import { reconcileMembership } from "@/lib/stripe-sync";
-import { Logo } from "@/components/logo";
-import { AppNav, ArchivesNavLink } from "@/components/app-nav";
-import { Avatar } from "@/components/avatar";
-import { MobileNav } from "@/components/mobile-nav";
-import { SignOutButton } from "@/components/sign-out-button";
-import { TabBar } from "@/components/tab-bar";
+import { type DailyLog, computeStats } from "@/lib/tsw";
+import { listLogs, tswKey } from "@/lib/tsw-db";
+import { sentenceCase } from "@/lib/utils";
+import { AppShell } from "@/components/shell/app-shell";
 
 // Member pages are per-request (auth + DB) and must never be prerendered at build.
 export const dynamic = "force-dynamic";
@@ -33,59 +32,30 @@ export default async function AppLayout({
     redirect("/pricing");
   }
 
+  const uid = tswKey(user);
+  const [logs, digest] = await Promise.all([
+    safe(() => listLogs(uid), [] as DailyLog[]),
+    safe(() => getLatestDigest(uid), null),
+  ]);
+  const streak = computeStats(logs).streak;
+
   return (
-    <div className="relative min-h-screen">
-      {/* Ambient violet glow behind the top of every screen. */}
-      <div className="app-glow" aria-hidden />
-
-      {/* Mobile top bar + drawer */}
-      <MobileNav
-        user={{ name: user.name, image: user.image, verified: user.verified }}
-      />
-
-      {/* pb-28 on phones keeps the last card clear of the floating tab bar. */}
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl gap-6 px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:py-6 lg:pb-8">
-        {/* Sidebar */}
-        <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-64 shrink-0 flex-col justify-between rounded-[1.5rem] border border-lab-border bg-lab-sunken p-4 lg:flex">
-          <div className="flex min-h-0 flex-1 flex-col">
-            <Logo href="/dashboard" className="px-1" />
-            <div className="mt-6 min-h-0 flex-1 overflow-y-auto pb-4 pr-1 [scrollbar-width:thin]">
-              <AppNav />
-            </div>
-          </div>
-          <div className="border-t border-lab-line pt-3">
-            {(user.role === "ADMIN" || isAdminEmail(user.email)) && (
-              <Link
-                href="/admin"
-                className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-brand-300/90 transition hover:bg-brand-500/10 hover:text-brand-200"
-              >
-                <ShieldCheck className="h-4.5 w-4.5 shrink-0" />
-                Admin CRM
-              </Link>
-            )}
-            <ArchivesNavLink />
-            <Link
-              href="/settings"
-              className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-white/[0.04]"
-            >
-              <Avatar name={user.name} image={user.image} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">{user.name}</p>
-                <p className="truncate text-xs text-slate-500">
-                  {user.verified ? "Verified member" : "Member"}
-                </p>
-              </div>
-            </Link>
-            <SignOutButton />
-          </div>
-        </aside>
-
-        {/* Main */}
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
-
-      {/* The five most-used screens, one thumb-reach away (phones only). */}
-      <TabBar />
-    </div>
+    <AppShell
+      user={{
+        name: user.name,
+        image: user.image,
+        verified: user.verified,
+        isAdmin: user.role === "ADMIN" || isAdminEmail(user.email),
+      }}
+      streak={streak}
+      digest={
+        digest
+          ? { title: digest.title, body: digest.body, url: digest.url, weekEnding: digest.weekEnding }
+          : null
+      }
+      protocols={LIBRARY.map((a) => ({ slug: a.slug, title: sentenceCase(a.title), category: a.category }))}
+    >
+      {children}
+    </AppShell>
   );
 }
