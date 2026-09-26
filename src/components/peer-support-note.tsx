@@ -1,12 +1,9 @@
-import { HeartHandshake } from "lucide-react";
-
-/** Light-touch disclaimer for the recovery/health pages. */
+/** Quiet clinician pointer for the recovery/health pages. The general
+ * "not medical advice" line lives in the page footer. */
 export function PeerSupportNote() {
   return (
-    <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-slate-500">
-      <HeartHandshake className="h-3.5 w-3.5 shrink-0" />
-      Peer support and self-tracking, not medical advice. For diagnosis and treatment, please
-      work with a qualified clinician.
+    <p className="mt-6 text-meta text-fg-muted">
+      For diagnosis and treatment, please work with a qualified clinician.
     </p>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { BODY_ZONES, type BodyZone } from "@/lib/tsw";
+import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
 
 /** Tappable body map for the daily tracker.
@@ -41,7 +42,7 @@ interface Diagram {
 // make it look broken; they live on the head inset instead.
 const BODY: Diagram = {
   viewBox: "0 0 240 530",
-  heightClass: "h-72 sm:h-80",
+  heightClass: "h-72 sm:h-80 xl:h-[22rem]",
   structure: [],
   regions: [
     { zone: "chest", shapes: [{ t: "path", d: "M108,90 L132,90 C148,92 162,100 165,112 L161,178 L79,178 L75,112 C78,100 92,92 108,90 Z" }] },
@@ -77,6 +78,27 @@ const BODY: Diagram = {
     ] },
   ],
 };
+
+// ── Back view — same silhouette, torso and head regions re-labelled ─────────
+const byZone = (z: string) => BODY.regions.find((r) => r.zone === z)?.shapes ?? [];
+const BACK: Diagram = {
+  viewBox: BODY.viewBox,
+  heightClass: BODY.heightClass,
+  structure: [],
+  regions: [
+    { zone: "back", shapes: [...byZone("chest"), ...byZone("stomach")] },
+    { zone: "arms", shapes: byZone("arms") },
+    { zone: "legs", shapes: byZone("legs") },
+    { zone: "shoulders", shapes: byZone("shoulders") },
+    { zone: "neck", shapes: byZone("neck") },
+    { zone: "scalp", shapes: [...byZone("face"), ...byZone("scalp")] },
+    { zone: "hands", shapes: byZone("hands") },
+    { zone: "knee-creases", shapes: byZone("knee-creases") },
+    { zone: "feet", shapes: byZone("feet") },
+  ],
+};
+
+export type BodyView = "front" | "back";
 
 /** Facial zones that are too small to tap on the body figure. */
 const FACE_ZONE_IDS = ["forehead", "cheeks", "nose", "jawline", "chin"];
@@ -162,7 +184,7 @@ function DiagramSvg({
                   onToggle(r.zone);
                 }
               }}
-              className="cursor-pointer outline-none"
+              className="cursor-pointer outline-none [&:focus-visible>*]:stroke-accent [&:focus-visible>*]:[stroke-width:3]"
             >
               <title>{label(r.zone)}</title>
               {renderShapes(
@@ -170,10 +192,10 @@ function DiagramSvg({
                 cn(
                   "transition-colors",
                   on
-                    ? "fill-brand-500/75 stroke-brand-300"
+                    ? "fill-primary stroke-accent-strong"
                     : // Touch devices get no hover, so tappable regions carry a
-                      // faint tint of their own — otherwise they're invisible.
-                      "fill-white/[0.05] stroke-white/15 hover:fill-brand-500/25 focus-visible:fill-brand-500/30"
+                      // faint outline of their own — otherwise they're invisible.
+                      "fill-surface-active stroke-line-strong hover:fill-chip focus-visible:fill-chip"
                 )
               )}
             </g>
@@ -188,28 +210,31 @@ export function BodyMap({
   selected,
   onToggle,
   zones = BODY_ZONES,
+  view = "front",
 }: {
   selected: string[];
   onToggle: (zone: string) => void;
   zones?: BodyZone[];
+  view?: BodyView;
 }) {
   const set = new Set(selected);
   const zoneIds = new Set(zones.map((z) => z.id));
   const label = (id: string) => zones.find((z) => z.id === id)?.label ?? id;
-  const showFaceInset = FACE_ZONE_IDS.some((z) => zoneIds.has(z));
+  const showFaceInset = view === "front" && FACE_ZONE_IDS.some((z) => zoneIds.has(z));
 
   return (
     <div>
       {/* Top-aligned so the magnified head sits level with the figure's own
           head and reads as a zoom of it. */}
-      <div className="flex items-start justify-center gap-2 sm:gap-6">
+      <div className="flex items-start justify-center gap-2 py-2 sm:gap-6">
         <DiagramSvg
-          diagram={BODY}
+          key={view}
+          diagram={view === "front" ? BODY : BACK}
           zoneIds={zoneIds}
           selected={set}
           onToggle={onToggle}
           label={label}
-          ariaLabel="Body map — tap the areas that are affected today"
+          ariaLabel={`Body map, ${view} view — tap the areas that are affected`}
         />
         {showFaceInset && (
           <DiagramSvg
@@ -218,27 +243,18 @@ export function BodyMap({
             selected={set}
             onToggle={onToggle}
             label={label}
-            ariaLabel="Face map — tap the facial areas that are affected today"
+            ariaLabel="Face map — tap the facial areas that are affected"
           />
         )}
       </div>
 
-      {/* Chip fallback — includes every zone the drawings can't show */}
-      <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+      {/* Chips: the same selection as the drawing, and the accessible
+          fallback for every zone (including ones the current view can't show). */}
+      <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Affected areas">
         {zones.map((z) => (
-          <button
-            key={z.id}
-            type="button"
-            onClick={() => onToggle(z.id)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium transition",
-              set.has(z.id)
-                ? "border-brand-500 bg-brand-500/20 text-brand-200"
-                : "border-lab-border text-slate-400 hover:border-brand-700 hover:text-slate-200"
-            )}
-          >
+          <Chip key={z.id} selected={set.has(z.id)} onToggle={() => onToggle(z.id)}>
             {z.label}
-          </button>
+          </Chip>
         ))}
       </div>
     </div>
