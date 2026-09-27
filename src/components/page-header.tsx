@@ -33,7 +33,7 @@ export function PageHeader({
       {back && (
         <Link
           href={back}
-          className="-ml-1 mb-3 inline-flex min-h-9 items-center gap-1 rounded-nav px-1 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg"
+          className="-ml-1 mb-3 inline-flex min-h-11 sm:min-h-9 items-center gap-1 rounded-nav px-1 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Back

@@ -32,7 +32,7 @@ export default async function ProtocolArticlePage({
     <div className="mx-auto max-w-[680px]">
       <Link
         href="/protocols"
-        className="-ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-nav px-1 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg"
+        className="-ml-1 inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-nav px-1 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden /> All protocols
       </Link>

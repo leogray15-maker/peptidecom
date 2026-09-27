@@ -422,7 +422,7 @@ export function ScanClient() {
                   { value: "cosmetic", label: "Skincare" },
                 ]}
               />
-              <button onClick={wipeHistory} className="btn-ghost min-h-9 px-2.5 text-[13px]">
+              <button onClick={wipeHistory} className="btn-ghost min-h-11 sm:min-h-9 px-2.5 text-[13px]">
                 <Trash2 className="h-3.5 w-3.5" aria-hidden /> Clear
               </button>
             </div>

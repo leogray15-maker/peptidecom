@@ -91,7 +91,7 @@ table {
   }
 
   .btn {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-control px-4 py-2 text-sm font-semibold transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center sm:min-h-10 justify-center gap-2 whitespace-nowrap rounded-control px-4 py-2 text-sm font-semibold transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-primary {

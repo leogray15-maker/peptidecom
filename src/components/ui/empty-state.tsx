@@ -66,7 +66,7 @@ export function ErrorState({
         <p className="text-meta text-fg-secondary">{body}</p>
       </div>
       {onRetry && (
-        <button type="button" onClick={onRetry} className="btn-secondary min-h-9 px-3 text-[13px]">
+        <button type="button" onClick={onRetry} className="btn-secondary min-h-11 sm:min-h-9 px-3 text-[13px]">
           Try again
         </button>
       )}

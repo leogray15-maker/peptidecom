@@ -213,7 +213,7 @@ export function TrackerClient({
                   <div className="flex shrink-0 items-center">
                     <button
                       onClick={() => pickDay(l.date)}
-                      className="grid h-10 w-10 place-items-center rounded-control text-fg-muted hover:bg-surface-active hover:text-fg"
+                      className="grid h-11 w-11 place-items-center rounded-control text-fg-muted hover:bg-surface-active hover:text-fg sm:h-10 sm:w-10"
                       aria-label={`Edit entry for ${formatDate(l.date)}`}
                     >
                       <Pencil className="h-4 w-4" aria-hidden />
@@ -221,7 +221,7 @@ export function TrackerClient({
                     <button
                       onClick={() => removeLog(l.date)}
                       disabled={deleting === l.date}
-                      className="grid h-10 w-10 place-items-center rounded-control text-fg-muted hover:bg-surface-active hover:text-score-bad disabled:opacity-50"
+                      className="grid h-11 w-11 place-items-center rounded-control text-fg-muted hover:bg-surface-active hover:text-score-bad disabled:opacity-50 sm:h-10 sm:w-10"
                       aria-label={`Delete entry for ${formatDate(l.date)}`}
                     >
                       {deleting === l.date ? (
@@ -320,7 +320,7 @@ function LogEditor({
             {log ? "Editing" : "Filling in"} {formatDate(date)}
           </p>
           {onBackToToday && (
-            <button type="button" onClick={onBackToToday} className="btn-ghost min-h-9 px-2 text-[13px]">
+            <button type="button" onClick={onBackToToday} className="btn-ghost min-h-11 sm:min-h-9 px-2 text-[13px]">
               Back to today
             </button>
           )}

@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 const base =
-  "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-150 ease-out";
+  "inline-flex min-h-11 items-center sm:min-h-9 gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-150 ease-out";
 
 export function chipClass(selected: boolean, className?: string) {
   return cn(

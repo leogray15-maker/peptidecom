@@ -78,7 +78,7 @@ const config: Config = {
           300: c.textSecondary,
           400: c.textSecondary,
           500: c.textMuted,
-          600: c.textFaint,
+          600: c.textMuted,
           700: c.borderStrong,
           800: c.borderStrong,
           900: c.surfaceActive,

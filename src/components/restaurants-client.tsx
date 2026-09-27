@@ -256,7 +256,7 @@ export function RestaurantsClient() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as Sort)}
-              className="min-h-9 appearance-none rounded-control border border-line bg-surface-sunken py-1 pl-3 pr-8 text-[13px] text-fg focus:border-primary focus:outline-none"
+              className="min-h-11 sm:min-h-9 appearance-none rounded-control border border-line bg-surface-sunken py-1 pl-3 pr-8 text-[13px] text-fg focus:border-primary focus:outline-none"
             >
               <option value="healthiest">Healthiest first</option>
               <option value="nearest">Closest first</option>
@@ -461,12 +461,12 @@ function VenueRow({
           </dl>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href={directionsUrl(venue)} target="_blank" rel="noopener noreferrer" className="btn-secondary min-h-9 text-[13px]">
+            <a href={directionsUrl(venue)} target="_blank" rel="noopener noreferrer" className="btn-secondary min-h-11 sm:min-h-9 text-[13px]">
               <Navigation className="h-3.5 w-3.5" aria-hidden />
               Directions
             </a>
             {venue.website && (
-              <a href={venue.website} target="_blank" rel="noopener noreferrer" className="btn-ghost min-h-9 text-[13px]">
+              <a href={venue.website} target="_blank" rel="noopener noreferrer" className="btn-ghost min-h-11 sm:min-h-9 text-[13px]">
                 <Globe className="h-3.5 w-3.5" aria-hidden />
                 Menu / website
               </a>

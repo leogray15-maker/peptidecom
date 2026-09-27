@@ -380,7 +380,7 @@ export function RestaurantMap({
             type="button"
             onClick={() => onSearchArea?.({ lat: view.lat, lon: view.lon })}
             disabled={busy}
-            className="btn min-h-9 rounded-full border border-line-strong bg-surface px-4 text-[13px] text-fg hover:bg-surface-active"
+            className="btn min-h-11 sm:min-h-9 rounded-full border border-line-strong bg-surface px-4 text-[13px] text-fg hover:bg-surface-active"
           >
             <Search className="h-3.5 w-3.5" />
             Search this area
