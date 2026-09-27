@@ -25,26 +25,26 @@ function renderInline(text: string): ReactNode[] {
           href={m[2]}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-brand-300 underline underline-offset-2 hover:text-brand-200"
+          className="text-accent-strong underline underline-offset-2 hover:text-fg"
         >
           {m[1]}
         </a>
       );
     } else if (m[3] !== undefined) {
       nodes.push(
-        <strong key={key++} className="font-semibold italic text-white">
+        <strong key={key++} className="font-semibold italic text-fg">
           {m[3]}
         </strong>
       );
     } else if (m[4] !== undefined) {
       nodes.push(
-        <strong key={key++} className="font-semibold text-white">
+        <strong key={key++} className="font-semibold text-fg">
           {m[4]}
         </strong>
       );
     } else if (m[5] !== undefined) {
       nodes.push(
-        <em key={key++} className="italic text-slate-200">
+        <em key={key++} className="italic text-fg">
           {m[5]}
         </em>
       );
@@ -55,26 +55,69 @@ function renderInline(text: string): ReactNode[] {
   return nodes;
 }
 
-export function Markdown({ content }: { content: string }) {
+/** Count the list items a body will render — each one is a checkable step. */
+export function countSteps(content: string): number {
+  return content
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => /^[-*]\s+/.test(l) || /^\d+[.)]\s+/.test(l)).length;
+}
+
+export interface MarkdownSteps {
+  done: ReadonlySet<number>;
+  onToggle: (index: number) => void;
+}
+
+export function Markdown({ content, steps }: { content: string; steps?: MarkdownSteps }) {
   const lines = content.replace(/\r/g, "").split("\n");
   const blocks: ReactNode[] = [];
   let list: { ordered: boolean; items: string[] } | null = null;
   let key = 0;
+  let stepIndex = 0;
 
   const flushList = () => {
     if (!list) return;
-    const items = list.items.map((it, i) => (
-      <li key={i} className="leading-relaxed">
-        {renderInline(it)}
-      </li>
-    ));
+    const ordered = list.ordered;
+    const items = list.items.map((it, i) => {
+      if (!steps) {
+        return (
+          <li key={i} className="leading-relaxed">
+            {renderInline(it)}
+          </li>
+        );
+      }
+      const idx = stepIndex++;
+      const on = steps.done.has(idx);
+      return (
+        <li key={i}>
+          <label className="-mx-2 flex cursor-pointer gap-3 rounded-control px-2 py-2 transition-colors hover:bg-surface-active/60">
+            <input
+              type="checkbox"
+              checked={on}
+              onChange={() => steps.onToggle(idx)}
+              className="mt-[3px] h-[18px] w-[18px] shrink-0 cursor-pointer rounded-[5px] accent-primary"
+            />
+            <span className={on ? "leading-relaxed text-fg-muted line-through decoration-fg-faint" : "leading-relaxed"}>
+              {ordered && <span className="mr-1.5 font-mono text-[13px] tabular-nums text-fg-muted">{i + 1}.</span>}
+              {renderInline(it)}
+            </span>
+          </label>
+        </li>
+      );
+    });
+    const cls = steps
+      ? "my-3 space-y-0.5 text-fg-secondary"
+      : ordered
+        ? "my-3 list-decimal space-y-1.5 pl-6 text-fg-secondary"
+        : "my-3 list-disc space-y-1.5 pl-6 text-fg-secondary";
     blocks.push(
-      list.ordered ? (
-        <ol key={key++} className="my-3 list-decimal space-y-1.5 pl-6 text-slate-300">
+      ordered ? (
+        <ol key={key++} className={cls}>
           {items}
         </ol>
       ) : (
-        <ul key={key++} className="my-3 list-disc space-y-1.5 pl-6 text-slate-300">
+        <ul key={key++} className={cls}>
           {items}
         </ul>
       )
@@ -106,7 +149,7 @@ export function Markdown({ content }: { content: string }) {
           src={src}
           alt={image[1] || ""}
           loading="lazy"
-          className="my-4 w-full rounded-control border border-lab-border"
+          className="my-5 w-full rounded-control border border-line"
         />
       );
       continue;
@@ -140,19 +183,19 @@ export function Markdown({ content }: { content: string }) {
       const text = renderInline(heading[2].replace(/[:.]\s*$/, ""));
       if (level === 1) {
         blocks.push(
-          <h2 key={key++} className="mt-8 text-xl font-medium text-white first:mt-0">
+          <h2 key={key++} className="mt-9 text-[19px] font-semibold text-fg first:mt-0">
             {text}
           </h2>
         );
       } else if (level === 2) {
         blocks.push(
-          <h3 key={key++} className="mt-6 text-lg font-semibold text-white">
+          <h3 key={key++} className="mt-7 text-[16.5px] font-semibold text-fg">
             {text}
           </h3>
         );
       } else {
         blocks.push(
-          <h4 key={key++} className="mt-5 text-base font-semibold text-slate-100">
+          <h4 key={key++} className="mt-5 text-[15px] font-semibold text-fg">
             {text}
           </h4>
         );
@@ -161,12 +204,12 @@ export function Markdown({ content }: { content: string }) {
     }
 
     blocks.push(
-      <p key={key++} className="my-2 leading-relaxed text-slate-300">
+      <p key={key++} className="my-2.5 leading-[1.7] text-fg-secondary">
         {renderInline(line)}
       </p>
     );
   }
   flushList();
 
-  return <div className="text-[15px]">{blocks}</div>;
+  return <div className="text-[15.5px]">{blocks}</div>;
 }

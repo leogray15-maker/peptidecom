@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { Markdown } from "@/components/markdown";
+import { ProtocolReader } from "@/components/protocols/protocol-reader";
 import { getArticle, LIBRARY } from "@/lib/protocols";
+import { sentenceCase } from "@/lib/utils";
 
 export function generateStaticParams() {
   return LIBRARY.map((a) => ({ slug: a.slug }));
@@ -11,7 +12,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const article = getArticle(slug);
-  return { title: article ? article.title : "Protocol" };
+  return { title: article ? sentenceCase(article.title) : "Protocol" };
 }
 
 export default async function ProtocolArticlePage({
@@ -28,48 +29,46 @@ export default async function ProtocolArticlePage({
   const next = index < LIBRARY.length - 1 ? LIBRARY[index + 1] : null;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-[680px]">
       <Link
         href="/protocols"
-        className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200"
+        className="-ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-nav px-1 text-[13px] font-medium text-fg-muted transition-colors hover:text-fg"
       >
-        <ArrowLeft className="h-4 w-4" /> All protocols
+        <ArrowLeft className="h-4 w-4" aria-hidden /> All protocols
       </Link>
 
-      <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
-          {article.category}
-        </p>
-        <h1 className="mt-1 text-3xl font-medium text-white">{article.title}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">{article.summary}</p>
-      </div>
+      <header className="mb-6 mt-3">
+        <p className="eyebrow">{article.category}</p>
+        <h1 className="mt-2 font-display text-[34px] leading-[1.08] text-fg sm:text-[44px]">
+          {sentenceCase(article.title)}
+        </h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-fg-secondary">{article.summary}</p>
+      </header>
 
-      <article className="card mt-6">
-        <Markdown content={article.body} />
-      </article>
+      <ProtocolReader slug={article.slug} body={article.body} />
 
-      <p className="mt-4 rounded-control border border-lab-border bg-lab-card/50 p-3 text-xs text-slate-500">
+      <p className="mt-4 text-meta text-fg-muted">
         For research &amp; educational purposes only. Nothing here is medical advice. Products
         discussed are not for human consumption.
       </p>
 
-      <nav className="mt-6 grid gap-3 sm:grid-cols-2">
+      <nav aria-label="More protocols" className="mt-6 grid gap-4 sm:grid-cols-2">
         {prev ? (
-          <Link href={`/protocols/${prev.slug}`} className="card group">
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
-              <ArrowLeft className="h-3.5 w-3.5" /> Previous
+          <Link href={`/protocols/${prev.slug}`} className="card group !p-5 transition-colors hover:border-line-strong">
+            <span className="flex items-center gap-1.5 text-meta text-fg-muted">
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Previous
             </span>
-            <p className="mt-1 font-medium text-white group-hover:text-brand-200">{prev.title}</p>
+            <p className="mt-1 text-sm font-medium text-fg">{sentenceCase(prev.title)}</p>
           </Link>
         ) : (
           <span />
         )}
         {next && (
-          <Link href={`/protocols/${next.slug}`} className="card group text-right">
-            <span className="flex items-center justify-end gap-1.5 text-xs text-slate-500">
-              Next <ArrowRight className="h-3.5 w-3.5" />
+          <Link href={`/protocols/${next.slug}`} className="card group !p-5 text-right transition-colors hover:border-line-strong">
+            <span className="flex items-center justify-end gap-1.5 text-meta text-fg-muted">
+              Next <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </span>
-            <p className="mt-1 font-medium text-white group-hover:text-brand-200">{next.title}</p>
+            <p className="mt-1 text-sm font-medium text-fg">{sentenceCase(next.title)}</p>
           </Link>
         )}
       </nav>
