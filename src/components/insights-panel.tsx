@@ -32,7 +32,7 @@ function PrivacyModal({ onClose }: { onClose: () => void }) {
         </button>
         <div className="flex items-center gap-2 text-brand-300">
           <Lock className="h-5 w-5" />
-          <h2 className="text-lg font-medium text-white">This card never leaves your account</h2>
+          <h2 className="card-title">This card never leaves your account</h2>
         </div>
         <ul className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
           <li className="flex gap-3">
@@ -112,7 +112,7 @@ export function InsightsPanel({
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       <div className="flex items-center gap-2">
         <FlaskConical className="h-4.5 w-4.5 text-brand-300" />
-        <h2 className="text-xl font-medium text-white">From the lab data</h2>
+        <h2 className="text-[17px] font-semibold text-fg">From the lab data</h2>
       </div>
       <div className="mt-4 grid gap-3 sm:gap-4 lg:grid-cols-2">
         {personal && (

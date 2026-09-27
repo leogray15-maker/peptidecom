@@ -12,9 +12,9 @@ export default async function CalculatorPage({
   return (
     <div>
       <PageHeader
+        eyebrow="The Lab"
         title="Reconstitution calculator"
         subtitle="Work out exactly how much to draw into an insulin syringe."
-       
       />
       <CalculatorClient initialSlug={p} />
       <p className="mt-6 text-xs text-slate-500">

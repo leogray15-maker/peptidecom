@@ -59,6 +59,7 @@ export default async function CustomersPage({
   return (
     <div>
       <PageHeader
+        eyebrow="Admin CRM"
         title="Customers"
         subtitle={`${total.toLocaleString("en-GB")} ${total === 1 ? "person" : "people"} in this view.`}
       />

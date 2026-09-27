@@ -23,6 +23,7 @@ export default async function ItchPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Every day"
         title="Itch"
         subtitle="One tap, whenever it bites. Over a week it shows you when your itch really peaks."
       />

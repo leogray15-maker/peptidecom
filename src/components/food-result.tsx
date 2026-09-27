@@ -42,7 +42,7 @@ function NutrientRow({ f }: { f: NutrientFinding }) {
         <p className="text-sm font-medium text-white">{f.label}</p>
         <p className="text-xs text-slate-500">{f.note}</p>
       </div>
-      <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-200">
+      <span className="shrink-0 text-sm font-mono font-semibold tabular-nums text-slate-200">
         {fmt(f.value, f.unit)}
       </span>
     </li>
@@ -122,7 +122,7 @@ export function FoodResult({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-rose-300" />
-              <h2 className="font-medium text-white">Negatives</h2>
+              <h2 className="card-title">Negatives</h2>
             </div>
             <span className="text-xs text-slate-500">per 100 g</span>
           </div>
@@ -141,7 +141,7 @@ export function FoodResult({
                       {worstRisk === "none" ? "None to avoid" : `Contains ${riskLabel[worstRisk].toLowerCase()} additives`}
                     </p>
                   </div>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-200">
+                  <span className="shrink-0 text-sm font-mono font-semibold tabular-nums text-slate-200">
                     {analysis.additiveCount}
                   </span>
                   <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate-500 transition", showAdditives && "rotate-180")} />
@@ -173,7 +173,7 @@ export function FoodResult({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Leaf className="h-4 w-4 text-emerald-300" />
-              <h2 className="font-medium text-white">Positives</h2>
+              <h2 className="card-title">Positives</h2>
             </div>
             <span className="text-xs text-slate-500">per 100 g</span>
           </div>
@@ -190,7 +190,7 @@ export function FoodResult({
         <div className="card">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-brand-300" />
-            <h2 className="font-medium text-white">Ingredients</h2>
+            <h2 className="card-title">Ingredients</h2>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">{product.ingredientsText}</p>
         </div>

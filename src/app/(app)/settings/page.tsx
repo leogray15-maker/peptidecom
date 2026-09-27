@@ -35,11 +35,11 @@ export default async function SettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Settings" subtitle="Manage your account and membership." />
+      <PageHeader eyebrow="Account" title="Settings" subtitle="Manage your account and membership." />
 
       <div className="space-y-6">
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Profile</h2>
+          <h2 className="card-title">Profile</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-slate-400">Name</dt>
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
         </section>
 
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Membership</h2>
+          <h2 className="card-title">Membership</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-slate-400">Status</dt>
@@ -93,7 +93,7 @@ export default async function SettingsPage() {
         </section>
 
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Condition</h2>
+          <h2 className="card-title">Condition</h2>
           <p className="mt-1 text-sm text-slate-400">
             The tracker, stages and trigger suggestions adapt to what you&apos;re dealing with.
           </p>
@@ -103,7 +103,7 @@ export default async function SettingsPage() {
         </section>
 
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Your data</h2>
+          <h2 className="card-title">Your data</h2>
           <p className="mt-1 text-sm text-slate-400">
             Everything you&apos;ve logged is yours. Download it as CSV — open it in any
             spreadsheet, or bring it to an appointment.
@@ -120,7 +120,7 @@ export default async function SettingsPage() {
         <DigestPrefsClient initial={profile.digestPrefs ?? null} />
 
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Privacy &amp; sources</h2>
+          <h2 className="card-title">Privacy &amp; sources</h2>
           <p className="mt-1 text-sm text-slate-400">
             See exactly what&apos;s processed on your device, control optional on-device features,
             and read the clinical sources behind the EASI, POEM and ingredient tools.

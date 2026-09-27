@@ -50,9 +50,9 @@ export default async function CommunityPage({
   return (
     <div>
       <PageHeader
+        eyebrow="Community"
         title="Community"
         subtitle="Honest, moderated discussion. Find people in the same phase as you — they get it."
-       
       />
 
       <NewPostForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />

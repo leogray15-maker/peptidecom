@@ -127,10 +127,11 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-xl font-medium text-white">Photo proof wall</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+          <p className="eyebrow mb-2">Admin CRM</p>
+          <h1 className="font-display text-[34px] font-normal leading-[1.05] text-fg sm:text-page-title">Photo proof wall</h1>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-fg-secondary">
             Everything the public pages show as proof — the landing page, /pricing and /results
             all read this list, in this order. Approve what goes live, set the running order
             (whatever sits at the top is the landing page&apos;s big card), and upload the photos
@@ -182,7 +183,7 @@ export function ProofPanel({ wall }: { wall: ProofWall }) {
       {/* What the landing page will render */}
       {wall.live.length > 0 && (
         <div className="card mt-4">
-          <h2 className="font-medium text-white">What the landing page shows</h2>
+          <h2 className="card-title">What the landing page shows</h2>
           <p className="mt-1 text-xs text-slate-500">
             The first entry runs as the big card with its photos; the next two run as pull quotes.
           </p>
@@ -331,7 +332,7 @@ function Section({
   return (
     <section className="mt-8">
       <div className="flex flex-wrap items-baseline gap-x-3">
-        <h2 className="font-medium text-white">{title}</h2>
+        <h2 className="card-title">{title}</h2>
         <span className="text-xs text-slate-500">{count}</span>
       </div>
       <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
@@ -732,8 +733,9 @@ function Fields({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div>
-        <label className="label">First name</label>
+        <label htmlFor="proof-panel-first-name" className="label">First name</label>
         <input
+          id="proof-panel-first-name"
           className="input"
           value={draft.name}
           disabled={disabled}
@@ -743,8 +745,9 @@ function Fields({
         />
       </div>
       <div>
-        <label className="label">Condition</label>
+        <label htmlFor="proof-panel-condition" className="label">Condition</label>
         <select
+          id="proof-panel-condition"
           className="input"
           value={draft.condition}
           disabled={disabled}
@@ -758,8 +761,9 @@ function Fields({
         </select>
       </div>
       <div className="sm:col-span-2">
-        <label className="label">Their words, verbatim</label>
+        <label htmlFor="proof-panel-their-words-verbatim" className="label">Their words, verbatim</label>
         <textarea
+          id="proof-panel-their-words-verbatim"
           className="input min-h-28"
           value={draft.quote}
           disabled={disabled}
@@ -769,8 +773,9 @@ function Fields({
         />
       </div>
       <div className="sm:col-span-2">
-        <label className="label">Pull quote (optional)</label>
+        <label htmlFor="proof-panel-pull-quote-optional" className="label">Pull quote (optional)</label>
         <input
+          id="proof-panel-pull-quote-optional"
           className="input"
           value={draft.highlight}
           disabled={disabled}
@@ -780,8 +785,9 @@ function Fields({
         />
       </div>
       <div>
-        <label className="label">Timeframe (optional)</label>
+        <label htmlFor="proof-panel-timeframe-optional" className="label">Timeframe (optional)</label>
         <input
+          id="proof-panel-timeframe-optional"
           className="input"
           value={draft.timeframe}
           disabled={disabled}
@@ -791,8 +797,9 @@ function Fields({
         />
       </div>
       <div>
-        <label className="label">Date they gave permission</label>
+        <label htmlFor="proof-panel-date-they-gave-permission" className="label">Date they gave permission</label>
         <input
+          id="proof-panel-date-they-gave-permission"
           type="date"
           className="input"
           value={draft.consentedAt}
@@ -801,8 +808,9 @@ function Fields({
         />
       </div>
       <div className="sm:col-span-2">
-        <label className="label">How permission was given</label>
+        <label htmlFor="proof-panel-how-permission-was-given" className="label">How permission was given</label>
         <input
+          id="proof-panel-how-permission-was-given"
           className="input"
           value={draft.consentNote}
           disabled={disabled}
@@ -867,7 +875,7 @@ function NewProofForm({ onDone, onSaved }: { onDone: () => void; onSaved: () => 
 
   return (
     <div className="card">
-      <h2 className="font-medium text-white">New proof entry</h2>
+      <h2 className="card-title">New proof entry</h2>
       <p className="mt-1 text-sm text-slate-400">
         It saves as a draft. Add the photos on its card below, then approve it to put it live.
       </p>

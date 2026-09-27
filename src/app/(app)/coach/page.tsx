@@ -67,7 +67,7 @@ export default async function CoachPage() {
   if (logs.length === 0) {
     return (
       <div>
-        <PageHeader title="Coach" />
+        <PageHeader eyebrow="Today" title="Coach" />
         <FeatureGate
           icon={Sparkles}
           title="Your coach starts with one log"
@@ -82,6 +82,7 @@ export default async function CoachPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Today"
         title="Coach"
         subtitle="Built entirely from your own logs — what's worth doing today, and what your data is saying."
       />
@@ -107,7 +108,7 @@ export default async function CoachPage() {
       </section>
 
       {/* Today's plan */}
-      <h2 className="mt-6 text-lg font-medium text-white">Today&apos;s plan</h2>
+      <h2 className="mt-6 card-title">Today&apos;s plan</h2>
       {actions.length === 0 ? (
         <div className="card mt-3 text-sm text-slate-400">
           Nothing outstanding — today is logged, your photo and POEM are current and conditions are
@@ -136,7 +137,7 @@ export default async function CoachPage() {
       )}
 
       {/* What your data says */}
-      <h2 className="mt-8 text-lg font-medium text-white">What your data says</h2>
+      <h2 className="mt-8 card-title">What your data says</h2>
       {observations.length === 0 && !insight ? (
         <div className="card mt-3 text-sm text-slate-400">
           Not enough logged yet to say anything honest. Give it a couple of weeks of days and

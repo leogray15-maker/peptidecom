@@ -4,7 +4,7 @@ import { getAdminUser } from "@/lib/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { DisclaimerLine } from "@/components/disclaimer-bar";
 import { SidebarLogo } from "@/components/shell/sidebar";
-import { AdminMobileNav, AdminNav, BackToAppLink } from "@/components/admin/admin-nav";
+import { AdminBreadcrumb, AdminMobileNav, AdminNav, BackToAppLink } from "@/components/admin/admin-nav";
 
 // Admin pages are per-request (auth + DB) and must never be prerendered at build.
 export const dynamic = "force-dynamic";
@@ -39,11 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-topbar items-center justify-between gap-3 border-b border-line-subtle bg-canvas px-4 sm:px-6 lg:px-10">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[13.5px]">
-            <span className="text-fg-muted">Admin</span>
-            <span aria-hidden className="text-fg-faint">›</span>
-            <span className="font-medium text-fg">CRM</span>
-          </nav>
+          <AdminBreadcrumb />
           <div className="lg:hidden">
             <BackToAppLink />
           </div>

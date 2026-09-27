@@ -31,6 +31,7 @@ export default async function AdminTasksPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Admin CRM"
         title="Tasks"
         subtitle={`${open} open follow-up${open === 1 ? "" : "s"}. Link tasks to a customer from their profile.`}
       />

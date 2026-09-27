@@ -47,7 +47,7 @@ export function AiGradingConsentGate({ onAccepted }: { onAccepted: () => void })
           <ShieldAlert className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-lg font-medium text-white">{CONSENT_COPY.title}</h2>
+          <h2 className="card-title">{CONSENT_COPY.title}</h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-400">{CONSENT_COPY.intro}</p>
         </div>
       </div>

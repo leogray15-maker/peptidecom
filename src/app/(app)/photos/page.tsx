@@ -29,9 +29,9 @@ export default async function PhotosPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Every day"
         title="Photo progress timeline"
         subtitle="Your skin heals slower than memory fades. These photos remember for you — privately, unless you choose otherwise."
-       
       />
       <PhotosClient
         initialPhotos={photos.map((p) => ({

@@ -28,6 +28,7 @@ export function CommentForm({ postId }: { postId: string }) {
   return (
     <form onSubmit={submit} className="card space-y-3">
       <textarea
+        aria-label="Add a comment"
         className="input min-h-24"
         placeholder="Add a comment…"
         value={content}

@@ -104,10 +104,11 @@ export function StoriesPanel({
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-xl font-medium text-white">Recovery stories</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="eyebrow mb-2">Admin CRM</p>
+          <h1 className="font-display text-[34px] font-normal leading-[1.05] text-fg sm:text-page-title">Recovery stories</h1>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-fg-secondary">
             Triage submissions, check consent, feature the best on the public results wall,
             and generate post-ready cards. Where a featured story lands on the site — and what
             it sits next to — is set on the{" "}
@@ -171,6 +172,7 @@ export function StoriesPanel({
           <Globe className="h-3 w-3" /> On the site
         </button>
         <select
+          aria-label="Filter by condition"
           className="input !w-auto !py-1 text-xs"
           value={conditionFilter}
           onChange={(e) => setConditionFilter(e.target.value)}
@@ -503,8 +505,9 @@ function StoryCardGenerator({ story }: { story: AdminStory }) {
       </div>
       <div className="space-y-3">
         <div>
-          <label className="label">Quote on the card</label>
+          <label htmlFor="stories-panel-quote-on-the-card" className="label">Quote on the card</label>
           <textarea
+            id="stories-panel-quote-on-the-card"
             className="input min-h-24"
             value={quoteText}
             maxLength={300}

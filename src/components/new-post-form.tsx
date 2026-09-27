@@ -55,6 +55,7 @@ export function NewPostForm({ categories }: { categories: { id: string; name: st
   return (
     <form onSubmit={submit} className="card space-y-4">
       <input
+        aria-label="Title"
         className="input"
         placeholder="Title"
         value={title}
@@ -63,6 +64,7 @@ export function NewPostForm({ categories }: { categories: { id: string; name: st
         minLength={3}
       />
       <textarea
+        aria-label="What do you want to share or ask?"
         className="input min-h-32"
         placeholder="What do you want to share or ask?"
         value={content}
@@ -70,7 +72,7 @@ export function NewPostForm({ categories }: { categories: { id: string; name: st
         required
       />
       {categories.length > 0 && (
-        <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        <select aria-label="Category" className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}

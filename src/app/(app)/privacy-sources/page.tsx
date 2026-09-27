@@ -20,7 +20,7 @@ const sources = [
   },
   {
     title: "Healthy places to eat — restaurant scoring",
-    cite: "Venue data: OpenStreetMap contributors (ODbL) via the Overpass API; place names via Nominatim; map tiles © CARTO. Scores are our own heuristic over the venue's category, its listed cuisines and its diet/organic tags — not an analysis of the actual menu, and not a nutritional assessment.",
+    cite: "Venue data: OpenStreetMap contributors (ODbL) via the Overpass API; place names via Nominatim; map tiles © OpenStreetMap contributors, or MapTiler / Stadia Maps / CARTO where configured. Scores are our own heuristic over the venue's category, its listed cuisines and its diet/organic tags — not an analysis of the actual menu, and not a nutritional assessment.",
   },
   {
     title: "Photo severity estimate (AI Flare Grading)",
@@ -32,9 +32,9 @@ export default function PrivacySourcesPage() {
   return (
     <div className="max-w-2xl">
       <PageHeader
+        eyebrow="Account"
         title="Privacy & Sources"
         subtitle="What happens to your data, and where our numbers come from."
-       
       />
 
       <div className="space-y-6">
@@ -44,7 +44,7 @@ export default function PrivacySourcesPage() {
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-brand-500/15 text-brand-300">
               <ShieldCheck className="h-5 w-5" />
             </div>
-            <h2 className="text-lg font-medium text-white">Processed on your device</h2>
+            <h2 className="card-title">Processed on your device</h2>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-slate-300">
             The skin tools here are built to keep sensitive data close. Photo grading, the EASI and
@@ -59,7 +59,7 @@ export default function PrivacySourcesPage() {
             Facts databases to fetch the product&apos;s name and ingredients; when you open the
             flare forecast, your coordinates go to Open-Meteo for the local weather and pollen;
             and when you open the healthy-restaurant map, the point you searched goes to
-            OpenStreetMap (and its map-tile provider, CARTO) to fetch the venues around it. No
+            OpenStreetMap (and the map-tile provider: OpenStreetMap, or MapTiler, Stadia Maps or CARTO where configured) to fetch the venues around it. No
             account identifier travels with any of them. All the scoring happens here.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate-300">
@@ -75,7 +75,7 @@ export default function PrivacySourcesPage() {
 
         {/* Consent toggles */}
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Optional features</h2>
+          <h2 className="card-title">Optional features</h2>
           <p className="mt-1 text-sm text-slate-400">
             All on by default. Switch any of them off — the choice is saved to your account, so it
             applies on every device you sign in on.
@@ -87,7 +87,7 @@ export default function PrivacySourcesPage() {
 
         {/* Policies */}
         <section className="card">
-          <h2 className="text-lg font-medium text-white">Policies</h2>
+          <h2 className="card-title">Policies</h2>
           <div className="mt-4 space-y-1">
             <Link href="/legal/privacy" className="flex items-center gap-3 rounded-control px-2 py-2 text-sm text-brand-300 transition hover:bg-white/5 hover:text-brand-200">
               <FileText className="h-4 w-4" /> Privacy Policy
@@ -107,7 +107,7 @@ export default function PrivacySourcesPage() {
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-card bg-brand-500/15 text-brand-300">
               <BookOpen className="h-5 w-5" />
             </div>
-            <h2 className="text-lg font-medium text-white">Sources &amp; citations</h2>
+            <h2 className="card-title">Sources &amp; citations</h2>
           </div>
           <ul className="mt-4 space-y-4">
             {sources.map((s) => (

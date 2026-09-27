@@ -90,7 +90,7 @@ export function PoemClient() {
             <p className="text-sm text-slate-400">
               This week&apos;s POEM {complete ? "" : `· ${answered}/7 answered`}
             </p>
-            <p className="mt-1 text-5xl font-extrabold tabular-nums text-white">
+            <p className="mt-1 text-5xl font-mono font-semibold tabular-nums text-white">
               {score}
               <span className="text-xl font-medium text-slate-500"> / {POEM_MAX}</span>
             </p>
@@ -151,7 +151,7 @@ export function PoemClient() {
       {recent.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between">
-            <h2 className="font-medium text-white">Your weekly trend</h2>
+            <h2 className="card-title">Your weekly trend</h2>
             <button onClick={wipeHistory} className="text-xs text-slate-500 hover:text-rose-400">
               <Trash2 className="mr-1 inline h-3.5 w-3.5" /> Clear
             </button>
@@ -203,7 +203,7 @@ export function PoemClient() {
                   </span>
                   <span className="flex items-center gap-3">
                     <span className={cn("badge", toneClass[eb.tone])}>{eb.label}</span>
-                    <span className="font-semibold tabular-nums text-white">{e.score}</span>
+                    <span className="font-mono font-semibold tabular-nums text-white">{e.score}</span>
                   </span>
                 </li>
               );

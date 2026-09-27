@@ -313,8 +313,9 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={save} className="mt-4 grid gap-4 rounded-control border border-lab-border p-4 sm:grid-cols-2">
       <div>
-        <label className="label">Peptide</label>
+        <label htmlFor="dose-schedule-peptide" className="label">Peptide</label>
         <input
+          id="dose-schedule-peptide"
           className="input"
           list="peptide-presets-protocol"
           placeholder="e.g. BPC-157"
@@ -330,8 +331,9 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
         </datalist>
       </div>
       <div>
-        <label className="label">Dose (mg)</label>
+        <label htmlFor="dose-schedule-dose-mg" className="label">Dose (mg)</label>
         <input
+          id="dose-schedule-dose-mg"
           type="number"
           step="0.001"
           min="0.001"
@@ -394,12 +396,12 @@ function ProtocolForm({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       <div>
-        <label className="label">Reminder time (optional)</label>
-        <input type="time" className="input" value={time} onChange={(e) => setTime(e.target.value)} />
+        <label htmlFor="dose-schedule-reminder-time-optional" className="label">Reminder time (optional)</label>
+        <input id="dose-schedule-reminder-time-optional" type="time" className="input" value={time} onChange={(e) => setTime(e.target.value)} />
       </div>
       <div>
-        <label className="label">Running it for (optional)</label>
-        <select className="input" value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+        <label htmlFor="dose-schedule-running-it-for-optional" className="label">Running it for (optional)</label>
+        <select id="dose-schedule-running-it-for-optional" className="input" value={purpose} onChange={(e) => setPurpose(e.target.value)}>
           <option value="">—</option>
           {RESEARCH_GOALS.map((g) => (
             <option key={g.id} value={g.id}>

@@ -129,7 +129,7 @@ export function EasiClient() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-slate-400">Your EASI score</p>
-            <p className="mt-1 text-5xl font-extrabold tabular-nums text-white">
+            <p className="mt-1 text-5xl font-mono font-semibold tabular-nums text-white">
               {score.toFixed(1)}
               <span className="text-xl font-medium text-slate-500"> / {EASI_MAX}</span>
             </p>
@@ -154,7 +154,7 @@ export function EasiClient() {
         return (
           <div key={region.id} className="card">
             <div className="flex items-center justify-between">
-              <h2 className="font-medium text-white">{region.label}</h2>
+              <h2 className="card-title">{region.label}</h2>
               <span className="text-xs text-slate-500 tabular-nums">
                 +{Math.round(contribution * 10) / 10} to total
               </span>
@@ -192,7 +192,7 @@ export function EasiClient() {
       {recent.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between">
-            <h2 className="font-medium text-white">Your saved scores</h2>
+            <h2 className="card-title">Your saved scores</h2>
             <button onClick={wipeHistory} className="text-xs text-slate-500 hover:text-rose-400">
               <Trash2 className="mr-1 inline h-3.5 w-3.5" /> Clear
             </button>
@@ -221,7 +221,7 @@ export function EasiClient() {
                   </span>
                   <span className="flex items-center gap-3">
                     <span className={cn("badge", toneClass[eb.tone])}>{eb.label}</span>
-                    <span className="font-semibold tabular-nums text-white">{e.score.toFixed(1)}</span>
+                    <span className="font-mono font-semibold tabular-nums text-white">{e.score.toFixed(1)}</span>
                   </span>
                 </li>
               );

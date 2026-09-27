@@ -236,8 +236,8 @@ export function GradeClient({
             <AiEstimateLabel className="mt-3" />
 
             <div className="mt-5 w-full max-w-xs">
-              <label className="label">Which area? (optional)</label>
-              <select className="input" value={area} onChange={(e) => setArea(e.target.value)}>
+              <label htmlFor="grade-which-area-optional" className="label">Which area? (optional)</label>
+              <select id="grade-which-area-optional" className="input" value={area} onChange={(e) => setArea(e.target.value)}>
                 <option value="">Not specified</option>
                 {zones.map((z) => (
                   <option key={z.id} value={z.id}>{z.label}</option>
@@ -350,17 +350,17 @@ export function GradeClient({
       {/* What went into the number */}
       {estimate && (
         <div className="card">
-          <h2 className="font-medium text-white">What the estimate looked at</h2>
+          <h2 className="card-title">What the estimate looked at</h2>
           <ul className="mt-3 space-y-2">
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
               <span className="text-slate-400">Skin reading as inflamed</span>
-              <span className="font-semibold tabular-nums text-slate-200">
+              <span className="font-mono font-semibold tabular-nums text-slate-200">
                 {Math.round(estimate.inflamedFraction * 100)}%
               </span>
             </li>
             <li className="flex items-center justify-between border-b border-lab-border py-2 text-sm">
               <span className="text-slate-400">Redness intensity</span>
-              <span className="font-semibold tabular-nums text-slate-200">
+              <span className="font-mono font-semibold tabular-nums text-slate-200">
                 {Math.round(estimate.rednessIndex * 100) / 100}
               </span>
             </li>

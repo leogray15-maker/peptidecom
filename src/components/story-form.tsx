@@ -232,6 +232,7 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
         and what you&apos;d say to yourself back then.
       </p>
       <input
+        aria-label="Title — e.g. 18 months in: I wore short sleeves again"
         className="input"
         placeholder="Title — e.g. 18 months in: I wore short sleeves again"
         value={title}
@@ -241,6 +242,7 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
         maxLength={160}
       />
       <input
+        aria-label="How many months into your journey are you? (optional)"
         className="input"
         type="number"
         min={0}
@@ -250,6 +252,7 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
         onChange={(e) => setMonthsIn(e.target.value)}
       />
       <textarea
+        aria-label="Your story"
         className="input min-h-32"
         placeholder="Your story…"
         value={body}
@@ -308,16 +311,16 @@ export function StoryForm({ autoOpen = false }: { autoOpen?: boolean }) {
           A few guided questions <span className="text-slate-500">(optional — answer any)</span>
         </p>
         <div>
-          <label className="label">What was the hardest part?</label>
-          <input className="input" value={hardest} maxLength={1000} onChange={(e) => setHardest(e.target.value)} />
+          <label htmlFor="story-form-what-was-the-hardest" className="label">What was the hardest part?</label>
+          <input id="story-form-what-was-the-hardest" className="input" value={hardest} maxLength={1000} onChange={(e) => setHardest(e.target.value)} />
         </div>
         <div>
-          <label className="label">What changed?</label>
-          <input className="input" value={changed} maxLength={1000} onChange={(e) => setChanged(e.target.value)} />
+          <label htmlFor="story-form-what-changed" className="label">What changed?</label>
+          <input id="story-form-what-changed" className="input" value={changed} maxLength={1000} onChange={(e) => setChanged(e.target.value)} />
         </div>
         <div>
-          <label className="label">What would you tell someone at the start?</label>
-          <input className="input" value={advice} maxLength={1000} onChange={(e) => setAdvice(e.target.value)} />
+          <label htmlFor="story-form-what-would-you-tell" className="label">What would you tell someone at the start?</label>
+          <input id="story-form-what-would-you-tell" className="input" value={advice} maxLength={1000} onChange={(e) => setAdvice(e.target.value)} />
         </div>
       </div>
 

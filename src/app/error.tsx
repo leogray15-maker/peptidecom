@@ -17,8 +17,8 @@ export default function Error({
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-6">
       <div className="max-w-md text-center">
-        <p className="text-sm font-semibold text-brand-400">Something went wrong</p>
-        <h1 className="mt-2 text-2xl font-medium text-white">We hit an unexpected error</h1>
+        <p className="eyebrow">Something went wrong</p>
+        <h1 className="mt-2 font-display text-[34px] leading-tight text-fg">We hit an unexpected error</h1>
         <p className="mt-3 text-sm text-slate-400">
           This has been logged. If it persists, check the app configuration.
         </p>

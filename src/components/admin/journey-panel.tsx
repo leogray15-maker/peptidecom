@@ -51,7 +51,7 @@ export function JourneyPanel({ journey }: { journey: CustomerJourney }) {
   if (!journey.hasData) {
     return (
       <div className="card">
-        <h2 className="font-medium text-white">Their journey</h2>
+        <h2 className="card-title">Their journey</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">
           Nothing tracked yet — no logs, photos, doses or journal entries on this account. If
           they joined recently, a nudge to make a first entry is usually what gets the habit
@@ -64,7 +64,7 @@ export function JourneyPanel({ journey }: { journey: CustomerJourney }) {
   return (
     <div className="card">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-medium text-white">Their journey</h2>
+        <h2 className="card-title">Their journey</h2>
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="badge border border-lab-border text-slate-300">
             {journey.conditionLabel}
@@ -253,7 +253,7 @@ function SkinTab({ journey }: { journey: CustomerJourney }) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="section-label">
             The record
           </h3>
           <Row
@@ -286,7 +286,7 @@ function SkinTab({ journey }: { journey: CustomerJourney }) {
 
         <div className="space-y-3">
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="section-label">
               Where it flares
             </h3>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -302,7 +302,7 @@ function SkinTab({ journey }: { journey: CustomerJourney }) {
             </div>
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="section-label">
               What they report
             </h3>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -318,7 +318,7 @@ function SkinTab({ journey }: { journey: CustomerJourney }) {
             </div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="section-label">
               Itch check-ins
             </h3>
             <Row label="Total" value={journey.itchCheckIns} />
@@ -337,7 +337,7 @@ function SkinTab({ journey }: { journey: CustomerJourney }) {
 
       {journey.triggers.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="section-label">
             Their triggers & routines
           </h3>
           <div className="mt-2 space-y-1.5">
@@ -420,7 +420,7 @@ function PeptidesTab({ journey }: { journey: CustomerJourney }) {
 
       {journey.protocols.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="section-label">
             Dose protocols
           </h3>
           <div className="mt-2 space-y-1.5">
@@ -447,7 +447,7 @@ function PeptidesTab({ journey }: { journey: CustomerJourney }) {
       )}
 
       <div className="space-y-2 border-t border-lab-border pt-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <h3 className="section-label">
           Research journal
         </h3>
         <Row label="Entries" value={journey.journalCount} />
@@ -502,7 +502,7 @@ function PhotosTab({ journey }: { journey: CustomerJourney }) {
 
       {journey.sharedPhotos.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="section-label">
             Shared on the community wall
           </h3>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -531,7 +531,7 @@ function PhotosTab({ journey }: { journey: CustomerJourney }) {
         <Empty>No photos on this account.</Empty>
       ) : (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="section-label">
             Most recent entries
           </h3>
           <div className="mt-2 space-y-1.5">
@@ -562,7 +562,7 @@ function ProgressTab({ journey }: { journey: CustomerJourney }) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <h3 className="section-label">
           Milestones earned
         </h3>
         {journey.milestones.length === 0 ? (
@@ -583,7 +583,7 @@ function ProgressTab({ journey }: { journey: CustomerJourney }) {
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <h3 className="section-label">
           Recovery stories
         </h3>
         {journey.stories.length === 0 ? (
@@ -631,7 +631,7 @@ function ProgressTab({ journey }: { journey: CustomerJourney }) {
       </div>
 
       <div className="space-y-2 border-t border-lab-border pt-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <h3 className="section-label">
           What they&apos;ve agreed to
         </h3>
         <Row

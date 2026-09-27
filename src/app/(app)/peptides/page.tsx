@@ -21,9 +21,9 @@ export default async function PeptidesPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="The Lab"
         title="Peptide tracker"
         subtitle="Every dose on the record — what you took, how much, when, and how it's going."
-       
       />
       <div className="mb-6">
         <DoseScheduleSection

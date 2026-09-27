@@ -107,8 +107,9 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
       {open && (
         <form onSubmit={save} className="card grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Peptide</label>
+            <label htmlFor="peptides-peptide" className="label">Peptide</label>
             <input
+              id="peptides-peptide"
               className="input"
               list="peptide-presets"
               placeholder="e.g. BPC-157"
@@ -124,8 +125,9 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
             </datalist>
           </div>
           <div>
-            <label className="label">Dose (mg)</label>
+            <label htmlFor="peptides-dose-mg" className="label">Dose (mg)</label>
             <input
+              id="peptides-dose-mg"
               type="number"
               step="0.001"
               min="0.001"
@@ -138,8 +140,9 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
             />
           </div>
           <div>
-            <label className="label">Date</label>
+            <label htmlFor="peptides-date" className="label">Date</label>
             <input
+              id="peptides-date"
               type="date"
               className="input"
               value={form.date}
@@ -148,8 +151,9 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
             />
           </div>
           <div>
-            <label className="label">Running it for (optional)</label>
+            <label htmlFor="peptides-running-it-for-optional" className="label">Running it for (optional)</label>
             <select
+              id="peptides-running-it-for-optional"
               className="input"
               value={form.purpose}
               onChange={(e) => setForm({ ...form, purpose: e.target.value })}
@@ -163,8 +167,9 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
             </select>
           </div>
           <div>
-            <label className="label">Injection site (optional)</label>
+            <label htmlFor="peptides-injection-site-optional" className="label">Injection site (optional)</label>
             <select
+              id="peptides-injection-site-optional"
               className="input"
               value={form.site}
               onChange={(e) => setForm({ ...form, site: e.target.value })}
@@ -176,8 +181,9 @@ export function PeptidesClient({ initialEntries }: { initialEntries: PeptideEntr
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Progress note (optional)</label>
+            <label htmlFor="peptides-progress-note-optional" className="label">Progress note (optional)</label>
             <input
+              id="peptides-progress-note-optional"
               className="input"
               placeholder="e.g. Week 3 — skin texture noticeably smoother"
               value={form.note}

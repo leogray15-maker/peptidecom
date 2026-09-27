@@ -191,12 +191,13 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">Date</label>
-              <input type="date" className="input" value={form.date} max={dateKey()} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <label htmlFor="journal-date" className="label">Date</label>
+              <input id="journal-date" type="date" className="input" value={form.date} max={dateKey()} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </div>
             <div>
-              <label className="label">Weight (kg, optional)</label>
+              <label htmlFor="journal-weight-kg-optional" className="label">Weight (kg, optional)</label>
               <input
+                id="journal-weight-kg-optional"
                 type="number"
                 step="0.1"
                 min="1"
@@ -209,8 +210,9 @@ export function JournalClient({ initialEntries }: { initialEntries: JournalItem[
           </div>
 
           <div>
-            <label className="label">What did you notice?</label>
+            <label htmlFor="journal-what-did-you-notice" className="label">What did you notice?</label>
             <textarea
+              id="journal-what-did-you-notice"
               className="input min-h-20"
               placeholder="e.g. Skin texture smoother on my forearms · lifted heavier than last week · sharper focus in the mornings…"
               value={form.note}

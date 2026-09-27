@@ -37,6 +37,7 @@ export default async function AdminActivityPage({
   return (
     <div>
       <PageHeader
+        eyebrow="Admin CRM"
         title="Activity log"
         subtitle="Every admin action — role changes, notes, tags and tasks — with who did it and when."
       />

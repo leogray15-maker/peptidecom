@@ -35,6 +35,7 @@ export default async function ForecastPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Every day"
         title="Flare forecast"
         subtitle="What today's weather tends to do to skin like yours — and what helps."
       />

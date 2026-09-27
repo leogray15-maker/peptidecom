@@ -314,8 +314,9 @@ export function TriggersClient({
       {open && (
         <form onSubmit={save} className="card grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="label">What was it?</label>
+            <label htmlFor="triggers-what-was-it" className="label">What was it?</label>
             <input
+              id="triggers-what-was-it"
               className="input"
               placeholder="e.g. New moisturiser, dairy, hot shower…"
               value={form.name}
@@ -325,8 +326,9 @@ export function TriggersClient({
             />
           </div>
           <div>
-            <label className="label">Type</label>
+            <label htmlFor="triggers-type" className="label">Type</label>
             <select
+              id="triggers-type"
               className="input"
               value={form.kind}
               onChange={(e) => setForm({ ...form, kind: e.target.value })}
@@ -339,8 +341,9 @@ export function TriggersClient({
             </select>
           </div>
           <div>
-            <label className="label">Date</label>
+            <label htmlFor="triggers-date" className="label">Date</label>
             <input
+              id="triggers-date"
               type="date"
               className="input"
               value={form.date}
@@ -369,8 +372,9 @@ export function TriggersClient({
             </div>
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Note (optional)</label>
+            <label htmlFor="triggers-note-optional" className="label">Note (optional)</label>
             <input
+              id="triggers-note-optional"
               className="input"
               value={form.note}
               maxLength={1000}
@@ -405,7 +409,7 @@ export function TriggersClient({
                     style={{ width: `${(m.n / maxCount) * 100}%` }}
                   />
                 </div>
-                <span className="w-6 shrink-0 text-right text-sm font-bold tabular-nums text-white">
+                <span className="w-6 shrink-0 text-right text-sm font-mono font-semibold tabular-nums text-white">
                   {m.n}
                 </span>
               </div>

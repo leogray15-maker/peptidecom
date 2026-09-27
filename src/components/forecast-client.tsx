@@ -240,7 +240,7 @@ export function ForecastClient({
                     style={{ width: `${Math.min(100, (f.points / 25) * 100)}%` }}
                   />
                 </div>
-                <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-slate-300">
+                <span className="w-8 shrink-0 text-right text-sm font-mono font-semibold tabular-nums text-slate-300">
                   +{f.points}
                 </span>
               </div>
@@ -274,7 +274,7 @@ export function ForecastClient({
             ].map((row) => (
               <div key={row.label} className="flex items-center justify-between py-2.5">
                 <dt className="text-slate-400">{row.label}</dt>
-                <dd className="font-semibold tabular-nums text-white">{row.value}</dd>
+                <dd className="font-mono font-semibold tabular-nums text-white">{row.value}</dd>
               </div>
             ))}
           </dl>
@@ -321,7 +321,7 @@ export function ForecastClient({
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 text-sm font-bold tabular-nums",
+                    "shrink-0 text-sm font-mono font-semibold tabular-nums",
                     TONE_TEXT[h.tone] ?? "text-slate-300"
                   )}
                 >

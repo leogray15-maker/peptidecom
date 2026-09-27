@@ -15,7 +15,7 @@ export default async function TimelinePage() {
 
   return (
     <div>
-      <PageHeader title={condition.timeline.title} subtitle={condition.timeline.subtitle} />
+      <PageHeader eyebrow="Every day" title={condition.timeline.title} subtitle={condition.timeline.subtitle} />
       <TimelineClient
         currentStage={profile.recoveryStage ?? null}
         startDate={profile.tswStartDate ?? null}

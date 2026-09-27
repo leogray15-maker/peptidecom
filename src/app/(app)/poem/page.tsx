@@ -8,9 +8,9 @@ export default function PoemPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Skin tools"
         title="POEM weekly score"
         subtitle="The 7-question Patient-Oriented Eczema Measure — validated, quick, and built for week-on-week tracking. Answer for the last 7 days and watch the trend."
-       
       />
       <PoemClient />
       <PeerSupportNote />

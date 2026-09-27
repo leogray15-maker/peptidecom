@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, LifeBuoy, Loader2, Trash2 } from "lucide-react";
 import { ITCH_ACTIONS, type ItchPoint, dateKey, itchBand, summariseItch } from "@/lib/tsw";
+import { Chip, SCORE_COLOR, toneLevel } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 export interface ItchEntry extends ItchPoint {
@@ -12,13 +13,6 @@ export interface ItchEntry extends ItchPoint {
   note: string | null;
   action: string | null;
 }
-
-const TONE_TEXT: Record<string, string> = {
-  emerald: "text-emerald-400",
-  amber: "text-amber-400",
-  orange: "text-orange-400",
-  rose: "text-rose-400",
-};
 
 const TONE_BG: Record<string, string> = {
   emerald: "bg-emerald-500",
@@ -102,54 +96,61 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
     <div className="space-y-4">
       {/* The scale */}
       <div className="card">
-        <p className="text-center text-sm text-slate-400">How bad is the itch right now?</p>
-        <p className="mt-2 text-center text-6xl font-extrabold leading-none tabular-nums text-white">
-          {level}
-        </p>
-        <p className={cn("mt-2 text-center text-lg font-bold", TONE_TEXT[band.tone])}>
-          {band.label}
-        </p>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="card-title">How bad is the itch right now?</h2>
+          <p aria-live="polite" className="flex shrink-0 items-baseline gap-1 text-meta text-fg-secondary">
+            <span
+              className="font-mono text-[26px] font-semibold leading-none tabular-nums"
+              style={{ color: SCORE_COLOR[toneLevel(band.tone)] }}
+            >
+              {level}
+            </span>
+            /10 · {band.label}
+          </p>
+        </div>
 
-        <div className="mt-5 grid grid-cols-6 gap-1.5 sm:grid-cols-11">
+        <div role="radiogroup" aria-label="Itch level from 0 to 10" className="mt-4 grid grid-cols-6 gap-1.5 sm:grid-cols-11">
           {Array.from({ length: 11 }, (_, i) => i).map((n) => (
             <button
               key={n}
               type="button"
               onClick={() => setLevel(n)}
-              aria-label={`Itch level ${n}`}
-              aria-pressed={level === n}
+              role="radio"
+              aria-label={`Itch level ${n}: ${itchBand(n).label}`}
+              aria-checked={level === n}
               className={cn(
-                "rounded-control py-3 text-sm font-semibold tabular-nums transition",
+                "h-11 rounded-control border font-mono text-sm font-medium tabular-nums transition-colors",
                 level === n
-                  ? "bg-brand-400 text-lab-bg"
-                  : "bg-lab-bg text-slate-400 hover:bg-brand-500/10 hover:text-brand-200"
+                  ? "border-transparent text-ink"
+                  : "border-line text-fg-secondary hover:border-line-strong hover:text-fg"
               )}
+              style={level === n ? { backgroundColor: SCORE_COLOR[toneLevel(itchBand(n).tone)] } : undefined}
             >
               {n}
             </button>
           ))}
         </div>
 
-        <p className="mt-4 text-sm font-medium text-slate-300">What helped? (optional)</p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <p className="mt-6 text-[13px] font-medium text-fg-secondary">
+          What helped? <span className="text-fg-muted">optional</span>
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
           {ITCH_ACTIONS.map((a) => (
-            <button
+            <Chip
               key={a.id}
-              type="button"
-              onClick={() => setAction((cur) => (cur === a.id ? null : a.id))}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                action === a.id
-                  ? "border-brand-500 bg-brand-500/20 text-brand-200"
-                  : "border-lab-border text-slate-400 hover:border-brand-700 hover:text-slate-200"
-              )}
+              selected={action === a.id}
+              onToggle={() => setAction((cur) => (cur === a.id ? null : a.id))}
             >
               {a.label}
-            </button>
+            </Chip>
           ))}
         </div>
 
+        <label htmlFor="itch-note" className="sr-only">
+          What were you doing? (optional)
+        </label>
         <input
+          id="itch-note"
           className="input mt-3"
           placeholder="What were you doing? (optional)"
           value={note}
@@ -157,7 +158,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
           onChange={(e) => setNote(e.target.value)}
         />
 
-        <button onClick={save} disabled={saving} className="btn-accent mt-4 w-full">
+        <button onClick={save} disabled={saving} className="btn-primary mt-4 min-h-11 w-full">
           {saving ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : saved ? (
@@ -201,7 +202,7 @@ export function ItchClient({ entries }: { entries: ItchEntry[] }) {
             { label: "7-day avg", value: summary.weekAvg },
           ].map((stat) => (
             <div key={stat.label} className="rounded-card bg-lab-bg py-3">
-              <p className="text-xl font-bold tabular-nums text-white">
+              <p className="text-xl font-mono font-semibold tabular-nums text-white">
                 {stat.value ?? "—"}
               </p>
               <p className="mt-0.5 text-[11px] text-slate-500">{stat.label}</p>

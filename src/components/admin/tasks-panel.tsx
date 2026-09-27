@@ -128,7 +128,7 @@ export function TasksPanel({
   return (
     <div className="card">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-medium text-white">{title}</h2>
+        <h2 className="card-title">{title}</h2>
         <button type="button" className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => setOpen((v) => !v)}>
           <Plus className="h-4 w-4" /> New task
         </button>
@@ -160,6 +160,7 @@ export function TasksPanel({
           }}
         >
           <input
+            aria-label="What needs doing?"
             className="input"
             placeholder="What needs doing?"
             value={form.title}
@@ -167,6 +168,7 @@ export function TasksPanel({
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
           <textarea
+            aria-label="Details (optional)"
             className="input min-h-16"
             placeholder="Details (optional)"
             value={form.details}

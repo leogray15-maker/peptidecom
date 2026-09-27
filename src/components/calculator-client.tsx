@@ -116,8 +116,9 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
       {/* Inputs */}
       <div className="card space-y-5">
         <div>
-          <label className="label">Peptide</label>
+          <label htmlFor="calculator-peptide" className="label">Peptide</label>
           <select
+            id="calculator-peptide"
             className="input"
             value={presetSlug}
             onChange={(e) => applyPreset(e.target.value)}
@@ -213,8 +214,9 @@ export function CalculatorClient({ initialSlug }: { initialSlug?: string }) {
         </div>
 
         <div>
-          <label className="label">Syringe type</label>
+          <label htmlFor="calculator-syringe-type" className="label">Syringe type</label>
           <select
+            id="calculator-syringe-type"
             className="input"
             value={unitsPerMl}
             onChange={(e) => setUnitsPerMl(parseInt(e.target.value, 10))}

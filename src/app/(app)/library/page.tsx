@@ -18,16 +18,16 @@ export default function LibraryPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="The Lab"
         title="Peptide library"
         subtitle="What each compound is, how long it lasts, and how research protocols typically run it — in plain English."
-       
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {peptides.map((p) => (
           <article key={p.slug} className="card flex flex-col">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-medium text-white">{p.name}</h2>
+              <h2 className="card-title">{p.name}</h2>
               <span className="badge bg-brand-900/60 text-brand-200">{p.category}</span>
               {p.goals?.map((g) => (
                 <span key={g} className="badge border border-lab-border text-slate-400" title={goalLabel(g) ?? g}>

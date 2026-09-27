@@ -82,3 +82,39 @@ export function BackToAppLink() {
     </Link>
   );
 }
+
+/** "Admin › Page" for the admin topbar. */
+export function AdminBreadcrumb() {
+  const pathname = usePathname();
+  const item =
+    [...ITEMS].reverse().find((i) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(i.href + "/"))) ??
+    ITEMS[0];
+  const deeper = !item.exact && pathname !== item.href;
+  return (
+    <nav aria-label="Breadcrumb">
+      <ol className="flex items-center gap-2 text-[13.5px]">
+        <li className="text-fg-muted">Admin CRM</li>
+        <li aria-hidden className="text-fg-faint">›</li>
+        <li>
+          {deeper ? (
+            <Link href={item.href} className="text-fg-muted hover:text-fg">
+              {item.label}
+            </Link>
+          ) : (
+            <span aria-current="page" className="font-medium text-fg">
+              {item.label}
+            </span>
+          )}
+        </li>
+        {deeper && (
+          <>
+            <li aria-hidden className="text-fg-faint">›</li>
+            <li aria-current="page" className="font-medium text-fg">
+              Detail
+            </li>
+          </>
+        )}
+      </ol>
+    </nav>
+  );
+}

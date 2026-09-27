@@ -59,7 +59,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         </div>
       </article>
 
-      <h2 className="mt-8 text-lg font-medium text-white">
+      <h2 className="mt-8 card-title">
         {post.comments.length} {post.comments.length === 1 ? "comment" : "comments"}
       </h2>
 

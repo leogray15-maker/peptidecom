@@ -58,6 +58,7 @@ function StartDateCard({ startDate, question }: { startDate: string | null; ques
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <input
           type="date"
+          aria-label="Date you stopped steroids"
           className="input max-w-48"
           value={value}
           max={dateKey()}
@@ -139,7 +140,7 @@ export function TimelineClient({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-medium text-white">{stage.name}</h2>
+                      <h2 className="card-title">{stage.name}</h2>
                       {isHere && (
                         <span className="badge bg-brand-500/20 text-brand-200">You are here</span>
                       )}

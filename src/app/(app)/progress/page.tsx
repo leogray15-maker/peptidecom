@@ -15,9 +15,9 @@ export default async function ProgressPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="The Lab"
         title="Research journal"
         subtitle="Weight loss, muscle, skin, focus, sleep — whatever you're running research for, track how it's actually going."
-       
       />
       <JournalClient
         initialEntries={entries.map((e) => ({

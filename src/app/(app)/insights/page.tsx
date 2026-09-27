@@ -19,9 +19,9 @@ export default async function InsightsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Every day"
         title="Your trends"
         subtitle="Your own data, reflected gently back. Trends beat snapshots — especially on the hard days."
-       
       />
       <InsightsClient logs={logs} />
       <PeerSupportNote />

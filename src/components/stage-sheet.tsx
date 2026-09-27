@@ -82,7 +82,7 @@ export function StageSheet({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Map className="h-5 w-5 text-brand-300" />
-                  <h2 className="text-lg font-medium text-white">The stages</h2>
+                  <h2 className="card-title">The stages</h2>
                 </div>
                 <button
                   onClick={close}

@@ -513,12 +513,12 @@ export function PhotosClient({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="label">Date taken</label>
-                <input type="date" className="input" value={takenAt} max={dateKey()} onChange={(e) => setTakenAt(e.target.value)} />
+                <label htmlFor="photos-date-taken" className="label">Date taken</label>
+                <input id="photos-date-taken" type="date" className="input" value={takenAt} max={dateKey()} onChange={(e) => setTakenAt(e.target.value)} />
               </div>
               <div>
-                <label className="label">Area (optional)</label>
-                <select className="input" value={area} onChange={(e) => setArea(e.target.value)}>
+                <label htmlFor="photos-area-optional" className="label">Area (optional)</label>
+                <select id="photos-area-optional" className="input" value={area} onChange={(e) => setArea(e.target.value)}>
                   <option value="">Overall</option>
                   {zones.map((z) => (
                     <option key={z.id} value={z.id}>{z.label}</option>
@@ -526,8 +526,8 @@ export function PhotosClient({
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Caption (optional)</label>
-                <input className="input" value={caption} maxLength={500} onChange={(e) => setCaption(e.target.value)} placeholder="e.g. Day 3 of the flare calming down" />
+                <label htmlFor="photos-caption-optional" className="label">Caption (optional)</label>
+                <input id="photos-caption-optional" className="input" value={caption} maxLength={500} onChange={(e) => setCaption(e.target.value)} placeholder="e.g. Day 3 of the flare calming down" />
               </div>
               <div className="flex gap-2 sm:col-span-2">
                 <button onClick={upload} disabled={saving} className="btn-primary">
@@ -579,7 +579,7 @@ export function PhotosClient({
       ) : (
         byMonth.map(([month, items]) => (
           <div key={month}>
-            <h2 className="mb-3 text-sm font-medium uppercase tracking-widest text-slate-500">{month}</h2>
+            <h2 className="mb-3 section-label">{month}</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {items.map((p) => {
                 const pickIndex = compareMode ? compare.findIndex((c) => c.id === p.id) : -1;

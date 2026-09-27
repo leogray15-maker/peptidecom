@@ -29,6 +29,7 @@ export default function ArchivesPage() {
     <div>
       <ArchivesViewTracker />
       <PageHeader
+        eyebrow="Coming soon"
         title="The Archives"
         subtitle="The next chapter — for when recovery starts giving you room to think about more than skin."
       />

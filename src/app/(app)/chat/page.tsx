@@ -10,14 +10,14 @@ export default function ChatPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Community"
         title="Community chat"
         subtitle="The live conversation happens on WhatsApp — members only, moderated, real people."
-       
       />
 
       <div className="card flex flex-col items-center py-14 text-center">
-        <div className="grid h-14 w-14 place-items-center rounded-card bg-[#25D366]/15 text-[#25D366]">
-          <MessagesSquare className="h-7 w-7" />
+        <div className="icon-tile">
+          <MessagesSquare className="h-6 w-6" strokeWidth={1.75} aria-hidden />
         </div>
         <p className="mt-5 text-lg font-semibold text-white">Join the WhatsApp community</p>
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
@@ -29,7 +29,7 @@ export default function ChatPage() {
             href={invite}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn mt-6 bg-[#25D366] text-black hover:bg-[#1fb857]"
+            className="btn-primary mt-6 min-h-11"
           >
             Open the invite <ArrowRight className="h-4 w-4" />
           </a>

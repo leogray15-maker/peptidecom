@@ -41,7 +41,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
 
   return (
     <div className="card">
-      <h2 className="mb-3 font-medium text-white">Notes</h2>
+      <h2 className="mb-3 card-title">Notes</h2>
 
       <form
         onSubmit={async (e) => {
@@ -58,6 +58,7 @@ export function NotesPanel({ userId, notes }: { userId: string; notes: NoteItem[
         }}
       >
         <textarea
+          aria-label="Add a note — calls, context, anything future-you should know"
           className="input min-h-20"
           placeholder="Add a note — calls, context, anything future-you should know…"
           value={body}
